@@ -80,22 +80,113 @@ contract OnlySUAPPCounterTest is Test {
         assertEq(counter.suapp(), bob.addr);
     }
 
-    function test_PokeHappyPath() public {
+    function _createPoke(
+        address user,
+        address permittedSuapp,
+        uint256 deadline,
+        uint256 nonce
+    ) internal returns (uint8 v, bytes32 r, bytes32 s) {
         SigUtils.Poke memory poke = SigUtils.Poke({
-            user: alice.addr,
-            permittedSuapp: suapp,
-            deadline: 1 days,
-            nonce: 0
+            user: user,
+            permittedSuapp: permittedSuapp,
+            deadline: deadline,
+            nonce: nonce
         });
 
         bytes32 digest = sigUtils.getTypedDataHash(poke);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alice, digest);
+        return vm.sign(alice, digest);
+    }
+
+    function test_PokeHappyPath() public {
+        address user = alice.addr;
+        address permittedSuapp = suapp;
+        uint256 deadline = block.timestamp;
+        uint256 nonce = 0;
+
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(
+            user,
+            permittedSuapp,
+            deadline,
+            nonce
+        );
 
         vm.prank(suapp);
-        counter.poke(poke.user, poke.permittedSuapp, poke.deadline, v, r, s);
+        counter.poke(user, permittedSuapp, deadline, v, r, s);
 
         assertEq(counter.userPokes(alice.addr), 1);
         assertEq(counter.nonces(alice.addr), 1);
+    }
+
+    function test_PokeExipred() public {
+        address user = alice.addr;
+        address permittedSuapp = suapp;
+        uint256 deadline = block.timestamp - 1;
+        uint256 nonce = 0;
+
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(
+            user,
+            permittedSuapp,
+            deadline,
+            nonce
+        );
+
+        vm.expectRevert(OnlySUAPPCounter.PokeExpired.selector);
+        vm.prank(suapp);
+        counter.poke(user, permittedSuapp, deadline, v, r, s);
+    }
+
+    function test_PokeWrongSigner() public {
+        address user = alice.addr;
+        address permittedSuapp = suapp;
+        uint256 deadline = block.timestamp;
+        uint256 nonce = 0;
+
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(
+            user,
+            permittedSuapp,
+            deadline,
+            nonce
+        );
+
+        vm.expectRevert(OnlySUAPPCounter.WrongSigner.selector);
+        vm.prank(suapp);
+        counter.poke(bob.addr, permittedSuapp, deadline, v, r, s);
+    }
+
+    function test_PokeWrongNonce() public {
+        address user = alice.addr;
+        address permittedSuapp = suapp;
+        uint256 deadline = block.timestamp;
+        uint256 nonce = 100;
+
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(
+            user,
+            permittedSuapp,
+            deadline,
+            nonce
+        );
+
+        vm.expectRevert(OnlySUAPPCounter.WrongSigner.selector);
+        vm.prank(suapp);
+        counter.poke(alice.addr, permittedSuapp, deadline, v, r, s);
+    }
+
+    function test_PokeWrongSuapp() public {
+        address user = alice.addr;
+        address permittedSuapp = bob.addr;
+        uint256 deadline = block.timestamp;
+        uint256 nonce = 100;
+
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(
+            user,
+            permittedSuapp,
+            deadline,
+            nonce
+        );
+
+        vm.expectRevert(OnlySUAPPCounter.WrongSuapp.selector);
+        vm.prank(suapp);
+        counter.poke(alice.addr, permittedSuapp, deadline, v, r, s);
     }
 }
