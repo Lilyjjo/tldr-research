@@ -59,10 +59,8 @@ contract OnlySUAPPCounter is EIP712 {
 
     /**
      * @dev Initializes the contract setting the initial SUAPP and the owner to the sender.
-     * @param _suapp Address of the permitted SUAPP.
      */
-    constructor(address _suapp) EIP712("SuappCounter", "1") {
-        suapp = _suapp;
+    constructor() EIP712("SuappCounter", "1") {
         owner = msg.sender;
     }
 

@@ -24,7 +24,10 @@ contract OnlySUAPPCounterTest is Test {
 
         // deploy contract
         vm.prank(owner);
-        counter = new OnlySUAPPCounter(suapp);
+        counter = new OnlySUAPPCounter();
+
+        vm.prank(owner);
+        counter.setSuapp(suapp);
 
         // setup eip712 sig utils
         bytes32 TYPE_HASH = keccak256(
