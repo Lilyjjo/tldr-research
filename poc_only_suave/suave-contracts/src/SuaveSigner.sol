@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
-import {Suave} from "./SuaveLibrary/Suave.sol";
+import {Suave} from "./suave-imports/Suave.sol";
+import {RLPEncoder} from "./utils/RLPEncoder.sol";
+import "forge-std/console.sol";
 
 contract SuaveSigner {
     address public targetApp;
@@ -46,18 +48,15 @@ contract SuaveSigner {
         gasNeeded = gasNeeded_;
     }
 
-    // TODO: how to make sure callback is from us?
     function updateKeyCallback(
         Suave.BidId signingKeyBid_,
         uint256 keyNonce_
-    ) external {
+    ) external onlyOwner {
         signingKeyBid = signingKeyBid_;
         keyNonce = keyNonce_;
         emit UpdateKey(signingKeyBid);
     }
 
-    // example is a function executed in a confidential request that includes
-    // a callback that can modify the state.
     function setSigningKey(
         uint256 keyNonce_
     ) external view onlyOwner returns (bytes memory) {
@@ -91,21 +90,6 @@ contract SuaveSigner {
         gasPrice = abi.decode(output, (uint256));
     }
 
-    /*
-    class Transaction1559Payload:
-	chain_id: int = 0
-	signer_nonce: int = 0
-	max_priority_fee_per_gas: int = 0
-	max_fee_per_gas: int = 0
-	gas_limit: int = 0
-	destination: int = 0
-	amount: int = 0
-	payload: bytes = bytes()
-	access_list: List[Tuple[int, List[int]]] = field(default_factory=list)
-	signature_y_parity: bool = False
-	signature_r: int = 0
-	signature_s: int = 0
-    */
     function _rlpEncodeEIP1559Transaction(
         uint256 chainId_,
         uint256 keyNonce_,
@@ -113,9 +97,31 @@ contract SuaveSigner {
         uint256 maxFeePerGas,
         uint256 gasLimit,
         address destination,
-        bytes memory payload
+        uint256 amount,
+        bytes memory payload,
+        bytes memory accessList
     ) internal returns (bytes memory txn) {
-        // TODO
+        // transaction byte format can be found at: https://eips.ethereum.org/EIPS/eip-1559
+        bytes[] memory rlpEncodings = new bytes[](9);
+
+        rlpEncodings[0] = RLPEncoder._rlpEncodeUint(chainId_);
+        rlpEncodings[1] = RLPEncoder._rlpEncodeUint(keyNonce_);
+        rlpEncodings[2] = RLPEncoder._rlpEncodeUint(maxPriorityFeePerGas);
+        rlpEncodings[3] = RLPEncoder._rlpEncodeUint(maxFeePerGas);
+        rlpEncodings[4] = RLPEncoder._rlpEncodeUint(gasLimit);
+        rlpEncodings[5] = RLPEncoder._rlpEncodeAddress(destination);
+        rlpEncodings[6] = RLPEncoder._rlpEncodeUint(amount);
+        rlpEncodings[7] = RLPEncoder._rlpEncodeBytes(payload);
+        rlpEncodings[8] = RLPEncoder._rlpEncodeBytes(accessList);
+
+        bytes memory rlpTxn = RLPEncoder._rlpEncodeList(rlpEncodings);
+
+        txn = new bytes(1 + rlpTxn.length);
+        txn[0] = 0x02; // tx number for dynamic fee transactions
+
+        for (uint i = 0; i < rlpTxn.length; ++i) {
+            txn[i + 1] = rlpTxn[i];
+        }
     }
 
     function updateNonceCallback() external {
@@ -153,11 +159,13 @@ contract SuaveSigner {
         bytes memory txn = _rlpEncodeEIP1559Transaction(
             chainId,
             keyNonce,
-            gasPrice,
-            gasPrice,
-            gasNeeded,
+            gasPrice /* maxPriorityFeePerGas */,
+            gasPrice /* maxFeePerGas */,
+            gasNeeded * 2 /* gas limit */,
             targetApp,
-            targetCall
+            0 /* value */,
+            targetCall,
+            new bytes(0) /* access list */
         );
 
         // grab signing key
