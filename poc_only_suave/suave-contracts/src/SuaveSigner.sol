@@ -90,6 +90,14 @@ contract SuaveSigner {
         gasPrice = abi.decode(output, (uint256));
     }
 
+    function _getCurrentBlockNumber() internal view returns (uint256 gasPrice) {
+        bytes memory output = Suave.ethcall(
+            gasContract,
+            abi.encodeWithSignature("getBlockNum()")
+        );
+        gasPrice = abi.decode(output, (uint256));
+    }
+
     function _rlpEncodeEIP1559Transaction(
         uint256 chainId_,
         uint256 keyNonce_,
@@ -100,7 +108,7 @@ contract SuaveSigner {
         uint256 amount,
         bytes memory payload,
         bytes memory accessList
-    ) internal returns (bytes memory txn) {
+    ) internal pure returns (bytes memory txn) {
         // transaction byte format can be found at: https://eips.ethereum.org/EIPS/eip-1559
         bytes[] memory rlpEncodings = new bytes[](9);
 
@@ -122,6 +130,26 @@ contract SuaveSigner {
         for (uint i = 0; i < rlpTxn.length; ++i) {
             txn[i + 1] = rlpTxn[i];
         }
+    }
+
+    function _constructBundleData(
+        uint256 blockNum,
+        bytes memory txn
+    ) internal pure returns (bytes memory bundleData) {
+        // [{"txs":["txn"],"blockNumber" : "0xxxx"}]
+        bytes memory prelude = bytes('"[{"txs":["');
+        bytes memory middle = bytes('"],"blockNumber" : "0x');
+        bytes memory end = bytes('"}]');
+
+        // get bytes of number
+        uint bytesForNumber = RLPEncoder.fls(blockNum) / uint(8) + 1;
+        bytes memory compactNumber = new bytes(bytesForNumber);
+        for (uint i = 0; i < bytesForNumber; ++i) {
+            // casting to bytes32 has leading zeros in number, need to just grab non-zero bytes
+            compactNumber[bytesForNumber - i - 1] = bytes32(blockNum)[31 - i];
+        }
+
+        return bytes.concat(prelude, txn, middle, compactNumber, end);
     }
 
     function updateNonceCallback() external {
@@ -181,7 +209,13 @@ contract SuaveSigner {
         );
 
         // submit txn to builder to be included
-        Suave.submitBundleJsonRPC("rpcUrl", "method", "params");
+        uint256 currentBlockNum = _getCurrentBlockNumber();
+        bytes memory bundleData = _constructBundleData(
+            currentBlockNum + 2, // TODO idk what to set this to
+            txnSigned
+        );
+
+        Suave.submitBundleJsonRPC("", "eth_sendBundle", bundleData);
 
         // update signing nonce in callback
         return bytes.concat(this.updateNonceCallback.selector);
