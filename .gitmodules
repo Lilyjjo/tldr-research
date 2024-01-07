@@ -1,0 +1,9 @@
+[submodule "poc_v3_twap_auction_unsafe/lib/v3-core"]
+	path = poc_v3_twap_auction_unsafe/lib/v3-core
+	url = https://github.com/uniswap/v3-core
+[submodule "poc_v3_twap_auction_unsafe/lib/v3-periphery"]
+	path = poc_v3_twap_auction_unsafe/lib/v3-periphery
+	url = https://github.com/uniswap/v3-periphery
+[submodule "poc_v3_twap_auction_unsafe/lib/openzeppelin-contracts"]
+	path = poc_v3_twap_auction_unsafe/lib/openzeppelin-contracts
+	url = https://github.com/Openzeppelin/openzeppelin-contracts

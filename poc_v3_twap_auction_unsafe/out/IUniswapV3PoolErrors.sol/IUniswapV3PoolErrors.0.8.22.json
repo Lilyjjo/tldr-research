@@ -1,0 +1,437 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "name": "AI",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AS",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "F0",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "F1",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "IIA",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "L",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "LOK",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "M0",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "M1",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TLM",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TLU",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TUM",
+      "type": "error"
+    }
+  ],
+  "bytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "methodIdentifiers": {},
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.22+commit.4fc1097e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"AI\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AS\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"F0\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"F1\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"IIA\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"L\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LOK\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"M0\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"M1\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TLM\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TLU\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TUM\",\"type\":\"error\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"title\":\"Errors emitted by a pool\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Contains all events emitted by the pool\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolErrors.sol\":\"IUniswapV3PoolErrors\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":@uniswap/v3-core/contracts/=lib/v3-core/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/\",\":v3-core/=lib/v3-core/contracts/\",\":v3-periphery/=lib/v3-periphery/contracts/\"]},\"sources\":{\"lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolErrors.sol\":{\"keccak256\":\"0xf80abf13fb1fafc127ba4e792f240dd8ea7c8c893978cdfd8439c27fae9a037b\",\"license\":\"GPL-2.0-or-later\",\"urls\":[\"bzz-raw://b04fc72a656bbf3631e9c2e67b9870a2d9d235185e833fe050e9606e6816a9aa\",\"dweb:/ipfs/QmUcz4bkEkJ9pwzFu1C3n97hBQ3st9U6qTAqCdyFwddKco\"]}},\"version\":1}",
+  "metadata": {
+    "compiler": {
+      "version": "0.8.22+commit.4fc1097e"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "AI"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "AS"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "F0"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "F1"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "IIA"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "L"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "LOK"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "M0"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "M1"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "TLM"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "TLU"
+        },
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "TUM"
+        }
+      ],
+      "devdoc": {
+        "kind": "dev",
+        "methods": {},
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {},
+        "version": 1
+      }
+    },
+    "settings": {
+      "remappings": [
+        "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+        "@uniswap/v3-core/contracts/=lib/v3-core/contracts/",
+        "ds-test/=lib/forge-std/lib/ds-test/src/",
+        "forge-std/=lib/forge-std/src/",
+        "openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/",
+        "v3-core/=lib/v3-core/contracts/",
+        "v3-periphery/=lib/v3-periphery/contracts/"
+      ],
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "metadata": {
+        "bytecodeHash": "ipfs"
+      },
+      "compilationTarget": {
+        "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolErrors.sol": "IUniswapV3PoolErrors"
+      },
+      "libraries": {}
+    },
+    "sources": {
+      "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolErrors.sol": {
+        "keccak256": "0xf80abf13fb1fafc127ba4e792f240dd8ea7c8c893978cdfd8439c27fae9a037b",
+        "urls": [
+          "bzz-raw://b04fc72a656bbf3631e9c2e67b9870a2d9d235185e833fe050e9606e6816a9aa",
+          "dweb:/ipfs/QmUcz4bkEkJ9pwzFu1C3n97hBQ3st9U6qTAqCdyFwddKco"
+        ],
+        "license": "GPL-2.0-or-later"
+      }
+    },
+    "version": 1
+  },
+  "ast": {
+    "absolutePath": "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolErrors.sol",
+    "id": 45908,
+    "exportedSymbols": {
+      "IUniswapV3PoolErrors": [
+        45907
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "45:345:31",
+    "nodes": [
+      {
+        "id": 45881,
+        "nodeType": "PragmaDirective",
+        "src": "45:24:31",
+        "nodes": [],
+        "literals": [
+          "solidity",
+          ">=",
+          "0.5",
+          ".0"
+        ]
+      },
+      {
+        "id": 45907,
+        "nodeType": "ContractDefinition",
+        "src": "159:230:31",
+        "nodes": [
+          {
+            "id": 45884,
+            "nodeType": "ErrorDefinition",
+            "src": "196:12:31",
+            "nodes": [],
+            "errorSelector": "a1bf7886",
+            "name": "LOK",
+            "nameLocation": "202:3:31",
+            "parameters": {
+              "id": 45883,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "205:2:31"
+            }
+          },
+          {
+            "id": 45886,
+            "nodeType": "ErrorDefinition",
+            "src": "213:12:31",
+            "nodes": [],
+            "errorSelector": "2fe0284f",
+            "name": "TLU",
+            "nameLocation": "219:3:31",
+            "parameters": {
+              "id": 45885,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "222:2:31"
+            }
+          },
+          {
+            "id": 45888,
+            "nodeType": "ErrorDefinition",
+            "src": "230:12:31",
+            "nodes": [],
+            "errorSelector": "9ad612e8",
+            "name": "TLM",
+            "nameLocation": "236:3:31",
+            "parameters": {
+              "id": 45887,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "239:2:31"
+            }
+          },
+          {
+            "id": 45890,
+            "nodeType": "ErrorDefinition",
+            "src": "247:12:31",
+            "nodes": [],
+            "errorSelector": "d7b54ab1",
+            "name": "TUM",
+            "nameLocation": "253:3:31",
+            "parameters": {
+              "id": 45889,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "256:2:31"
+            }
+          },
+          {
+            "id": 45892,
+            "nodeType": "ErrorDefinition",
+            "src": "264:11:31",
+            "nodes": [],
+            "errorSelector": "9cc0b7f8",
+            "name": "AI",
+            "nameLocation": "270:2:31",
+            "parameters": {
+              "id": 45891,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "272:2:31"
+            }
+          },
+          {
+            "id": 45894,
+            "nodeType": "ErrorDefinition",
+            "src": "280:11:31",
+            "nodes": [],
+            "errorSelector": "748800af",
+            "name": "M0",
+            "nameLocation": "286:2:31",
+            "parameters": {
+              "id": 45893,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "288:2:31"
+            }
+          },
+          {
+            "id": 45896,
+            "nodeType": "ErrorDefinition",
+            "src": "296:11:31",
+            "nodes": [],
+            "errorSelector": "20e5672e",
+            "name": "M1",
+            "nameLocation": "302:2:31",
+            "parameters": {
+              "id": 45895,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "304:2:31"
+            }
+          },
+          {
+            "id": 45898,
+            "nodeType": "ErrorDefinition",
+            "src": "312:11:31",
+            "nodes": [],
+            "errorSelector": "03fff018",
+            "name": "AS",
+            "nameLocation": "318:2:31",
+            "parameters": {
+              "id": 45897,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "320:2:31"
+            }
+          },
+          {
+            "id": 45900,
+            "nodeType": "ErrorDefinition",
+            "src": "328:12:31",
+            "nodes": [],
+            "errorSelector": "ba0b951e",
+            "name": "IIA",
+            "nameLocation": "334:3:31",
+            "parameters": {
+              "id": 45899,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "337:2:31"
+            }
+          },
+          {
+            "id": 45902,
+            "nodeType": "ErrorDefinition",
+            "src": "345:10:31",
+            "nodes": [],
+            "errorSelector": "9f13f76d",
+            "name": "L",
+            "nameLocation": "351:1:31",
+            "parameters": {
+              "id": 45901,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "352:2:31"
+            }
+          },
+          {
+            "id": 45904,
+            "nodeType": "ErrorDefinition",
+            "src": "360:11:31",
+            "nodes": [],
+            "errorSelector": "f704e899",
+            "name": "F0",
+            "nameLocation": "366:2:31",
+            "parameters": {
+              "id": 45903,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "368:2:31"
+            }
+          },
+          {
+            "id": 45906,
+            "nodeType": "ErrorDefinition",
+            "src": "376:11:31",
+            "nodes": [],
+            "errorSelector": "e90c3493",
+            "name": "F1",
+            "nameLocation": "382:2:31",
+            "parameters": {
+              "id": 45905,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "384:2:31"
+            }
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "IUniswapV3PoolErrors",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 45882,
+          "nodeType": "StructuredDocumentation",
+          "src": "71:88:31",
+          "text": "@title Errors emitted by a pool\n @notice Contains all events emitted by the pool"
+        },
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [
+          45907
+        ],
+        "name": "IUniswapV3PoolErrors",
+        "nameLocation": "169:20:31",
+        "scope": 45908,
+        "usedErrors": [
+          45884,
+          45886,
+          45888,
+          45890,
+          45892,
+          45894,
+          45896,
+          45898,
+          45900,
+          45902,
+          45904,
+          45906
+        ],
+        "usedEvents": []
+      }
+    ],
+    "license": "GPL-2.0-or-later"
+  },
+  "id": 31
+}
