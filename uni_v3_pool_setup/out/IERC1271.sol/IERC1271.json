@@ -1,0 +1,305 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "isValidSignature",
+      "outputs": [
+        {
+          "internalType": "bytes4",
+          "name": "magicValue",
+          "type": "bytes4"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "methodIdentifiers": {
+    "isValidSignature(bytes32,bytes)": "1626ba7e"
+  },
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"hash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"isValidSignature\",\"outputs\":[{\"internalType\":\"bytes4\",\"name\":\"magicValue\",\"type\":\"bytes4\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Interface defined by EIP-1271\",\"kind\":\"dev\",\"methods\":{\"isValidSignature(bytes32,bytes)\":{\"details\":\"MUST return the bytes4 magic value 0x1626ba7e when function passes. MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5). MUST allow external calls.\",\"params\":{\"hash\":\"Hash of the data to be signed\",\"signature\":\"Signature byte array associated with _data\"},\"returns\":{\"magicValue\":\"The bytes4 magic value 0x1626ba7e\"}}},\"title\":\"Interface for verifying contract-based account signatures\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"isValidSignature(bytes32,bytes)\":{\"notice\":\"Returns whether the provided signature is valid for the provided data\"}},\"notice\":\"Interface that verifies provided signature for the data\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"lib/v3-periphery/contracts/interfaces/external/IERC1271.sol\":\"IERC1271\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":@uniswap/v3-core/contracts/=lib/v3-core/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/\",\":v3-core/=lib/v3-core/contracts/\",\":v3-periphery/=lib/v3-periphery/contracts/\"]},\"sources\":{\"lib/v3-periphery/contracts/interfaces/external/IERC1271.sol\":{\"keccak256\":\"0xfafb0a232f7410fa2fbcae4627e357dfa8f43a58dea6ba796d8bf5523c5c7b89\",\"license\":\"GPL-2.0-or-later\",\"urls\":[\"bzz-raw://f3877e40332b89fc7a14fa3266b4a2bd154725c322816a8985eabfbaeb6ab372\",\"dweb:/ipfs/QmVj7tjRKWdW9H6vhP2JTDgt82Pk8sGHEJHtJJwPqmgrRi\"]}},\"version\":1}",
+  "metadata": {
+    "compiler": {
+      "version": "0.8.15+commit.e14f2714"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "hash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "signature",
+              "type": "bytes"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "isValidSignature",
+          "outputs": [
+            {
+              "internalType": "bytes4",
+              "name": "magicValue",
+              "type": "bytes4"
+            }
+          ]
+        }
+      ],
+      "devdoc": {
+        "kind": "dev",
+        "methods": {
+          "isValidSignature(bytes32,bytes)": {
+            "details": "MUST return the bytes4 magic value 0x1626ba7e when function passes. MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5). MUST allow external calls.",
+            "params": {
+              "hash": "Hash of the data to be signed",
+              "signature": "Signature byte array associated with _data"
+            },
+            "returns": {
+              "magicValue": "The bytes4 magic value 0x1626ba7e"
+            }
+          }
+        },
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {
+          "isValidSignature(bytes32,bytes)": {
+            "notice": "Returns whether the provided signature is valid for the provided data"
+          }
+        },
+        "version": 1
+      }
+    },
+    "settings": {
+      "remappings": [
+        "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+        "@uniswap/v3-core/contracts/=lib/v3-core/contracts/",
+        "ds-test/=lib/forge-std/lib/ds-test/src/",
+        "forge-std/=lib/forge-std/src/",
+        "openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/",
+        "v3-core/=lib/v3-core/contracts/",
+        "v3-periphery/=lib/v3-periphery/contracts/"
+      ],
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "metadata": {
+        "bytecodeHash": "ipfs"
+      },
+      "compilationTarget": {
+        "lib/v3-periphery/contracts/interfaces/external/IERC1271.sol": "IERC1271"
+      },
+      "libraries": {}
+    },
+    "sources": {
+      "lib/v3-periphery/contracts/interfaces/external/IERC1271.sol": {
+        "keccak256": "0xfafb0a232f7410fa2fbcae4627e357dfa8f43a58dea6ba796d8bf5523c5c7b89",
+        "urls": [
+          "bzz-raw://f3877e40332b89fc7a14fa3266b4a2bd154725c322816a8985eabfbaeb6ab372",
+          "dweb:/ipfs/QmVj7tjRKWdW9H6vhP2JTDgt82Pk8sGHEJHtJJwPqmgrRi"
+        ],
+        "license": "GPL-2.0-or-later"
+      }
+    },
+    "version": 1
+  },
+  "ast": {
+    "absolutePath": "lib/v3-periphery/contracts/interfaces/external/IERC1271.sol",
+    "id": 12720,
+    "exportedSymbols": {
+      "IERC1271": [
+        12719
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "45:812:46",
+    "nodes": [
+      {
+        "id": 12707,
+        "nodeType": "PragmaDirective",
+        "src": "45:24:46",
+        "nodes": [],
+        "literals": [
+          "solidity",
+          ">=",
+          "0.5",
+          ".0"
+        ]
+      },
+      {
+        "id": 12719,
+        "nodeType": "ContractDefinition",
+        "src": "247:609:46",
+        "nodes": [
+          {
+            "id": 12718,
+            "nodeType": "FunctionDefinition",
+            "src": "748:106:46",
+            "nodes": [],
+            "documentation": {
+              "id": 12709,
+              "nodeType": "StructuredDocumentation",
+              "src": "272:471:46",
+              "text": "@notice Returns whether the provided signature is valid for the provided data\n @dev MUST return the bytes4 magic value 0x1626ba7e when function passes.\n MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5).\n MUST allow external calls.\n @param hash Hash of the data to be signed\n @param signature Signature byte array associated with _data\n @return magicValue The bytes4 magic value 0x1626ba7e"
+            },
+            "functionSelector": "1626ba7e",
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "isValidSignature",
+            "nameLocation": "757:16:46",
+            "parameters": {
+              "id": 12714,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 12711,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "782:4:46",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 12718,
+                  "src": "774:12:46",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 12710,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "774:7:46",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 12713,
+                  "mutability": "mutable",
+                  "name": "signature",
+                  "nameLocation": "801:9:46",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 12718,
+                  "src": "788:22:46",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes_memory_ptr",
+                    "typeString": "bytes"
+                  },
+                  "typeName": {
+                    "id": 12712,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "788:5:46",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "773:38:46"
+            },
+            "returnParameters": {
+              "id": 12717,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 12716,
+                  "mutability": "mutable",
+                  "name": "magicValue",
+                  "nameLocation": "842:10:46",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 12718,
+                  "src": "835:17:46",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes4",
+                    "typeString": "bytes4"
+                  },
+                  "typeName": {
+                    "id": 12715,
+                    "name": "bytes4",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "835:6:46",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes4",
+                      "typeString": "bytes4"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "834:19:46"
+            },
+            "scope": 12719,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "external"
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "IERC1271",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 12708,
+          "nodeType": "StructuredDocumentation",
+          "src": "71:176:46",
+          "text": "@title Interface for verifying contract-based account signatures\n @notice Interface that verifies provided signature for the data\n @dev Interface defined by EIP-1271"
+        },
+        "fullyImplemented": false,
+        "linearizedBaseContracts": [
+          12719
+        ],
+        "name": "IERC1271",
+        "nameLocation": "257:8:46",
+        "scope": 12720,
+        "usedErrors": []
+      }
+    ],
+    "license": "GPL-2.0-or-later"
+  },
+  "id": 46
+}
