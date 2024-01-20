@@ -7,3 +7,6 @@
 [submodule "uni_v3_pool_setup/lib/openzeppelin-contracts"]
 	path = uni_v3_pool_setup/lib/openzeppelin-contracts
 	url = https://github.com/Openzeppelin/openzeppelin-contracts
+[submodule "poc_only_suave/goerli-smart-contracts/lib/openzeppelin-contracts"]
+	path = poc_only_suave/goerli-smart-contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
