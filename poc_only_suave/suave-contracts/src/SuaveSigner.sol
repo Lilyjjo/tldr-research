@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
-import {Suave} from "./suave-imports/Suave.sol";
-import {RLPEncoder} from "./utils/RLPEncoder.sol";
+import {Suave} from "suave-std/suavelib/Suave.sol";
+import {Transactions} from "suave-std/Transactions.sol";
+import {Bundle} from "suave-std/protocols/Bundle.sol";
 import "forge-std/console.sol";
 
 contract SuaveSigner {
@@ -9,7 +10,7 @@ contract SuaveSigner {
     address public gasContract;
     address public owner;
 
-    Suave.BidId private signingKeyBid; // store is EDSCA key hex encoded without 0x prefix
+    Suave.DataId private signingKeyRecord; // store is EDSCA key hex encoded without 0x prefix
     string public chainIdString; // hex encoded string with 0x prefix
     uint256 public chainId;
     uint256 public gasNeeded;
@@ -18,7 +19,7 @@ contract SuaveSigner {
     error OnlyOwner();
     error NotEnoughGasFee();
 
-    event UpdateKey(Suave.BidId newKey);
+    event UpdateKey(Suave.DataId newKey);
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert OnlyOwner();
@@ -49,12 +50,12 @@ contract SuaveSigner {
     }
 
     function updateKeyCallback(
-        Suave.BidId signingKeyBid_,
+        Suave.DataId signingKeyBid_,
         uint256 keyNonce_
     ) external onlyOwner {
-        signingKeyBid = signingKeyBid_;
+        signingKeyRecord = signingKeyBid_;
         keyNonce = keyNonce_;
-        emit UpdateKey(signingKeyBid);
+        emit UpdateKey(signingKeyRecord);
     }
 
     function setSigningKey(
@@ -67,7 +68,7 @@ contract SuaveSigner {
         peekers[0] = address(this);
 
         // TODO: what do the decryption conditions mean?
-        Suave.Bid memory bid = Suave.newBid(
+        Suave.DataRecord memory bid = Suave.newDataRecord(
             10,
             peekers,
             peekers,
@@ -98,60 +99,7 @@ contract SuaveSigner {
         gasPrice = abi.decode(output, (uint256));
     }
 
-    function _rlpEncodeEIP1559Transaction(
-        uint256 chainId_,
-        uint256 keyNonce_,
-        uint256 maxPriorityFeePerGas,
-        uint256 maxFeePerGas,
-        uint256 gasLimit,
-        address destination,
-        uint256 amount,
-        bytes memory payload,
-        bytes memory accessList
-    ) internal pure returns (bytes memory txn) {
-        // transaction byte format can be found at: https://eips.ethereum.org/EIPS/eip-1559
-        bytes[] memory rlpEncodings = new bytes[](9);
-
-        rlpEncodings[0] = RLPEncoder._rlpEncodeUint(chainId_);
-        rlpEncodings[1] = RLPEncoder._rlpEncodeUint(keyNonce_);
-        rlpEncodings[2] = RLPEncoder._rlpEncodeUint(maxPriorityFeePerGas);
-        rlpEncodings[3] = RLPEncoder._rlpEncodeUint(maxFeePerGas);
-        rlpEncodings[4] = RLPEncoder._rlpEncodeUint(gasLimit);
-        rlpEncodings[5] = RLPEncoder._rlpEncodeAddress(destination);
-        rlpEncodings[6] = RLPEncoder._rlpEncodeUint(amount);
-        rlpEncodings[7] = RLPEncoder._rlpEncodeBytes(payload);
-        rlpEncodings[8] = RLPEncoder._rlpEncodeBytes(accessList);
-
-        bytes memory rlpTxn = RLPEncoder._rlpEncodeList(rlpEncodings);
-
-        txn = new bytes(1 + rlpTxn.length);
-        txn[0] = 0x02; // tx number for dynamic fee transactions
-
-        for (uint i = 0; i < rlpTxn.length; ++i) {
-            txn[i + 1] = rlpTxn[i];
-        }
-    }
-
-    function _constructBundleData(
-        uint256 blockNum,
-        bytes memory txn
-    ) internal pure returns (bytes memory bundleData) {
-        // [{"txs":["txn"],"blockNumber" : "0xxxx"}]
-        bytes memory prelude = bytes('"[{"txs":["');
-        bytes memory middle = bytes('"],"blockNumber" : "0x');
-        bytes memory end = bytes('"}]');
-
-        // get bytes of number
-        uint bytesForNumber = RLPEncoder.fls(blockNum) / uint(8) + 1;
-        bytes memory compactNumber = new bytes(bytesForNumber);
-        for (uint i = 0; i < bytesForNumber; ++i) {
-            // casting to bytes32 has leading zeros in number, need to just grab non-zero bytes
-            compactNumber[bytesForNumber - i - 1] = bytes32(blockNum)[31 - i];
-        }
-
-        return bytes.concat(prelude, txn, middle, compactNumber, end);
-    }
-
+    // TODO use guard functions from @halo3mic: https://github.com/halo3mic/suave-playground/blob/9afe269ab2da983ca7314b68fcad00134712f4c0/contracts/blockad/lib/ConfidentialControl.sol
     function updateNonceCallback() external {
         keyNonce++;
     }
@@ -184,38 +132,38 @@ contract SuaveSigner {
             s
         );
 
-        bytes memory txn = _rlpEncodeEIP1559Transaction(
-            chainId,
-            keyNonce,
-            gasPrice /* maxPriorityFeePerGas */,
-            gasPrice /* maxFeePerGas */,
-            gasNeeded * 2 /* gas limit */,
-            targetApp,
-            0 /* value */,
-            targetCall,
-            new bytes(0) /* access list */
-        );
+        // create transaction
+        Transactions.EIP155Request memory txn = Transactions.EIP155Request({
+            to: targetApp,
+            gas: gasNeeded,
+            gasPrice: gasPrice + 30,
+            value: 0,
+            nonce: keyNonce,
+            data: targetCall,
+            chainId: chainId
+        });
 
         // grab signing key
         string memory signingKey = string(
-            Suave.confidentialRetrieve(signingKeyBid, "keyData")
+            Suave.confidentialRetrieve(signingKeyRecord, "keyData")
         );
 
         // sign transaction with key
         bytes memory txnSigned = Suave.signEthTransaction(
-            txn,
+            Transactions.encodeRLP(txn),
             chainIdString,
             signingKey
         );
 
         // submit txn to builder to be included
         uint256 currentBlockNum = _getCurrentBlockNumber();
-        bytes memory bundleData = _constructBundleData(
-            currentBlockNum + 2, // TODO idk what to set this to
-            txnSigned
-        );
 
-        Suave.submitBundleJsonRPC("", "eth_sendBundle", bundleData);
+        Bundle.BundleObj memory bundle;
+        bundle.blockNumber = uint64(currentBlockNum + 2); // TODO idk what to set this to
+        bundle.txns = new bytes[](1);
+        bundle.txns[0] = txnSigned;
+
+        Bundle.sendBundle("https://relay-goerli.flashbots.net", bundle);
 
         // update signing nonce in callback
         return bytes.concat(this.updateNonceCallback.selector);
