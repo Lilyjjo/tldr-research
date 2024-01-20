@@ -13,3 +13,6 @@
 [submodule "poc_only_suave/suave-contracts/lib/suave-std"]
 	path = poc_only_suave/suave-contracts/lib/suave-std
 	url = https://github.com/flashbots/suave-std
+[submodule "suave_scripts/lib/suave-std"]
+	path = suave_scripts/lib/suave-std
+	url = https://github.com/flashbots/suave-std
