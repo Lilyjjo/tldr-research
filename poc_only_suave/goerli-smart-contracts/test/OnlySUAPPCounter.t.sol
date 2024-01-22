@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
 import {VmSafe} from "forge-std/Vm.sol";
-import {SigUtils} from "./utils/EIP712Helpers.t.sol";
+import {SigUtils} from "./utils/EIP712Helpers.sol";
 import {OnlySUAPPCounter} from "../src/OnlySUAPPCounter.sol";
 import "forge-std/console.sol";
 
