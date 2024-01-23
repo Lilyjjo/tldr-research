@@ -1,4 +1,10 @@
-# Only Suave Smart Contracts
+# Status
+
+Suave contracts are written but NOT tested. 
+Currently in process of writing foundry wrappers to make sending CCRs possible from foundry scripts. Should be done in ~week. 
+
+
+## Only Suave Smart Contract Deployments
 OnlySUAPPCounter: [0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9](https://goerli.etherscan.io/address/0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9) 
 
 ChainInfo: [0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C](https://goerli.etherscan.io/address/0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C)
