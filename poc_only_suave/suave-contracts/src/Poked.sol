@@ -9,7 +9,7 @@ import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.s
  * @notice This contract is designed to count 'pokes' from users, which can only be sequence through a specified SUAPP.
  * @author @lilyjjo
  */
-contract OnlySUAPPCounter is EIP712 {
+contract Poked is EIP712 {
     // Keeps track of the number of pokes per user.
     mapping(address => uint256) public userPokes;
     // Nonce for each user to ensure unique transactions.
@@ -31,7 +31,7 @@ contract OnlySUAPPCounter is EIP712 {
     // Event emitted when the SUAPP address is changed.
     event SuappChanged(address indexed _oldSuapp, address indexed _newSuapp);
     // Event emitted when a user is poked.
-    event Poked(address indexed _user, uint256 pokeCumulation);
+    event PokedEvent(address indexed _user, uint256 pokeCumulation);
 
     // Errors for various contract exceptions.
     error OnlyOwner();

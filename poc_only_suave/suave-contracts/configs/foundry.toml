@@ -1,14 +1,13 @@
 [profile.default]
-src = "src"
+src = "../src"
 out = "out"
-libs = ["lib"]
+libs = ["../lib"]
 ffi = true
-viaIR = true
 
 
 [rpc_endpoints]
-rigil = "https://rpc.rigil.suave.flashbots.net"
-goerli = "${GOERLI_RPC_URL}"
-testnet = "http://localhost:8545"
+suave-testnet = "http://localhost:8545"
+
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

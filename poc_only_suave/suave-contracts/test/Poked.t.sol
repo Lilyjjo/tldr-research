@@ -4,11 +4,11 @@ pragma solidity ^0.8.19;
 import {Test} from "forge-std/Test.sol";
 import {VmSafe} from "forge-std/Vm.sol";
 import {SigUtils} from "./utils/EIP712Helpers.sol";
-import {OnlySUAPPCounter} from "../src/OnlySUAPPCounter.sol";
+import {Poked} from "../src/Poked.sol";
 import "forge-std/console.sol";
 
-contract OnlySUAPPCounterTest is Test {
-    OnlySUAPPCounter counter;
+contract PokedTest is Test {
+    Poked counter;
     SigUtils sigUtils;
     address owner;
     address suapp;
@@ -24,7 +24,7 @@ contract OnlySUAPPCounterTest is Test {
 
         // deploy contract
         vm.prank(owner);
-        counter = new OnlySUAPPCounter();
+        counter = new Poked();
 
         vm.prank(owner);
         counter.setSuapp(suapp);
@@ -58,11 +58,11 @@ contract OnlySUAPPCounterTest is Test {
     }
 
     function test_ChangeOwner() public {
-        vm.expectRevert(OnlySUAPPCounter.OnlyOwner.selector);
+        vm.expectRevert(Poked.OnlyOwner.selector);
         counter.setOwner(bob.addr);
 
         vm.prank(owner);
-        vm.expectRevert(OnlySUAPPCounter.ZeroAddress.selector);
+        vm.expectRevert(Poked.ZeroAddress.selector);
         counter.setOwner(address(0));
 
         vm.prank(owner);
@@ -71,11 +71,11 @@ contract OnlySUAPPCounterTest is Test {
     }
 
     function test_ChangeSuapp() public {
-        vm.expectRevert(OnlySUAPPCounter.OnlyOwner.selector);
+        vm.expectRevert(Poked.OnlyOwner.selector);
         counter.setSuapp(bob.addr);
 
         vm.prank(owner);
-        vm.expectRevert(OnlySUAPPCounter.ZeroAddress.selector);
+        vm.expectRevert(Poked.ZeroAddress.selector);
         counter.setSuapp(address(0));
 
         vm.prank(owner);
@@ -134,7 +134,7 @@ contract OnlySUAPPCounterTest is Test {
             nonce
         );
 
-        vm.expectRevert(OnlySUAPPCounter.PokeExpired.selector);
+        vm.expectRevert(Poked.PokeExpired.selector);
         vm.prank(suapp);
         counter.poke(user, permittedSuapp, deadline, v, r, s);
     }
@@ -152,7 +152,7 @@ contract OnlySUAPPCounterTest is Test {
             nonce
         );
 
-        vm.expectRevert(OnlySUAPPCounter.WrongSigner.selector);
+        vm.expectRevert(Poked.WrongSigner.selector);
         vm.prank(suapp);
         counter.poke(bob.addr, permittedSuapp, deadline, v, r, s);
     }
@@ -170,7 +170,7 @@ contract OnlySUAPPCounterTest is Test {
             nonce
         );
 
-        vm.expectRevert(OnlySUAPPCounter.WrongSigner.selector);
+        vm.expectRevert(Poked.WrongSigner.selector);
         vm.prank(suapp);
         counter.poke(alice.addr, permittedSuapp, deadline, v, r, s);
     }
@@ -188,7 +188,7 @@ contract OnlySUAPPCounterTest is Test {
             nonce
         );
 
-        vm.expectRevert(OnlySUAPPCounter.WrongSuapp.selector);
+        vm.expectRevert(Poked.WrongSuapp.selector);
         vm.prank(suapp);
         counter.poke(alice.addr, permittedSuapp, deadline, v, r, s);
     }

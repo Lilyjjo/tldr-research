@@ -5,7 +5,7 @@ import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "suave-std/protocols/Bundle.sol";
 import "forge-std/console.sol";
 
-contract SuaveSigner {
+contract PokeRelayer {
     address public targetApp;
     address public gasContract;
     address public owner;
@@ -15,6 +15,10 @@ contract SuaveSigner {
     uint256 public chainId;
     uint256 public gasNeeded;
     uint256 private keyNonce;
+
+    uint256 ethCallCounter;
+    uint256 computedCounter;
+    uint256 pokedValue;
 
     error OnlyOwner();
     error NotEnoughGasFee();
@@ -102,6 +106,24 @@ contract SuaveSigner {
     // TODO use guard functions from @halo3mic: https://github.com/halo3mic/suave-playground/blob/9afe269ab2da983ca7314b68fcad00134712f4c0/contracts/blockad/lib/ConfidentialControl.sol
     function updateNonceCallback() external {
         keyNonce++;
+    }
+
+    function updateEthCall(uint256 value) external {
+        ethCallCounter++;
+        computedCounter = ethCallCounter * value;
+    }
+
+    function testEthCall() public returns (bytes memory) {
+        bytes memory output = Suave.ethcall(
+            gasContract,
+            abi.encodeWithSignature("testSlot()")
+        );
+        uint value = abi.decode(output, (uint256));
+        return bytes.concat(this.updateEthCall.selector, abi.encode(value));
+    }
+
+    function poke() public {
+        pokedValue++;
     }
 
     function newPokeBid(

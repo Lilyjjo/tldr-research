@@ -16,3 +16,6 @@
 [submodule "suave_scripts/lib/suave-std"]
 	path = suave_scripts/lib/suave-std
 	url = https://github.com/flashbots/suave-std
+[submodule "poc_only_suave/suave-contracts/lib/openzeppelin-contracts"]
+	path = poc_only_suave/suave-contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

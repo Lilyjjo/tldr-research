@@ -1,61 +1,54 @@
-# Status
+## Note:
 
-Suave contracts are written but NOT tested. 
-Currently in process of writing foundry wrappers to make sending CCRs possible from foundry scripts. Should be done in ~week. 
+The contracts are **not** fully tested. Currently they can be deployed and poked, but their main functionality is not finished. This is next on my TODO list. :)
 
+# Smart Contract Deployments
+Poked (Goerli): [0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C](https://goerli.etherscan.io/address/0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C) 
 
-## Only Suave Smart Contract Deployments
-OnlySUAPPCounter: [0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9](https://goerli.etherscan.io/address/0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9) 
+ChainInfo (Goerli): [0x5941218c1D4FA0f25611D6c71Fe3bd966f6bbE2b](https://goerli.etherscan.io/address/0x5941218c1D4FA0f25611D6c71Fe3bd966f6bbE2b)
 
-ChainInfo: [0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C](https://goerli.etherscan.io/address/0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C)
+PokeRelayer (Suapp): [0xEB2629402890d732330bB025BE4968b07EcF6B7b](https://explorer.rigil.suave.flashbots.net/address/0xEB2629402890d732330bB025BE4968b07EcF6B7b)
 
-Suapp: [0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9](https://explorer.rigil.suave.flashbots.net/address/0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9)
+## Deployment Steps
+To deploy/interact with the contracts:
+1. Fill out the .env file with the needed variables. Note: some of the variables can only be obtained by running the script.
+2. Run the desired script function by running the terminal command above the function.
 
-## Deploy commands
-How to deploy goerli smart contracts:
+Recommended order of running due to script-generated address dependencies:
+1. deployGoerliContracts() 
+2. deployPokeRelayer()
+3. setSigningKey()
 
-OnlySUAPPCounter:
+For example, running the command above the setSigningKey() funciton will send a CCR to the configured suave endpoint: 
 ```
-forge create --rpc-url xxx \
-    --private-key xxx \
-    --etherscan-api-key xxx \
-    --verify \
-    src/OnlySUAPPCounter.sol:OnlySUAPPCounter
+ /**
+    forge script \
+    script/Interactions.s.sol:Interactions \
+    --rpc-url rigil \
+    --sig "setSigningKey(uint256)" 1 \
+    -vv \
+    --via-ir    
+     */
+    function setSigningKey(uint256 signingKeyNonce) public {
+        bytes memory confidentialInputs = abi.encode(suappStoredPrivateKey);
+        bytes memory targetCall = abi.encodeWithSignature(
+            "setSigningKey(uint256)",
+            signingKeyNonce
+        );
+        uint64 nonce = vm.getNonce(suaveUserAddress);
+        address suapp = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
+
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: suaveUserPrivateKey,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: suapp,
+            gas: 1000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: address(kettleAddress),
+            chainId: uint256(0x01008C45)
+        });
+    }
 ```
-
-ChainInfo:
-
-```
-forge create --rpc-url xxx \
-    --private-key xxx \
-    --etherscan-api-key xxx \
-    --verify \
-    src/ChainInfo.sol:ChainInfo
-```
-
-
-How to deploy SUAVE contracts:
-
-SuaveSigner:
-```
-forge create --rpc-url https://rpc.rigil.suave.flashbots.net --legacy \
---constructor-args 0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9 0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C 5 "0x05" 2000000 \
---private-key xxx ./src/SuaveSigner.sol:SuaveSigner
-```
-
-## Contract Poking Commands
-OnlySUAPPCounter : set suapp
-```
-cast send \
---private-key xxx \
---legacy \
---rpc-url xxx \
-0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9 \
-"setSuapp(address)" "0x033FF54B2A7C70EeCB8976d910C055fAf952078a"
-```
-
-SuaveSigner:
-
-Confidential Compute Request:
-
-Non-CCR:
