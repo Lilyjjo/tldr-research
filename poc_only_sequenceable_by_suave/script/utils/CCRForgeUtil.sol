@@ -5,10 +5,18 @@ import {Script} from "forge-std/Script.sol";
 import {RLPEncoder} from "./RLPEncoder.sol";
 import "forge-std/console.sol";
 
+/**
+ * @title CCRForgeUtil
+ * @author @lilyjjo
+ * @dev A utility contract for creating and sending Confidential Compute Requests in a Forge environment.
+ */
 contract CCRForgeUtil is Script {
     bytes1 constant CONFIDENTIAL_COMPUTE_RECORD_TYPE = 0x42;
     bytes1 constant CONFIDENTIAL_COMPUTE_REQUEST_TYPE = 0x43;
 
+    /**
+     * @dev Struct to hold the data of a Confidential Compute Record.
+     */
     struct ConfidentialComputeRecordData {
         uint64 nonce;
         address to;
@@ -20,6 +28,9 @@ contract CCRForgeUtil is Script {
         uint256 chainId;
     }
 
+    /**
+     * @dev Struct to represent a Confidential Compute Request.
+     */
     struct ConfidentialComputeRequest {
         ConfidentialComputeRecordData ccrD;
         bytes confidentialInputs;
@@ -29,10 +40,23 @@ contract CCRForgeUtil is Script {
         bytes32 s;
     }
 
+    /**
+     * @dev Create and send a Confidential Compute Record (CCR) to the specified chain.
+     * @param signingPrivateKey Private key for signing the CCR.
+     * @param confidentialInputs Confidential inputs for use in the transaction.
+     * @param targetCall Which function+args to call on 'to'.
+     * @param nonce Nonce of the signingPrivateKey.
+     * @param to Target address on Suave chain.
+     * @param gas Gas limit for the transaction.
+     * @param gasPrice Gas price.
+     * @param value Value in wei to send with the transaction.
+     * @param executionNode Address of the execution node.
+     * @param chainId ID of the blockchain.
+     */
     function createAndSendCCR(
         uint256 signingPrivateKey,
-        bytes calldata confidentialInputs,
-        bytes calldata targetCall,
+        bytes memory confidentialInputs,
+        bytes memory targetCall,
         uint64 nonce,
         address to,
         uint256 gas,
@@ -41,8 +65,9 @@ contract CCRForgeUtil is Script {
         address executionNode,
         uint256 chainId
     ) public {
-        CCRForgeUtil.ConfidentialComputeRecordData memory ccrD = CCRForgeUtil
-            .ConfidentialComputeRecordData({
+        CCRForgeUtil.ConfidentialComputeRecordData memory ccrD;
+        {
+            ccrD = CCRForgeUtil.ConfidentialComputeRecordData({
                 nonce: nonce,
                 to: to,
                 gas: gas,
@@ -52,6 +77,7 @@ contract CCRForgeUtil is Script {
                 executionNode: address(executionNode),
                 chainId: chainId
             });
+        }
 
         bytes memory ccr = ccrdToRLPEncodedCCR(
             ccrD,
@@ -61,18 +87,31 @@ contract CCRForgeUtil is Script {
         sendCCR(ccr);
     }
 
+    /**
+     * @dev Send the encoded Confidential Compute Request to the environment's RPC.
+     * @notice This function will cause scripts to revert even when the CCR is successfully sent.
+     * @param rlpCCR The RLP encoded CCR data.
+     */
     function sendCCR(bytes memory rlpCCR) public {
         string memory params = string(
             abi.encodePacked('["', vm.toString(rlpCCR), '"]')
         );
-        bytes memory result = vm.rpc("eth_sendRawTransaction", params);
+        // note: will revert even on successful calls
+        vm.rpc("eth_sendRawTransaction", params);
     }
 
+    /**
+     * @dev Convert a ConfidentialComputeRecordData to RLP encoded CCR.
+     * @param ccrD The ConfidentialComputeRecordData.
+     * @param confidentialInputs Confidential inputs for the CCR.
+     * @param signingPrivateKey Private key for signing the CCR.
+     * @return rlpEncodedCCR RLP encoded CCR, ready for broadcast.
+     */
     function ccrdToRLPEncodedCCR(
         ConfidentialComputeRecordData memory ccrD,
         bytes memory confidentialInputs,
         uint256 signingPrivateKey
-    ) public view returns (bytes memory rlpEncodedCCR) {
+    ) public pure returns (bytes memory rlpEncodedCCR) {
         ConfidentialComputeRequest memory ccr = createCCR(
             ccrD,
             confidentialInputs,
@@ -81,11 +120,18 @@ contract CCRForgeUtil is Script {
         return _rlpEncodeCCR(ccr);
     }
 
+    /**
+     * @dev Create a Confidential Compute Request.
+     * @param ccrD The ConfidentialComputeRecordData.
+     * @param confidentialInputs Confidential inputs for the CCR.
+     * @param signingPrivateKey Private key for signing the CCR.
+     * @return ccr ConfidentialComputeRequest.
+     */
     function createCCR(
         ConfidentialComputeRecordData memory ccrD,
         bytes memory confidentialInputs,
         uint256 signingPrivateKey
-    ) public view returns (ConfidentialComputeRequest memory ccr) {
+    ) public pure returns (ConfidentialComputeRequest memory ccr) {
         ccr.ccrD = ccrD;
         ccr.confidentialInputs = confidentialInputs;
         ccr.confidentialInputsHash = keccak256(confidentialInputs);
@@ -103,10 +149,16 @@ contract CCRForgeUtil is Script {
         ccr.s = s;
     }
 
+    /**
+     * @dev Internal function to RLP encode a ConfidentialComputeRecordData.
+     * @param ccrD The ConfidentialComputeRecordData to encode.
+     * @param confidentialInputHash Hash of the confidential inputs.
+     * @return rlpEncodedCCRD The RLP encoded ConfidentialComputeRecordData.
+     */
     function _rlpEncodeCCRD(
         ConfidentialComputeRecordData memory ccrD,
         bytes32 confidentialInputHash
-    ) internal view returns (bytes memory rlpEncodedCCRD) {
+    ) internal pure returns (bytes memory rlpEncodedCCRD) {
         bytes[] memory rlpEncodings = new bytes[](8);
 
         rlpEncodings[0] = RLPEncoder._rlpEncodeAddress(ccrD.executionNode);
@@ -130,9 +182,15 @@ contract CCRForgeUtil is Script {
         }
     }
 
+    /**
+     * @dev Internal function to RLP encode a ConfidentialComputeRequest.
+     * @dev The results of this function are ready to be broadcasted.
+     * @param ccr The ConfidentialComputeRequest to encode.
+     * @return rlpEncodedCCRCI The RLP encoded ConfidentialComputeRequest and Confidential Inputs.
+     */
     function _rlpEncodeCCR(
         ConfidentialComputeRequest memory ccr
-    ) internal view returns (bytes memory rlpEncodedCCRCI) {
+    ) internal pure returns (bytes memory rlpEncodedCCRCI) {
         // step 1: encode the CCR data
         bytes[] memory rlpEncodingsCCR = new bytes[](12);
         rlpEncodingsCCR[0] = RLPEncoder._rlpEncodeUint(ccr.ccrD.nonce);

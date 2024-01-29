@@ -60,8 +60,7 @@ contract Interactions is Script {
     --sig "deployGoerliContracts()" \
     --broadcast \
     --legacy \
-    -vv \
-    --via-ir    
+    -vv
      */
     function deployGoerliContracts() public {
         vm.startBroadcast(goerliPrivateKey);
@@ -78,13 +77,12 @@ contract Interactions is Script {
     forge script \
     script/Interactions.s.sol:Interactions \
     --rpc-url rigil \
-    --sig "deployPokeRelayer()" \
+    --sig "deploySuavePokeRelayer()" \
     --broadcast \
     --legacy \
-    -vv \
-    --via-ir    
+    -vv 
      */
-    function deployPokeRelayer() public {
+    function deploySuavePokeRelayer() public {
         vm.startBroadcast(suaveUserPrivateKey);
         PokeRelayer pokeRelayer = new PokeRelayer(
             pokedGoerli,
@@ -93,7 +91,7 @@ contract Interactions is Script {
             chainIdStringGoerli,
             gasNeeded
         );
-        console2.log("address: ");
+        console2.log("addresss: ");
         console2.log(address(pokeRelayer));
         vm.stopBroadcast();
     }
@@ -103,8 +101,7 @@ contract Interactions is Script {
     script/Interactions.s.sol:Interactions \
     --rpc-url rigil \
     --sig "testEthCall()" 1 \
-    -vv \
-    --via-ir    
+    -vv
      */
     function testEthCall() public {
         // setup data for confidential compute request
@@ -133,8 +130,7 @@ contract Interactions is Script {
     script/Interactions.s.sol:Interactions \
     --rpc-url rigil \
     --sig "setSigningKey(uint256)" 1 \
-    -vv \
-    --via-ir    
+    -vv  
      */
     function setSigningKey(uint256 signingKeyNonce) public {
         // setup data for confidential compute request
@@ -163,10 +159,9 @@ contract Interactions is Script {
     /** 
         forge script \
         script/Interactions.s.sol:Interactions \
-        --sig "grabValueKeyNonce()" \
-        -vv \
         --rpc-url rigil \
-        --via-ir 
+        --sig "grabValueKeyNonce()" \
+        -vv 
      */
     function grabValueKeyNonce() public {
         address suaveSigner = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
@@ -177,10 +172,9 @@ contract Interactions is Script {
     /** 
         forge script \
         script/Interactions.s.sol:Interactions \
-        --sig "grabValueEthCall()" \
-        -vv \
         --rpc-url rigil \
-        --via-ir 
+        --sig "grabValueEthCall()" \
+        -vv 
      */
     function grabValueEthCall() public {
         address suaveSigner = vm.envAddress("DEPLOYED_SUAVE_SUAPP");

@@ -1,10 +1,9 @@
 # Only Sequenceable By Suave Proof of Concept
-This folder is designed to show a L1 smart contract which has a portion of its sequencing controlled by a Suave app.
+This proof of concept is designed to show a L1 smart contract that has portions of its functionality sequenced by Suave. 
 
 Contracts include:
-- Poked: A smart contract on Goerli that can receive EIP712 messages signed by users. Only the Suapp is allowed to submit these messages.
-- PokeRelayer: A smart contract on Rigil that can relay EIP712 messages for users.
-- GoerliChainInfo: A smart contract on Goerli used to gather chain state for the Suapp.
+- Poked: A smart contract on Goerli that can receive EIP712 messages signed by users. Only a specified suapp is allowed to submit these messages to the Goerli contract.
+- PokeRelayer: A suapp on Rigil that can relay EIP712 messages for users.
 
 
 **Note:** The contracts are **not** fully tested. Currently they can be deployed and have some functionality played with, but their main functionality is not finished. This is next on my TODO list. :)
@@ -22,11 +21,11 @@ To deploy/interact with the contracts:
 2. Run the desired script function by running the terminal command above the function.
 
 Recommended order of running due to script-generated address dependencies:
-1. deployGoerliContracts() 
-2. deployPokeRelayer()
+1. `deployGoerliContracts()` 
+2. `deployPokeRelayer()`
 3. setSigningKey()
 
-For example, running the command above the setSigningKey() funciton will send a CCR to the configured suave endpoint: 
+For example, running the command above the `setSigningKey()` function will send a CCR to the configured suave endpoint: 
 ```
  /**
     forge script \
