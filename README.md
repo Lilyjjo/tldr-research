@@ -11,3 +11,5 @@ SUAVE PoCs in progress of being written:
 - AMM which is sequenced with Matheus’s [Greedy Algorithm](https://arxiv.org/pdf/2209.15569.pdf) AMM sequencing rules [not started]
 - AMM combining first swap and greedy rules [not started]
 
+poc_only_sequenceable_by_suave
+
