@@ -12,6 +12,7 @@ Contracts include:
 Poked (Goerli): [0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C](https://goerli.etherscan.io/address/0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C) 
 
 ChainInfo (Goerli): [0x5941218c1D4FA0f25611D6c71Fe3bd966f6bbE2b](https://goerli.etherscan.io/address/0x5941218c1D4FA0f25611D6c71Fe3bd966f6bbE2b)
+- note: is going to be refactored out 
 
 PokeRelayer (Suapp): [0xEB2629402890d732330bB025BE4968b07EcF6B7b](https://explorer.rigil.suave.flashbots.net/address/0xEB2629402890d732330bB025BE4968b07EcF6B7b)
 
@@ -23,7 +24,7 @@ To deploy/interact with the contracts:
 Recommended order of running due to script-generated address dependencies:
 1. `deployGoerliContracts()` 
 2. `deployPokeRelayer()`
-3. setSigningKey()
+3. `setSigningKey()`
 
 For example, running the command above the `setSigningKey()` function will send a CCR to the configured suave endpoint: 
 ```
