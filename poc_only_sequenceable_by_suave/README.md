@@ -4,17 +4,17 @@ This proof of concept is designed to show a L1 smart contract that has portions 
 Contracts include:
 - Poked: A smart contract on Goerli that can receive EIP712 messages signed by users. Only a specified suapp is allowed to submit these messages to the Goerli contract.
 - PokeRelayer: A suapp on Rigil that can relay EIP712 messages for users.
+- GoerliChainInfo: A smart contrat on Goerli for grabbing the most recent block number
 
 
 **Note:** The contracts are **not** fully tested. Currently they can be deployed and have some functionality played with, but their main functionality is not finished. This is next on my TODO list. :)
 
 # Smart Contract Deployments
-Poked (Goerli): [0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C](https://goerli.etherscan.io/address/0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C) 
+Poked (Goerli): [0x2A132cF9081Ea3ca191A13CA5E5d208f428601DE](https://goerli.etherscan.io/address/0x2A132cF9081Ea3ca191A13CA5E5d208f428601DE) 
 
-ChainInfo (Goerli): [0x5941218c1D4FA0f25611D6c71Fe3bd966f6bbE2b](https://goerli.etherscan.io/address/0x5941218c1D4FA0f25611D6c71Fe3bd966f6bbE2b)
-- note: is going to be refactored out 
+ChainInfo (Goerli): [0x6364d403fAe57403f924548849a2a40187a27709](https://goerli.etherscan.io/address/0x6364d403fAe57403f924548849a2a40187a27709)
 
-PokeRelayer (Suapp): [0xEB2629402890d732330bB025BE4968b07EcF6B7b](https://explorer.rigil.suave.flashbots.net/address/0xEB2629402890d732330bB025BE4968b07EcF6B7b)
+PokeRelayer (Suapp): [0x95EC884355E4C9ea64825661c4BAf6F29Ea23da9](https://explorer.rigil.suave.flashbots.net/address/0x95EC884355E4C9ea64825661c4BAf6F29Ea23da9)
 
 ## Deployment Steps
 To deploy/interact with the contracts:

@@ -3,11 +3,11 @@ src = "src"
 out = "out"
 libs = ["lib"]
 ffi = true
-
+etherscan_api_key = "${ETHERSCAN_KEY}"
 
 [rpc_endpoints]
+local = "http://127.0.0.1:8545"
 rigil = "https://rpc.rigil.suave.flashbots.net"
 goerli = "${GOERLI_RPC_URL}"
-testnet = "http://localhost:8545"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

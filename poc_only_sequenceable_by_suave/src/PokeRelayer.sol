@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 import {Suave} from "suave-std/suavelib/Suave.sol";
 import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "suave-std/protocols/Bundle.sol";
+import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
 import "forge-std/console.sol";
 
 contract PokeRelayer {
@@ -16,9 +17,7 @@ contract PokeRelayer {
     uint256 public gasNeeded;
     uint256 private keyNonce;
 
-    uint256 ethCallCounter;
-    uint256 computedCounter;
-    uint256 pokedValue;
+    event SignedTxn(bytes signedTxn);
 
     error OnlyOwner();
     error NotEnoughGasFee();
@@ -95,35 +94,17 @@ contract PokeRelayer {
         gasPrice = abi.decode(output, (uint256));
     }
 
-    function _getCurrentBlockNumber() internal view returns (uint256 gasPrice) {
+    function _getCurrentBlockNumber() internal view returns (uint256 blockNum) {
         bytes memory output = Suave.ethcall(
             gasContract,
             abi.encodeWithSignature("getBlockNum()")
         );
-        gasPrice = abi.decode(output, (uint256));
+        blockNum = abi.decode(output, (uint256));
     }
 
     // TODO use guard functions from @halo3mic: https://github.com/halo3mic/suave-playground/blob/9afe269ab2da983ca7314b68fcad00134712f4c0/contracts/blockad/lib/ConfidentialControl.sol
     function updateNonceCallback() external {
         keyNonce++;
-    }
-
-    function updateEthCall(uint256 value) external {
-        ethCallCounter++;
-        computedCounter = ethCallCounter * value;
-    }
-
-    function testEthCall() public returns (bytes memory) {
-        bytes memory output = Suave.ethcall(
-            gasContract,
-            abi.encodeWithSignature("testSlot()")
-        );
-        uint value = abi.decode(output, (uint256));
-        return bytes.concat(this.updateEthCall.selector, abi.encode(value));
-    }
-
-    function poke() public {
-        pokedValue++;
     }
 
     function newPokeBid(
@@ -134,14 +115,16 @@ contract PokeRelayer {
         bytes32 r,
         bytes32 s
     ) public payable returns (bytes memory) {
-        require(Suave.isConfidential());
+        //require(Suave.isConfidential());
 
         // require user sends in enough gas to cover cost
-        uint256 gasPrice = _getCurrentGasPrice();
-        uint256 gasFee = gasNeeded * gasPrice;
-        if (gasFee < msg.value) {
-            revert NotEnoughGasFee();
-        }
+        // TODO: is not working
+        //uint256 gasPrice = _getCurrentGasPrice();
+        //uint256 gasFee = gasNeeded * gasPrice;
+        //if (gasFee < msg.value) {
+        //    revert NotEnoughGasFee();
+        //}
+        uint256 gasPrice = 20; // goerli sits around 10 gwei
 
         // create tx to sign with private key
         bytes memory targetCall = abi.encodeWithSignature(
@@ -158,7 +141,7 @@ contract PokeRelayer {
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
             to: targetApp,
             gas: gasNeeded,
-            gasPrice: gasPrice + 30,
+            gasPrice: gasPrice + 60,
             value: 0,
             nonce: keyNonce,
             data: targetCall,
@@ -166,27 +149,35 @@ contract PokeRelayer {
         });
 
         // grab signing key
-        string memory signingKey = string(
-            Suave.confidentialRetrieve(signingKeyRecord, "keyData")
+        uint256 signingKey_ = uint256(
+            bytes32(Suave.confidentialRetrieve(signingKeyRecord, "keyData"))
         );
+
+        bytes memory txRLP = Transactions.encodeRLP(txn);
 
         // sign transaction with key
         bytes memory txnSigned = Suave.signEthTransaction(
-            Transactions.encodeRLP(txn),
-            chainIdString,
-            signingKey
+            txRLP,
+            LibString.toMinimalHexString(chainId),
+            LibString.toHexStringNoPrefix(signingKey_)
         );
 
         // submit txn to builder to be included
         uint256 currentBlockNum = _getCurrentBlockNumber();
 
-        Bundle.BundleObj memory bundle;
-        bundle.blockNumber = uint64(currentBlockNum + 2); // TODO idk what to set this to
-        bundle.txns = new bytes[](1);
-        bundle.txns[0] = txnSigned;
+        for (uint i = 0; i < 20; i++) {
+            Bundle.BundleObj memory bundle;
+            bundle.blockNumber = uint64(currentBlockNum + i); // TODO idk what to set this to
+            bundle.txns = new bytes[](1);
+            bundle.txns[0] = txnSigned;
+            Bundle.sendBundle("https://relay-goerli.flashbots.net", bundle);
 
-        Bundle.sendBundle("https://relay-goerli.flashbots.net", bundle);
-
+            // simulate bundle and revert if it fails
+            uint64 simResult = Suave.simulateBundle(
+                Bundle.encodeBundle(bundle).body
+            );
+            require(simResult == 0, "sim failed");
+        }
         // update signing nonce in callback
         return bytes.concat(this.updateNonceCallback.selector);
     }
