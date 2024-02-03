@@ -40,6 +40,7 @@ contract Poked is EIP712 {
     error PokeExpired();
     error WrongSigner();
     error ZeroAddress();
+    error WrongNonce(uint256 input, uint256 expected);
 
     /**
      * @dev Ensures the caller is the specified SUAPP.
@@ -84,12 +85,14 @@ contract Poked is EIP712 {
         address user,
         address permittedSuapp,
         uint256 deadline,
+        uint256 nonce,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public virtual onlySuapp {
         if (permittedSuapp != suapp) revert WrongSuapp();
         if (block.timestamp > deadline) revert PokeExpired();
+        if (nonce != nonces[user]) revert WrongNonce(nonce, nonces[user]);
 
         bytes32 structHash = keccak256(
             abi.encode(

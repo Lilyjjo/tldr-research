@@ -11,11 +11,11 @@ contract PokeRelayer {
     address public gasContract;
     address public owner;
 
-    Suave.DataId private signingKeyRecord; // store is EDSCA key hex encoded without 0x prefix
-    string public chainIdString; // hex encoded string with 0x prefix
+    Suave.DataId public signingKeyRecord;
+    Suave.DataId public ethGoerliUrlRecord; 
     uint256 public chainId;
     uint256 public gasNeeded;
-    uint256 private keyNonce;
+    uint256 public keyNonce;
 
     event SignedTxn(bytes signedTxn);
 
@@ -33,14 +33,12 @@ contract PokeRelayer {
         address targetApp_,
         address gasContract_,
         uint256 chainId_,
-        string memory chainIdString_,
         uint256 gasNeeded_
     ) {
         owner = msg.sender;
         targetApp = targetApp_;
         gasContract = gasContract_;
         chainId = chainId_;
-        chainIdString = chainIdString_;
         gasNeeded = gasNeeded_;
     }
 
@@ -55,7 +53,7 @@ contract PokeRelayer {
     function updateKeyCallback(
         Suave.DataId signingKeyBid_,
         uint256 keyNonce_
-    ) external onlyOwner {
+    ) external {
         signingKeyRecord = signingKeyBid_;
         keyNonce = keyNonce_;
         emit UpdateKey(signingKeyRecord);
@@ -86,6 +84,34 @@ contract PokeRelayer {
             );
     }
 
+    function updateGoerliUrl(
+        Suave.DataId goerliKeyId
+    ) external onlyOwner {
+        ethGoerliUrlRecord = goerliKeyId;
+    }
+
+    function setGoerliUrl() external view onlyOwner returns (bytes memory) {
+        require(Suave.isConfidential());
+        bytes memory keyData = Suave.confidentialInputs();
+
+        address[] memory peekers = new address[](1);
+        peekers[0] = address(this);
+
+        // TODO: what do the decryption conditions mean?
+        Suave.DataRecord memory bid = Suave.newDataRecord(
+            10,
+            peekers,
+            peekers,
+            "SuaveSigner"
+        );
+        Suave.confidentialStore(bid.id, "urlData", keyData);
+
+        return
+            bytes.concat(
+                this.updateGoerliUrl.selector, abi.encode(bid.id)
+            );
+    }
+
     function _getCurrentGasPrice() internal view returns (uint256 gasPrice) {
         bytes memory output = Suave.ethcall(
             gasContract,
@@ -111,27 +137,27 @@ contract PokeRelayer {
         address user,
         address permittedSuapp,
         uint256 deadline,
+        uint256 nonce,
         uint8 v,
         bytes32 r,
-        bytes32 s
+        bytes32 s,
+        uint256 gasPrice
     ) public payable returns (bytes memory) {
-        //require(Suave.isConfidential());
+        // grab signing key
+        uint256 signingKey = uint256(
+            bytes32(Suave.confidentialRetrieve(signingKeyRecord, "keyData"))
+        );
 
-        // require user sends in enough gas to cover cost
-        // TODO: is not working
-        //uint256 gasPrice = _getCurrentGasPrice();
-        //uint256 gasFee = gasNeeded * gasPrice;
-        //if (gasFee < msg.value) {
-        //    revert NotEnoughGasFee();
-        //}
-        uint256 gasPrice = 20; // goerli sits around 10 gwei
-
+        // grab http URL
+        string memory httpURL = string(Suave.confidentialRetrieve(ethGoerliUrlRecord, "urlData"));
+        
         // create tx to sign with private key
         bytes memory targetCall = abi.encodeWithSignature(
-            "poke(address,address,uint256,uint8,bytes32,bytes32)",
+            "poke(address,address,uint256,uint256,uint8,bytes32,bytes32)",
             user,
             permittedSuapp,
             deadline,
+            nonce,
             v,
             r,
             s
@@ -141,44 +167,52 @@ contract PokeRelayer {
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
             to: targetApp,
             gas: gasNeeded,
-            gasPrice: gasPrice + 60,
+            gasPrice: gasPrice,
             value: 0,
             nonce: keyNonce,
             data: targetCall,
             chainId: chainId
         });
 
-        // grab signing key
-        uint256 signingKey_ = uint256(
-            bytes32(Suave.confidentialRetrieve(signingKeyRecord, "keyData"))
-        );
-
-        bytes memory txRLP = Transactions.encodeRLP(txn);
+        
+        bytes memory rlpTxn = Transactions.encodeRLP(txn);
 
         // sign transaction with key
-        bytes memory txnSigned = Suave.signEthTransaction(
-            txRLP,
+        bytes memory signedTxn = Suave.signEthTransaction(
+            rlpTxn,
             LibString.toMinimalHexString(chainId),
-            LibString.toHexStringNoPrefix(signingKey_)
+            LibString.toHexStringNoPrefix(signingKey)
         );
 
-        // submit txn to builder to be included
-        uint256 currentBlockNum = _getCurrentBlockNumber();
+        Suave.HttpRequest memory httpRequest = encodeEthSendRawTransaction(signedTxn, httpURL);
+        Suave.doHTTPRequest(httpRequest);
 
-        for (uint i = 0; i < 20; i++) {
-            Bundle.BundleObj memory bundle;
-            bundle.blockNumber = uint64(currentBlockNum + i); // TODO idk what to set this to
-            bundle.txns = new bytes[](1);
-            bundle.txns[0] = txnSigned;
-            Bundle.sendBundle("https://relay-goerli.flashbots.net", bundle);
-
-            // simulate bundle and revert if it fails
-            uint64 simResult = Suave.simulateBundle(
-                Bundle.encodeBundle(bundle).body
-            );
-            require(simResult == 0, "sim failed");
-        }
         // update signing nonce in callback
-        return bytes.concat(this.updateNonceCallback.selector);
+        return
+            bytes.concat(
+                this.updateNonceCallback.selector
+            );
+    }
+
+    function encodeEthSendRawTransaction(
+       bytes memory signedTxn,
+       string memory url
+    ) internal pure returns (Suave.HttpRequest memory) {
+
+         bytes memory body = abi.encodePacked(
+            '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["',
+            LibString.toHexString(signedTxn),
+            '"],"id":1}'
+        );
+
+        Suave.HttpRequest memory request;
+        request.method = "POST";
+        request.body = body;
+        request.headers = new string[](1);
+        request.headers[0] = "Content-Type: application/json";
+        request.withFlashbotsSignature = false;
+        request.url = url;
+
+        return request;
     }
 }

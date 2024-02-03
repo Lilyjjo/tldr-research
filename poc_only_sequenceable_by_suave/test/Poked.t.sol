@@ -44,6 +44,12 @@ contract PokedTest is Test {
 
         ) = counter.eip712Domain();
 
+        console.log("name:");
+        console.log(name);
+        console.log("version:");
+        console.log(version);
+        console.log(chainId);
+
         bytes32 DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 TYPE_HASH,
@@ -115,7 +121,7 @@ contract PokedTest is Test {
         );
 
         vm.prank(suapp);
-        counter.poke(user, permittedSuapp, deadline, v, r, s);
+        counter.poke(user, permittedSuapp, deadline, nonce, v, r, s);
 
         assertEq(counter.userPokes(alice.addr), 1);
         assertEq(counter.nonces(alice.addr), 1);
@@ -136,7 +142,7 @@ contract PokedTest is Test {
 
         vm.expectRevert(Poked.PokeExpired.selector);
         vm.prank(suapp);
-        counter.poke(user, permittedSuapp, deadline, v, r, s);
+        counter.poke(user, permittedSuapp, deadline, nonce, v, r, s);
     }
 
     function test_PokeWrongSigner() public {
@@ -154,7 +160,7 @@ contract PokedTest is Test {
 
         vm.expectRevert(Poked.WrongSigner.selector);
         vm.prank(suapp);
-        counter.poke(bob.addr, permittedSuapp, deadline, v, r, s);
+        counter.poke(bob.addr, permittedSuapp, deadline, nonce, v, r, s);
     }
 
     function test_PokeWrongNonce() public {
@@ -170,9 +176,9 @@ contract PokedTest is Test {
             nonce
         );
 
-        vm.expectRevert(Poked.WrongSigner.selector);
+        vm.expectRevert(Poked.WrongNonce.selector);
         vm.prank(suapp);
-        counter.poke(alice.addr, permittedSuapp, deadline, v, r, s);
+        counter.poke(alice.addr, permittedSuapp, deadline, nonce, v, r, s);
     }
 
     function test_PokeWrongSuapp() public {
@@ -190,6 +196,6 @@ contract PokedTest is Test {
 
         vm.expectRevert(Poked.WrongSuapp.selector);
         vm.prank(suapp);
-        counter.poke(alice.addr, permittedSuapp, deadline, v, r, s);
+        counter.poke(alice.addr, permittedSuapp, deadline, nonce, v, r, s);
     }
 }

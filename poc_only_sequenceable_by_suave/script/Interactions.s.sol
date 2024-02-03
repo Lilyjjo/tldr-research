@@ -2,69 +2,95 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
+import {Test} from "forge-std/Test.sol";
 import {PokeRelayer} from "../src/PokeRelayer.sol";
 import {GoerliChainInfo} from "../src/GoerliChainInfo.sol";
 import {Poked} from "../src/Poked.sol";
 import {SigUtils} from "./utils/EIP712Helpers.sol";
+import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
 import {CCRForgeUtil} from "./utils/CCRForgeUtil.sol";
 
 contract Interactions is Script {
     CCRForgeUtil ccrUtil;
-    address suaveUserAddress;
-    uint256 suaveUserPrivateKey;
+    address addressUserGoerli;
+    uint256 privateKeyUserGoerli;
 
-    address goerliUserAddress;
-    uint256 goerliPrivateKey;
+    address addressUserSuave;
+    uint256 privateKeyUserSuave;
 
-    address kettleAddress;
+    address addressStoredSuapp;
+    uint256 privateKeyStoredSuapp;
 
-    address suappStoredAddress;
-    uint256 suappStoredPrivateKey;
+    address addressPoking;
+    uint256 privateKeyPoking;
 
-    address pokedGoerli;
-    address chainInfoGoerli;
+    address addressKettle;
 
-    uint gasNeeded;
-    uint startingKeyNonce;
-    uint chainIdSuave;
-    string chainIdStringSuave;
+    uint gasNeededGoerliPoke;
+
     uint chainIdGoerli;
-    string chainIdStringGoerli;
+    uint chainIdSuave;
+    string rpcUrlGoerli;
+    string rpcUrlSuave;
+    uint forkIdSuave;
+    uint forkIdGoerli;
+
+    address constant POKE_RELAYER_DEPLOYED = 0x0476E0CC545BAb20F48ba71B2d7a19e24F76595B;
+    address constant POKED_DEPLOYED = 0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378;
+    address constant CHAIN_INFO_DEPLOYED = 0x6ED804B9d4FAAE9e092Fe6d73292151FCF5F0413;
 
     function setUp() public {
-        // Set these in the .env
-        suaveUserAddress = vm.envAddress("FUNDED_ADDRESS_RIGIL");
-        suaveUserPrivateKey = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_RIGIL")
-        );
-        kettleAddress = vm.envAddress("KETTLE_ADDRESS_RIGIL");
-        pokedGoerli = vm.envAddress("DEPLOYED_GOERLI_POKED");
-        chainInfoGoerli = vm.envAddress("DEPLOYED_GOERLI_CHAIN_INFO");
+        // setup goerli variables
         chainIdGoerli = vm.envUint("CHAIN_ID_GOERLI");
-        chainIdStringGoerli = vm.envString("CHAIN_ID_STRING_GOERLI");
-        suappStoredAddress = vm.envAddress("FUNDED_ADDRESS_TO_PUT_INTO_SUAPP");
-        suappStoredPrivateKey = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_TO_PUT_INTO_SUAPP")
-        );
-        goerliPrivateKey = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI"));
-        gasNeeded = vm.envUint("GAS_NEEDED");
-        chainIdSuave = vm.envUint("CHAIN_ID_SUAVE");
-        chainIdStringSuave = vm.envString("CHAIN_ID_STRING_SUAVE");
+        rpcUrlGoerli = vm.envString("RPC_URL_GOERLI");
+        addressUserGoerli = vm.envAddress("FUNDED_ADDRESS_GOERLI"); 
+        privateKeyUserGoerli = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI"));
+         
+        // Poking related values
+        addressPoking = vm.envAddress("ADDRESS_SIGNING_POKE"); 
+        privateKeyPoking = uint256(vm.envBytes32("PRIVATE_KEY_SIGNING_POKE")); 
+        gasNeededGoerliPoke = vm.envUint("GAS_NEEDED_GOERLI_POKE");
+
+        // private key to store in suapp
+        addressStoredSuapp = vm.envAddress("FUNDED_GOERLI_ADDRESS_TO_PUT_INTO_SUAPP");
+        privateKeyStoredSuapp = uint256(vm.envBytes32("FUNDED_GOERLI_PRIVATE_KEY_TO_PUT_INTO_SUAPP")); 
+
+        // setup suave variable, toggle between using local devnet and rigil testnet
+        if(vm.envBool("USE_RIGIL")) {
+            // grab rigil variables
+            chainIdSuave = vm.envUint("CHAIN_ID_RIGIL");
+            rpcUrlSuave = vm.envString("RPC_URL_RIGIL");
+            addressUserSuave = vm.envAddress("FUNDED_ADDRESS_RIGIL");
+            privateKeyUserSuave = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_RIGIL"));
+            addressKettle = vm.envAddress("KETTLE_ADDRESS_RIGIL");
+        } else {
+            // grab local variables
+            chainIdSuave = vm.envUint("CHAIN_ID_LOCAL_SUAVE");
+            rpcUrlSuave = vm.envString("RPC_URL_LOCAL_SUAVE");
+            addressUserSuave = vm.envAddress("FUNDED_ADDRESS_SUAVE_LOCAL");
+            privateKeyUserSuave = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_SUAVE_LOCAL"));
+            addressKettle = vm.envAddress("KETTLE_ADDRESS_SUAVE_LOCAL");
+
+        }
+        
+        // create forkURLs to toggle between chains 
+        forkIdSuave = vm.createFork(rpcUrlSuave);
+        forkIdGoerli = vm.createFork(rpcUrlGoerli);
+
+        // setup confidential compute request util for use on suave fork (note is local)
+        vm.selectFork(forkIdSuave);
         ccrUtil = new CCRForgeUtil();
     }
 
     /**
-    forge script \
-    script/Interactions.s.sol:Interactions \
-    --rpc-url goerli \
-    --sig "deployGoerliContracts()" \
-    --broadcast \
-    --legacy \
-    -vv
+    forge script script/Interactions.s.sol:Interactions \
+    --sig "deployGoerliContracts()" --broadcast --legacy -vv
      */
     function deployGoerliContracts() public {
-        vm.startBroadcast(goerliPrivateKey);
+        vm.selectFork(forkIdGoerli);
+
+        vm.startBroadcast(privateKeyUserGoerli);
         Poked poked = new Poked();
         console2.log("poked: ");
         console2.log(address(poked));
@@ -75,219 +101,185 @@ contract Interactions is Script {
     }
 
     /**
-    forge script \
-    script/Interactions.s.sol:Interactions \
-    --rpc-url goerli \
-    --sig "setSuappPkOnGoerli()" \
-    --broadcast \
-    --legacy \
-    -vv
+    forge script script/Interactions.s.sol:Interactions \
+    --sig "setSuappPkOnGoerli()" --broadcast --legacy -vv
      */
     function setSuappPkOnGoerli() public {
-        vm.startBroadcast(goerliPrivateKey);
-        Poked poked = Poked(vm.envAddress("DEPLOYED_GOERLI_POKED"));
-        poked.setSuapp(vm.envAddress("FUNDED_ADDRESS_TO_PUT_INTO_SUAPP"));
+        vm.selectFork(forkIdGoerli);
+        vm.startBroadcast(privateKeyUserGoerli);
+        Poked poked = Poked(POKED_DEPLOYED);
+        poked.setSuapp(addressStoredSuapp);
         vm.stopBroadcast();
     }
 
     /**
     forge script script/Interactions.s.sol:Interactions \
-    --rpc-url rigil \
-    --sig "deploySuavePokeRelayer()" \
-    --broadcast --legacy -vv 
+    --sig "deploySuavePokeRelayer()" --broadcast --legacy -vv 
      */
     function deploySuavePokeRelayer() public {
-        vm.startBroadcast(suaveUserPrivateKey);
+        vm.selectFork(forkIdSuave);
+        vm.startBroadcast(privateKeyUserSuave);
         PokeRelayer pokeRelayer = new PokeRelayer(
-            pokedGoerli,
-            chainInfoGoerli,
+            POKED_DEPLOYED,
+            CHAIN_INFO_DEPLOYED,
             chainIdGoerli,
-            chainIdStringGoerli,
-            gasNeeded
+            gasNeededGoerliPoke
         );
         console2.log("addresss: ");
         console2.log(address(pokeRelayer));
-        console2.logString(chainIdStringGoerli);
-        vm.stopBroadcast();
     }
 
     /**
-    forge script \
-    script/Interactions.s.sol:Interactions \
-    --rpc-url rigil \
-    --sig "testPrivateKeyStore()" \
-    -vv
+    forge script script/Interactions.s.sol:Interactions \
+    --sig "setSigningKey()" -vv 
      */
-    function testPrivateKeyStore() public {
+    function setSigningKey() public {
+        // grab most recent singing key with an ethcall
+        // note: this can get messed up if there are pending pokes with the key
+        vm.selectFork(forkIdGoerli);
+        uint64 nonceStoredSuapp = vm.getNonce(addressStoredSuapp);
+        console2.log("suave stored signer nonce:");
+        console2.log(nonceStoredSuapp);
+
+        vm.selectFork(forkIdSuave);
         // setup data for confidential compute request
-        address suapp = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
-
-        bytes memory targetCall = abi.encodeWithSignature(
-            "testPrivateKeyStore()"
-        );
-        bytes memory confidentialInputs = abi.encode("");
-        uint64 nonce = vm.getNonce(suaveUserAddress);
-
-        ccrUtil.createAndSendCCR({
-            signingPrivateKey: suaveUserPrivateKey,
-            confidentialInputs: confidentialInputs,
-            targetCall: targetCall,
-            nonce: nonce,
-            to: suapp,
-            gas: 1000000,
-            gasPrice: 1000000000,
-            value: 0,
-            executionNode: address(kettleAddress),
-            chainId: uint256(0x01008C45)
-        });
-    }
-
-    /**
-    forge script \
-    script/Interactions.s.sol:Interactions \
-    --sig "setSigningKey(uint256)" 10 \
-    --rpc-url rigil \
-    -vv 
-     */
-    function setSigningKey(uint256 signingKeyNonce) public {
-        // setup data for confidential compute request
-        bytes memory confidentialInputs = abi.encode(suappStoredPrivateKey);
+        bytes memory confidentialInputs = abi.encode(privateKeyStoredSuapp);
         bytes memory targetCall = abi.encodeWithSignature(
             "setSigningKey(uint256)",
-            signingKeyNonce
+            nonceStoredSuapp
         );
-        uint64 nonce = vm.getNonce(suaveUserAddress);
-        address suapp = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
 
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        console2.log("suave address nonce:");
+        console2.log(nonce);
         ccrUtil.createAndSendCCR({
-            signingPrivateKey: suaveUserPrivateKey,
+            signingPrivateKey: privateKeyUserSuave,
             confidentialInputs: confidentialInputs,
             targetCall: targetCall,
             nonce: nonce,
-            to: suapp,
+            to: POKE_RELAYER_DEPLOYED,
             gas: 1000000,
             gasPrice: 1000000000,
             value: 0,
-            executionNode: address(kettleAddress),
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    /**
+    forge script script/Interactions.s.sol:Interactions \
+    --sig "setGoerliUrl()" -vv 
+     */
+    function setGoerliUrl() public {
+        vm.selectFork(forkIdSuave);
+        bytes memory confidentialInputs = abi.encodePacked(rpcUrlGoerli);
+        bytes memory targetCall = abi.encodeWithSignature(
+            "setGoerliUrl()"
+        );
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: POKE_RELAYER_DEPLOYED,
+            gas: 1000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
             chainId: uint256(0x01008C45)
         });
     }
 
     /** 
-        forge script \
-        script/Interactions.s.sol:Interactions \
-        --rpc-url rigil \
-        --sig "grabValueKeyNonce()" \
-        -vv 
+        forge script script/Interactions.s.sol:Interactions -vv \
+        --sig "grabSlotSuapp(uint256)" 3  
      */
-    function grabValueKeyNonce() public {
-        address suaveSigner = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
-        uint256 key = uint256(vm.load(suaveSigner, bytes32(uint(7))));
-        console2.log("keyNonce: %d", key);
-    }
-
-    /** 
-        forge script \
-        script/Interactions.s.sol:Interactions \
-        --rpc-url rigil \
-        --sig "grabValueEthCall()" \
-        -vv 
-     */
-    function grabValueEthCall() public {
-        address suaveSigner = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
-        uint256 keyNonce = uint256(vm.load(suaveSigner, bytes32(uint(7))));
-        uint256 ethCallCounter = uint256(
-            vm.load(suaveSigner, bytes32(uint(8)))
-        );
-        uint256 blockNumber = uint256(vm.load(suaveSigner, bytes32(uint(9))));
-        uint256 blockBaseFee = uint256(vm.load(suaveSigner, bytes32(uint(10))));
-        console2.log("ethCallCounter: %d", ethCallCounter);
-        console2.log("blockNumber: %d", blockNumber);
-        console2.log("blockBaseFee: %d", blockBaseFee);
-        console2.log("keyNonce: %d", keyNonce);
-    }
-
-    /** 
-        forge script \
-        script/Interactions.s.sol:Interactions \
-        --rpc-url rigil \
-        --sig "grabValueSigningKey()" \
-        -vv 
-     */
-    function grabValueSigningKey() public {
-        address suaveSigner = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
-        bytes32 storedPk = bytes32(vm.load(suaveSigner, bytes32(uint(11))));
-        console2.logBytes32(storedPk);
+    function grabSlotSuapp(uint256 slot) public {
+        vm.selectFork(forkIdSuave);
+        bytes32 value = vm.load(POKE_RELAYER_DEPLOYED, bytes32(slot));
+        console2.log("slot: %d", slot);
+        console2.logBytes32(value);
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions --rpc-url rigil \
+    forge script script/Interactions.s.sol:Interactions \
     --sig "sendPokeToSuave()" -vv  
      */
     function sendPokeToSuave() public {
-        // setup SigUtils
-        bytes32 POKE_TYPEHASH = 0x55520b7dd6f5df16c1f127cbc597b5edac9c3b9ddd62140e3daa73d59795080c;
+        // make signed message from any private/public keyapir
+        address user = addressPoking;
+        uint256 userPk = privateKeyPoking;
+        uint deadline = (vm.unixTime() / 1e3) + uint(200);
+        
+        // TODO get goerli signing nonce for pk
+        vm.selectFork(forkIdGoerli);
+        Poked poked = Poked(POKED_DEPLOYED);
+        uint256 userNonce = poked.nonces(user);
 
-        Poked poked = Poked(vm.envAddress("DEPLOYED_GOERLI_POKED"));
+        console2.log("user nonce grabbed: ");
+        console2.log(userNonce);
+
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(user, userPk, deadline, userNonce); 
+
+        // TODO move this to inside suapp 
+        uint256 gasPrice = 1001;
+
+        bytes memory confidentialInputs = abi.encode("");
+        bytes memory targetCall = abi.encodeWithSignature(
+            "newPokeBid(address,address,uint256,uint256,uint8,bytes32,bytes32,uint256)",
+            user,
+            addressStoredSuapp,
+            deadline,
+            userNonce,
+            v,
+            r,
+            s,
+            gasPrice
+        );
+
+        vm.selectFork(forkIdSuave);
+        uint64 nonce = vm.getNonce(addressUserSuave);
+
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: POKE_RELAYER_DEPLOYED,
+            gas: 10000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    function _createPoke(address user, uint256 userPk, uint256 deadline, uint256 userNonce) internal returns (uint8 v, bytes32 r, bytes32 s) {
+        // setup SigUtils
+        bytes32 POKE_TYPEHASH = keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        );
+
         bytes32 DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 POKE_TYPEHASH,
                 keccak256(bytes("SuappCounter")),
                 keccak256(bytes("1")),
                 5,
-                address(poked)
+                POKED_DEPLOYED 
             )
         );
-
         SigUtils sigUtils = new SigUtils(DOMAIN_SEPARATOR);
-
-        // make signed message from any private/public keyapir
-        address user = vm.envAddress("FUNDED_ADDRESS_SUAVE_LOCAL");
-        uint256 userPk = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_SUAVE_LOCAL")
-        );
-        address suappSigningKey = vm.envAddress(
-            "FUNDED_ADDRESS_TO_PUT_INTO_SUAPP"
-        );
-        uint deadline = (vm.unixTime() / 1e3) + uint(200);
-        console2.log(deadline);
-        uint pokeNonce = 1; // will need to actually grab value, can't use vm.getNonce this is a contract specific value
 
         SigUtils.Poke memory poke = SigUtils.Poke({
             user: user,
-            permittedSuapp: suappSigningKey,
+            permittedSuapp: addressStoredSuapp,
             deadline: deadline,
-            nonce: pokeNonce
+            nonce: userNonce
         });
 
         bytes32 digest = sigUtils.getTypedDataHash(poke);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPk, digest);
-
-        bytes memory confidentialInputs = abi.encode("");
-        bytes memory targetCall = abi.encodeWithSignature(
-            "newPokeBid(address,address,uint256,uint8,bytes32,bytes32)",
-            user,
-            suappSigningKey,
-            deadline,
-            v,
-            r,
-            s
-        );
-        uint64 nonce = vm.getNonce(suaveUserAddress);
-        address suapp = vm.envAddress("DEPLOYED_SUAVE_SUAPP");
-
-        ccrUtil.createAndSendCCR({
-            signingPrivateKey: suaveUserPrivateKey,
-            confidentialInputs: confidentialInputs,
-            targetCall: targetCall,
-            nonce: nonce,
-            to: suapp,
-            gas: 10000000,
-            gasPrice: 1000000000,
-            value: 0,
-            executionNode: address(kettleAddress),
-            chainId: uint256(0x01008C45)
-        });
+        (v, r, s) = vm.sign(userPk, digest);   
     }
 }
