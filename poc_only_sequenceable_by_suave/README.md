@@ -5,6 +5,9 @@ Contracts include:
 - Poked: A smart contract on Goerli that can receive EIP712 messages signed by users. Only a specified private key, stored suapp, is allowed to submit these messages to the Goerli contract.
 - PokeRelayer: A suapp on Rigil, with the private key, that can relay EIP712 messages for users by sending transactions.
 
+## Logic Flow
+A user signs a `Poke` EIP712 message and submits this to the `PokeRelayer` contract via a confidential compute request. The `PokeRelayer` constructs and signs a transaction carrying this `Poke` and send a transaction to Goerli. The `Poked` contract on Goerli receives the transaction and updates the original user's nonce. 
+
 # Smart Contract Deployments
 Poked (Goerli): [0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378](https://goerli.etherscan.io/address/0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378) 
 
