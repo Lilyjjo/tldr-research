@@ -36,7 +36,7 @@ contract Interactions is Script {
     uint forkIdSuave;
     uint forkIdGoerli;
 
-    address constant POKE_RELAYER_DEPLOYED = 0x0476E0CC545BAb20F48ba71B2d7a19e24F76595B;
+    address constant POKE_RELAYER_DEPLOYED = 0x3AD8Fa67ceeaBBd13b46B9bf9A198097fcE5E5a8;
     address constant POKED_DEPLOYED = 0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378;
     address constant CHAIN_INFO_DEPLOYED = 0x6ED804B9d4FAAE9e092Fe6d73292151FCF5F0413;
 
@@ -85,7 +85,7 @@ contract Interactions is Script {
 
     /**
     forge script script/Interactions.s.sol:Interactions \
-    --sig "deployGoerliContracts()" --broadcast --legacy -vv
+    --sig "deployGoerliContracts()" --broadcast --legacy -vv --verify
      */
     function deployGoerliContracts() public {
         vm.selectFork(forkIdGoerli);
@@ -127,6 +127,36 @@ contract Interactions is Script {
         );
         console2.log("addresss: ");
         console2.log(address(pokeRelayer));
+    }
+
+    /**
+    forge script script/Interactions.s.sol:Interactions \
+    --sig "pokeRelayerConfidentialConstructor()" -vv 
+     */
+    function pokeRelayerConfidentialConstructor() public {
+        vm.selectFork(forkIdSuave);
+        // setup data for confidential compute request
+        bytes32 secret = keccak256(abi.encode("secret")); // note: generate privately
+        bytes memory confidentialInputs = abi.encodePacked(secret);
+        bytes memory targetCall = abi.encodeWithSignature(
+           "confidentialConstructor()"
+        );
+
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        console2.log("suave address nonce:");
+        console2.log(nonce);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: POKE_RELAYER_DEPLOYED,
+            gas: 10000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
     }
 
     /**
@@ -193,7 +223,7 @@ contract Interactions is Script {
 
     /** 
         forge script script/Interactions.s.sol:Interactions -vv \
-        --sig "grabSlotSuapp(uint256)" 3  
+        --sig "grabSlotSuapp(uint256)" 6  
      */
     function grabSlotSuapp(uint256 slot) public {
         vm.selectFork(forkIdSuave);

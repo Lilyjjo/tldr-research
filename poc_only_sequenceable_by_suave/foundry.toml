@@ -3,9 +3,11 @@ src = "src"
 out = "out"
 libs = ["lib"]
 ffi = true
-etherscan_api_key = "${ETHERSCAN_KEY}"
 
 [rpc_endpoints]
 goerli = "${RPC_URL_GOERLI}"
+
+[etherscan]
+goerli = { key = "${ETHERSCAN_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

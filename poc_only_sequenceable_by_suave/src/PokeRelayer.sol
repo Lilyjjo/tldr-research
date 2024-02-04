@@ -4,21 +4,24 @@ import {Suave} from "suave-std/suavelib/Suave.sol";
 import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "suave-std/protocols/Bundle.sol";
 import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
-import "forge-std/console.sol";
+import {ConfidentialControl} from "./utils/ConfidentialControl.sol";
 
-contract PokeRelayer {
-    address public targetApp;
+contract PokeRelayer is ConfidentialControl {
+    address public targetApp; //3
     address public gasContract;
     address public owner;
 
-    Suave.DataId public signingKeyRecord;
-    Suave.DataId public ethGoerliUrlRecord; 
+    Suave.DataId private signingKeyRecord; //6
+    Suave.DataId private ethGoerliUrlRecord; 
+
     uint256 public chainId;
     uint256 public gasNeeded;
     uint256 public keyNonce;
 
-    event SignedTxn(bytes signedTxn);
+    string public KEY_PRIVATE_KEY = "KEY";
+    string public KEY_URL = "URL";
 
+    event SignedTxn(bytes signedTxn);
     error OnlyOwner();
     error NotEnoughGasFee();
 
@@ -42,6 +45,10 @@ contract PokeRelayer {
         gasNeeded = gasNeeded_;
     }
 
+    function confidentialConstructor() public onlyOwner view override returns (bytes memory) {
+        return super.confidentialConstructor();
+    }
+
     function updateKeyNonce(uint256 keyNonce_) public onlyOwner {
         keyNonce = keyNonce_;
     }
@@ -49,11 +56,12 @@ contract PokeRelayer {
     function updateGasNeeded(uint256 gasNeeded_) public onlyOwner {
         gasNeeded = gasNeeded_;
     }
-
+    
     function updateKeyCallback(
         Suave.DataId signingKeyBid_,
-        uint256 keyNonce_
-    ) external {
+        uint256 keyNonce_,
+        UnlockArgs calldata uArgs
+    ) external unlock(uArgs) {
         signingKeyRecord = signingKeyBid_;
         keyNonce = keyNonce_;
         emit UpdateKey(signingKeyRecord);
@@ -61,36 +69,38 @@ contract PokeRelayer {
 
     function setSigningKey(
         uint256 keyNonce_
-    ) external view onlyOwner returns (bytes memory) {
+    ) external view onlyOwner onlyConfidential returns (bytes memory) {
         require(Suave.isConfidential());
         bytes memory keyData = Suave.confidentialInputs();
 
         address[] memory peekers = new address[](1);
         peekers[0] = address(this);
 
-        // TODO: what do the decryption conditions mean?
         Suave.DataRecord memory bid = Suave.newDataRecord(
             10,
             peekers,
             peekers,
-            "SuaveSigner"
+            "poke_relayer:v0:private_key"
         );
-        Suave.confidentialStore(bid.id, "keyData", keyData);
+        Suave.confidentialStore(bid.id, KEY_PRIVATE_KEY, keyData);
 
         return
-            bytes.concat(
+            abi.encodeWithSelector(
                 this.updateKeyCallback.selector,
-                abi.encode(bid.id, keyNonce_)
+                bid.id, 
+                keyNonce_, 
+                getUnlockPair()
             );
     }
 
-    function updateGoerliUrl(
-        Suave.DataId goerliKeyId
-    ) external onlyOwner {
+    function updateGoerliUrlCallback(
+        Suave.DataId goerliKeyId,
+        UnlockArgs calldata uArgs
+    ) external unlock(uArgs) {
         ethGoerliUrlRecord = goerliKeyId;
     }
 
-    function setGoerliUrl() external view onlyOwner returns (bytes memory) {
+    function setGoerliUrl() external view onlyOwner onlyConfidential returns (bytes memory) {
         require(Suave.isConfidential());
         bytes memory keyData = Suave.confidentialInputs();
 
@@ -102,13 +112,13 @@ contract PokeRelayer {
             10,
             peekers,
             peekers,
-            "SuaveSigner"
+            "poke_relayer:v0:url"
         );
-        Suave.confidentialStore(bid.id, "urlData", keyData);
+        Suave.confidentialStore(bid.id, KEY_URL, keyData);
 
         return
-            bytes.concat(
-                this.updateGoerliUrl.selector, abi.encode(bid.id)
+            abi.encodeWithSelector(
+                this.updateGoerliUrlCallback.selector, bid.id, getUnlockPair()
             );
     }
 
@@ -128,8 +138,7 @@ contract PokeRelayer {
         blockNum = abi.decode(output, (uint256));
     }
 
-    // TODO use guard functions from @halo3mic: https://github.com/halo3mic/suave-playground/blob/9afe269ab2da983ca7314b68fcad00134712f4c0/contracts/blockad/lib/ConfidentialControl.sol
-    function updateNonceCallback() external {
+    function updateNonceCallback(UnlockArgs calldata uArgs) external unlock(uArgs) {
         keyNonce++;
     }
 
@@ -142,14 +151,14 @@ contract PokeRelayer {
         bytes32 r,
         bytes32 s,
         uint256 gasPrice
-    ) public payable returns (bytes memory) {
+    ) public payable onlyConfidential returns (bytes memory) {
         // grab signing key
         uint256 signingKey = uint256(
-            bytes32(Suave.confidentialRetrieve(signingKeyRecord, "keyData"))
+            bytes32(Suave.confidentialRetrieve(signingKeyRecord, KEY_PRIVATE_KEY))
         );
 
         // grab http URL
-        string memory httpURL = string(Suave.confidentialRetrieve(ethGoerliUrlRecord, "urlData"));
+        string memory httpURL = string(Suave.confidentialRetrieve(ethGoerliUrlRecord, KEY_URL));
         
         // create tx to sign with private key
         bytes memory targetCall = abi.encodeWithSignature(
@@ -174,7 +183,7 @@ contract PokeRelayer {
             chainId: chainId
         });
 
-        
+        // encode transaction 
         bytes memory rlpTxn = Transactions.encodeRLP(txn);
 
         // sign transaction with key
@@ -184,13 +193,14 @@ contract PokeRelayer {
             LibString.toHexStringNoPrefix(signingKey)
         );
 
+        // send transaction over http json to stored enpoint 
         Suave.HttpRequest memory httpRequest = encodeEthSendRawTransaction(signedTxn, httpURL);
         Suave.doHTTPRequest(httpRequest);
 
         // update signing nonce in callback
         return
-            bytes.concat(
-                this.updateNonceCallback.selector
+            abi.encodeWithSelector(
+                this.updateNonceCallback.selector, getUnlockPair()
             );
     }
 
