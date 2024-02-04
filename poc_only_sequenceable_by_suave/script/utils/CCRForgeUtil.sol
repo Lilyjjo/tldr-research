@@ -97,9 +97,10 @@ contract CCRForgeUtil is Script {
             abi.encodePacked('["', vm.toString(rlpCCR), '"]')
         );
         // note: will revert even on successful calls
+        console.log("Sending CCR, script will fail. Check node to see if successul.");
         vm.rpc("eth_sendRawTransaction", params);
     }
-
+    
     /**
      * @dev Convert a ConfidentialComputeRecordData to RLP encoded CCR.
      * @param ccrD The ConfidentialComputeRecordData.

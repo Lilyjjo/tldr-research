@@ -4,13 +4,19 @@ pragma solidity ^0.8.13;
 import {Script, console2} from "forge-std/Script.sol";
 import {Test} from "forge-std/Test.sol";
 import {PokeRelayer} from "../src/PokeRelayer.sol";
-import {GoerliChainInfo} from "../src/GoerliChainInfo.sol";
 import {Poked} from "../src/Poked.sol";
 import {SigUtils} from "./utils/EIP712Helpers.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
 import {CCRForgeUtil} from "./utils/CCRForgeUtil.sol";
 
+/**
+ * @title Interactions for Poke<>PokeRelayer Contracts
+ * @author lilyjjo
+ * @dev Commands for interacting with Poked and PokeRelayer on Suave/Goerli
+ * @dev Need to fill out environment variables in .env
+ * @dev Can toggle between Rigil and local devnet with USE_RIGIL env var
+ */
 contract Interactions is Script {
     CCRForgeUtil ccrUtil;
     address addressUserGoerli;
@@ -36,10 +42,13 @@ contract Interactions is Script {
     uint forkIdSuave;
     uint forkIdGoerli;
 
-    address constant POKE_RELAYER_DEPLOYED = 0x3AD8Fa67ceeaBBd13b46B9bf9A198097fcE5E5a8;
+    address constant POKE_RELAYER_DEPLOYED = 0xe1936a1de5f2f311F1d69254bd22C94F47610A63;
     address constant POKED_DEPLOYED = 0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378;
-    address constant CHAIN_INFO_DEPLOYED = 0x6ED804B9d4FAAE9e092Fe6d73292151FCF5F0413;
 
+    /**
+     * @notice Pulls environment variables and sets up fork urls.
+     * @dev Toggle between Rigil and local devnet with 'USE_RIGIL'
+     */
     function setUp() public {
         // setup goerli variables
         chainIdGoerli = vm.envUint("CHAIN_ID_GOERLI");
@@ -84,27 +93,24 @@ contract Interactions is Script {
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "deployGoerliContracts()" --broadcast --legacy -vv --verify
+     * @notice Deploys the Poke contract to Goerli.
+     * @dev note: Put this deployed address at the top of the file
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "deployPoke()" --broadcast --legacy -vv --verify
      */
-    function deployGoerliContracts() public {
+    function deployPoke() public {
         vm.selectFork(forkIdGoerli);
-
         vm.startBroadcast(privateKeyUserGoerli);
         Poked poked = new Poked();
         console2.log("poked: ");
         console2.log(address(poked));
-        GoerliChainInfo chainInfo = new GoerliChainInfo();
-        console2.log("chainInfo: ");
-        console2.log(address(chainInfo));
         vm.stopBroadcast();
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "setSuappPkOnGoerli()" --broadcast --legacy -vv
+     * @notice Sets the Poked's expected Suave stored private key.
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setPokeExpectedSuaveKey()" --broadcast --legacy -vv
      */
-    function setSuappPkOnGoerli() public {
+    function setPokeExpectedSuaveKey() public {
         vm.selectFork(forkIdGoerli);
         vm.startBroadcast(privateKeyUserGoerli);
         Poked poked = Poked(POKED_DEPLOYED);
@@ -113,15 +119,15 @@ contract Interactions is Script {
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "deploySuavePokeRelayer()" --broadcast --legacy -vv 
+     * @notice Deploys the PokeRelayer contract on Suave.
+     * @dev note: Put this deployed address at the top of the file
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "deploySuavePokeRelayer()" --broadcast --legacy -vv 
      */
     function deploySuavePokeRelayer() public {
         vm.selectFork(forkIdSuave);
         vm.startBroadcast(privateKeyUserSuave);
         PokeRelayer pokeRelayer = new PokeRelayer(
             POKED_DEPLOYED,
-            CHAIN_INFO_DEPLOYED,
             chainIdGoerli,
             gasNeededGoerliPoke
         );
@@ -130,10 +136,10 @@ contract Interactions is Script {
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "pokeRelayerConfidentialConstructor()" -vv 
+     * @notice Initializes the PokeRelayer's Confidential Control System
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "initializeConfidentialControl()" -vv 
      */
-    function pokeRelayerConfidentialConstructor() public {
+    function initializeConfidentialControl() public {
         vm.selectFork(forkIdSuave);
         // setup data for confidential compute request
         bytes32 secret = keccak256(abi.encode("secret")); // note: generate privately
@@ -160,8 +166,9 @@ contract Interactions is Script {
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "setSigningKey()" -vv 
+     * @notice Sets the signing key for the PokedRelayer, expected to be the same key
+     * that was used with setPokeExpectedSuaveKey()
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setSigningKey()" -vv 
      */
     function setSigningKey() public {
         // grab most recent singing key with an ethcall
@@ -197,8 +204,8 @@ contract Interactions is Script {
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "setGoerliUrl()" -vv 
+     * @notice Sets the RPC URL in PokedRelayer used to send transaction to 
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setGoerliUrl()" -vv 
      */
     function setGoerliUrl() public {
         vm.selectFork(forkIdSuave);
@@ -221,9 +228,10 @@ contract Interactions is Script {
         });
     }
 
-    /** 
-        forge script script/Interactions.s.sol:Interactions -vv \
-        --sig "grabSlotSuapp(uint256)" 6  
+    /**
+     * @notice Performs a read on PokeRelayer's storage slots. 
+     * @dev Useful for reading slot 5 which will hold the set DataIds for the confidential stores
+     * @dev command: forge script script/Interactions.s.sol:Interactions -vv --sig "grabSlotSuapp(uint256)" 5
      */
     function grabSlotSuapp(uint256 slot) public {
         vm.selectFork(forkIdSuave);
@@ -233,26 +241,26 @@ contract Interactions is Script {
     }
 
     /**
-    forge script script/Interactions.s.sol:Interactions \
-    --sig "sendPokeToSuave()" -vv  
+     * @notice Crafts and signs a poke to be sent to Suave
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "sendPokeToSuave()" -vv  
      */
     function sendPokeToSuave() public {
         // make signed message from any private/public keyapir
         address user = addressPoking;
         uint256 userPk = privateKeyPoking;
         uint deadline = (vm.unixTime() / 1e3) + uint(200);
-        
-        // TODO get goerli signing nonce for pk
+
+        // grab next poke nonce for user  
         vm.selectFork(forkIdGoerli);
         Poked poked = Poked(POKED_DEPLOYED);
         uint256 userNonce = poked.nonces(user);
 
-        console2.log("user nonce grabbed: ");
-        console2.log(userNonce);
-
+        // sign over message
         (uint8 v, bytes32 r, bytes32 s) = _createPoke(user, userPk, deadline, userNonce); 
 
-        // TODO move this to inside suapp 
+        // TODO Have suapp grab this price itself. Is a DoS vector if users
+        // send transactions with too-low gas prices as it will cause the
+        // transactions to pend.
         uint256 gasPrice = 1001;
 
         bytes memory confidentialInputs = abi.encode("");
@@ -285,6 +293,9 @@ contract Interactions is Script {
         });
     }
 
+    /**
+     * @notice Helper function for signing pokes.
+     */
     function _createPoke(address user, uint256 userPk, uint256 deadline, uint256 userNonce) internal returns (uint8 v, bytes32 r, bytes32 s) {
         // setup SigUtils
         bytes32 POKE_TYPEHASH = keccak256(
