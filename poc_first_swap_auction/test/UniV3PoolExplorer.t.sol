@@ -6,8 +6,8 @@ import {ERC20Mintable} from "../src/ERC20Mintable.sol";
 
 import {IUniswapV3Factory} from "v3-core/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "v3-core/interfaces/IUniswapV3Pool.sol";
-import {INonfungiblePositionManagerModified} from "./modified_uniswap/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
-import {ISwapRouterModified} from "./modified_uniswap/v3-periphery-modified/ISwapRouterModified.sol";
+import {INonfungiblePositionManagerModified} from "../src/modified_uniswap_casing/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
+import {ISwapRouterModified} from "../src/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
 import {TickMath} from "v3-core/libraries/TickMath.sol";
 import {OracleLibrary} from "v3-periphery/libraries/OracleLibrary.sol";
 import "forge-std/console.sol";
@@ -65,7 +65,7 @@ contract UniV3PoolExplorer is Test {
         token1.mint(liquidityProvider, tokenAmount);
 
         IUniswapV3Factory uniswapV3Factory = IUniswapV3Factory(
-            deployCode("UniswapV3Factory.sol")
+            deployCode("UniswapV3FactoryModified.sol")
         );
 
         pool = IUniswapV3Pool(
