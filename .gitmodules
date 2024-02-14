@@ -13,3 +13,6 @@
 [submodule "poc_only_sequenceable_by_suave/lib/openzeppelin-contracts"]
 	path = poc_only_sequenceable_by_suave/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "poc_first_swap_auction/lib/suave-std"]
+	path = poc_first_swap_auction/lib/suave-std
+	url = https://github.com/flashbots/suave-std
