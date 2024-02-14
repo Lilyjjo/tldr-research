@@ -22,3 +22,6 @@
 [submodule "poc_first_swap_auction/lib/v3-periphery"]
 	path = poc_first_swap_auction/lib/v3-periphery
 	url = https://github.com/uniswap/v3-periphery
+[submodule "poc_first_swap_auction/lib/openzeppelin-contracts"]
+	path = poc_first_swap_auction/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
