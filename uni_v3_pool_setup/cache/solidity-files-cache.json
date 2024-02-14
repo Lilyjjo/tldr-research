@@ -102,63 +102,6 @@
         }
       }
     },
-    "lib/forge-std/src/Script.sol": {
-      "lastModificationDate": 1704550023478,
-      "contentHash": "ba325c778a7da8a21c2136aa32763c14",
-      "sourceName": "lib/forge-std/src/Script.sol",
-      "solcConfig": {
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "metadata": {
-            "useLiteralContent": false,
-            "bytecodeHash": "ipfs",
-            "appendCBOR": true
-          },
-          "outputSelection": {
-            "*": {
-              "": [
-                "ast"
-              ],
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ]
-            }
-          },
-          "evmVersion": "paris",
-          "libraries": {}
-        }
-      },
-      "imports": [
-        "lib/forge-std/src/Base.sol",
-        "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
-        "lib/forge-std/src/StdJson.sol",
-        "lib/forge-std/src/StdMath.sol",
-        "lib/forge-std/src/StdStorage.sol",
-        "lib/forge-std/src/StdStyle.sol",
-        "lib/forge-std/src/StdUtils.sol",
-        "lib/forge-std/src/Vm.sol",
-        "lib/forge-std/src/console.sol",
-        "lib/forge-std/src/console2.sol",
-        "lib/forge-std/src/interfaces/IMulticall3.sol",
-        "lib/forge-std/src/mocks/MockERC20.sol",
-        "lib/forge-std/src/mocks/MockERC721.sol",
-        "lib/forge-std/src/safeconsole.sol"
-      ],
-      "versionRequirement": ">=0.6.2, <0.9.0",
-      "artifacts": {
-        "Script": {
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "Script.sol/Script.json"
-        }
-      }
-    },
     "lib/forge-std/src/StdAssertions.sol": {
       "lastModificationDate": 1704550023478,
       "contentHash": "6cc2858240bcd443debbbf075490e325",
@@ -737,8 +680,8 @@
       "versionRequirement": ">=0.4.22, <0.9.0",
       "artifacts": {
         "console": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "console.sol/console.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "console.sol/console.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "console.sol/console.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "console.sol/console.0.8.22.json"
         }
       }
     },
@@ -1031,8 +974,8 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC20": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC20.sol/IERC20.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC20.sol/IERC20.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC20.sol/IERC20.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC20.sol/IERC20.0.8.22.json"
         }
       }
     },
@@ -1167,8 +1110,8 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC721": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721.sol/IERC721.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721.sol/IERC721.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721.sol/IERC721.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721.sol/IERC721.0.8.22.json"
         }
       }
     },
@@ -1305,8 +1248,8 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC721Enumerable": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721Enumerable.sol/IERC721Enumerable.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721Enumerable.sol/IERC721Enumerable.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721Enumerable.sol/IERC721Enumerable.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721Enumerable.sol/IERC721Enumerable.0.8.22.json"
         }
       }
     },
@@ -1350,8 +1293,8 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC721Metadata": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721Metadata.sol/IERC721Metadata.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721Metadata.sol/IERC721Metadata.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721Metadata.sol/IERC721Metadata.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721Metadata.sol/IERC721Metadata.0.8.22.json"
         }
       }
     },
@@ -1433,8 +1376,8 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "Context": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "Context.sol/Context.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "Context.sol/Context.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "Context.sol/Context.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "Context.sol/Context.0.8.22.json"
         }
       }
     },
@@ -1559,8 +1502,8 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC165": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC165.sol/IERC165.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC165.sol/IERC165.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC165.sol/IERC165.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC165.sol/IERC165.0.8.22.json"
         }
       }
     },
@@ -1900,7 +1843,7 @@
       "artifacts": {
         "IUniswapV3Factory": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3Factory.sol/IUniswapV3Factory.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3Factory.sol/IUniswapV3Factory.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3Factory.sol/IUniswapV3Factory.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3Factory.sol/IUniswapV3Factory.0.8.22.json"
         }
       }
@@ -1951,7 +1894,7 @@
       "artifacts": {
         "IUniswapV3Pool": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3Pool.sol/IUniswapV3Pool.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3Pool.sol/IUniswapV3Pool.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3Pool.sol/IUniswapV3Pool.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3Pool.sol/IUniswapV3Pool.0.8.22.json"
         }
       }
@@ -2075,8 +2018,8 @@
       "versionRequirement": ">=0.5.0",
       "artifacts": {
         "IUniswapV3MintCallback": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3MintCallback.sol/IUniswapV3MintCallback.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3MintCallback.sol/IUniswapV3MintCallback.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3MintCallback.sol/IUniswapV3MintCallback.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3MintCallback.sol/IUniswapV3MintCallback.0.8.15.json"
         }
       }
     },
@@ -2117,8 +2060,8 @@
       "versionRequirement": ">=0.5.0",
       "artifacts": {
         "IUniswapV3SwapCallback": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3SwapCallback.sol/IUniswapV3SwapCallback.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3SwapCallback.sol/IUniswapV3SwapCallback.json",
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3SwapCallback.sol/IUniswapV3SwapCallback.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3SwapCallback.sol/IUniswapV3SwapCallback.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3SwapCallback.sol/IUniswapV3SwapCallback.0.8.22.json"
         }
       }
@@ -2161,7 +2104,7 @@
       "artifacts": {
         "IUniswapV3PoolActions": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolActions.sol/IUniswapV3PoolActions.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolActions.sol/IUniswapV3PoolActions.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolActions.sol/IUniswapV3PoolActions.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolActions.sol/IUniswapV3PoolActions.0.8.22.json"
         }
       }
@@ -2204,7 +2147,7 @@
       "artifacts": {
         "IUniswapV3PoolDerivedState": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolDerivedState.sol/IUniswapV3PoolDerivedState.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolDerivedState.sol/IUniswapV3PoolDerivedState.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolDerivedState.sol/IUniswapV3PoolDerivedState.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolDerivedState.sol/IUniswapV3PoolDerivedState.0.8.22.json"
         }
       }
@@ -2247,7 +2190,7 @@
       "artifacts": {
         "IUniswapV3PoolErrors": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolErrors.sol/IUniswapV3PoolErrors.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolErrors.sol/IUniswapV3PoolErrors.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolErrors.sol/IUniswapV3PoolErrors.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolErrors.sol/IUniswapV3PoolErrors.0.8.22.json"
         }
       }
@@ -2290,7 +2233,7 @@
       "artifacts": {
         "IUniswapV3PoolEvents": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolEvents.sol/IUniswapV3PoolEvents.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolEvents.sol/IUniswapV3PoolEvents.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolEvents.sol/IUniswapV3PoolEvents.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolEvents.sol/IUniswapV3PoolEvents.0.8.22.json"
         }
       }
@@ -2333,7 +2276,7 @@
       "artifacts": {
         "IUniswapV3PoolImmutables": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolImmutables.sol/IUniswapV3PoolImmutables.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolImmutables.sol/IUniswapV3PoolImmutables.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolImmutables.sol/IUniswapV3PoolImmutables.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolImmutables.sol/IUniswapV3PoolImmutables.0.8.22.json"
         }
       }
@@ -2376,7 +2319,7 @@
       "artifacts": {
         "IUniswapV3PoolOwnerActions": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolOwnerActions.sol/IUniswapV3PoolOwnerActions.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolOwnerActions.sol/IUniswapV3PoolOwnerActions.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolOwnerActions.sol/IUniswapV3PoolOwnerActions.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolOwnerActions.sol/IUniswapV3PoolOwnerActions.0.8.22.json"
         }
       }
@@ -2419,7 +2362,7 @@
       "artifacts": {
         "IUniswapV3PoolState": {
           "0.8.12+commit.f00d7308.Darwin.appleclang": "IUniswapV3PoolState.sol/IUniswapV3PoolState.0.8.12.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolState.sol/IUniswapV3PoolState.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IUniswapV3PoolState.sol/IUniswapV3PoolState.0.8.15.json",
           "0.8.22+commit.4fc1097e.Darwin.appleclang": "IUniswapV3PoolState.sol/IUniswapV3PoolState.0.8.22.json"
         }
       }
@@ -2502,8 +2445,8 @@
       "versionRequirement": ">=0.4.0",
       "artifacts": {
         "FixedPoint128": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "FixedPoint128.sol/FixedPoint128.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "FixedPoint128.sol/FixedPoint128.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "FixedPoint128.sol/FixedPoint128.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "FixedPoint128.sol/FixedPoint128.0.8.15.json"
         }
       }
     },
@@ -2544,8 +2487,8 @@
       "versionRequirement": ">=0.4.0",
       "artifacts": {
         "FixedPoint96": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "FixedPoint96.sol/FixedPoint96.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "FixedPoint96.sol/FixedPoint96.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "FixedPoint96.sol/FixedPoint96.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "FixedPoint96.sol/FixedPoint96.0.8.15.json"
         }
       }
     },
@@ -2586,9 +2529,9 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "FullMath": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "FullMath.sol/FullMath.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "FullMath.sol/FullMath.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "FullMath.sol/FullMath.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "FullMath.sol/FullMath.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "FullMath.sol/FullMath.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "FullMath.sol/FullMath.0.8.22.json"
         }
       }
     },
@@ -2714,8 +2657,8 @@
       "versionRequirement": ">=0.5.0",
       "artifacts": {
         "SafeCast": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "SafeCast.sol/SafeCast.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "SafeCast.sol/SafeCast.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "SafeCast.sol/SafeCast.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "SafeCast.sol/SafeCast.0.8.15.json"
         }
       }
     },
@@ -2936,9 +2879,9 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "TickMath": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "TickMath.sol/TickMath.json",
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "TickMath.sol/TickMath.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "TickMath.sol/TickMath.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "TickMath.sol/TickMath.0.8.12.json",
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "TickMath.sol/TickMath.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "TickMath.sol/TickMath.0.8.22.json"
         }
       }
     },
@@ -2981,7 +2924,7 @@
       "versionRequirement": ">=0.6.0",
       "artifacts": {
         "TransferHelper": {
-          "0.8.12+commit.f00d7308.Darwin.appleclang": "TransferHelper.sol/TransferHelper.json"
+          "0.8.12+commit.f00d7308.Darwin.appleclang": "libraries/TransferHelper.sol/TransferHelper.json"
         }
       }
     },
@@ -3491,8 +3434,8 @@
       "versionRequirement": ">=0.7.5",
       "artifacts": {
         "IERC721Permit": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721Permit.sol/IERC721Permit.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721Permit.sol/IERC721Permit.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IERC721Permit.sol/IERC721Permit.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IERC721Permit.sol/IERC721Permit.0.8.22.json"
         }
       }
     },
@@ -3574,8 +3517,8 @@
       "versionRequirement": ">=0.5.0",
       "artifacts": {
         "IPeripheryImmutableState": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IPeripheryImmutableState.sol/IPeripheryImmutableState.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IPeripheryImmutableState.sol/IPeripheryImmutableState.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IPeripheryImmutableState.sol/IPeripheryImmutableState.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IPeripheryImmutableState.sol/IPeripheryImmutableState.0.8.22.json"
         }
       }
     },
@@ -3616,8 +3559,8 @@
       "versionRequirement": ">=0.7.5",
       "artifacts": {
         "IPeripheryPayments": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IPeripheryPayments.sol/IPeripheryPayments.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IPeripheryPayments.sol/IPeripheryPayments.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IPeripheryPayments.sol/IPeripheryPayments.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IPeripheryPayments.sol/IPeripheryPayments.0.8.22.json"
         }
       }
     },
@@ -3701,8 +3644,8 @@
       "versionRequirement": ">=0.7.5",
       "artifacts": {
         "IPoolInitializer": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "IPoolInitializer.sol/IPoolInitializer.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IPoolInitializer.sol/IPoolInitializer.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "IPoolInitializer.sol/IPoolInitializer.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "IPoolInitializer.sol/IPoolInitializer.0.8.22.json"
         }
       }
     },
@@ -4181,8 +4124,8 @@
       "versionRequirement": ">=0.5.0",
       "artifacts": {
         "PoolAddress": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "libraries/PoolAddress.sol/PoolAddress.json",
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "contracts/libraries/PoolAddress.sol/PoolAddress.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "PoolAddress.sol/PoolAddress.0.8.15.json",
+          "0.8.22+commit.4fc1097e.Darwin.appleclang": "PoolAddress.sol/PoolAddress.0.8.22.json"
         }
       }
     },
@@ -4266,70 +4209,12 @@
       "versionRequirement": ">=0.6.0",
       "artifacts": {
         "TransferHelper": {
-          "0.8.15+commit.e14f2714.Darwin.appleclang": "TransferHelper.sol/TransferHelper.json"
-        }
-      }
-    },
-    "script/Counter.s.sol": {
-      "lastModificationDate": 1704550023059,
-      "contentHash": "7539680fbd3ad49c6632713cc2bb6bf6",
-      "sourceName": "script/Counter.s.sol",
-      "solcConfig": {
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "metadata": {
-            "useLiteralContent": false,
-            "bytecodeHash": "ipfs",
-            "appendCBOR": true
-          },
-          "outputSelection": {
-            "*": {
-              "": [
-                "ast"
-              ],
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ]
-            }
-          },
-          "evmVersion": "paris",
-          "libraries": {}
-        }
-      },
-      "imports": [
-        "lib/forge-std/src/Base.sol",
-        "lib/forge-std/src/Script.sol",
-        "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
-        "lib/forge-std/src/StdJson.sol",
-        "lib/forge-std/src/StdMath.sol",
-        "lib/forge-std/src/StdStorage.sol",
-        "lib/forge-std/src/StdStyle.sol",
-        "lib/forge-std/src/StdUtils.sol",
-        "lib/forge-std/src/Vm.sol",
-        "lib/forge-std/src/console.sol",
-        "lib/forge-std/src/console2.sol",
-        "lib/forge-std/src/interfaces/IMulticall3.sol",
-        "lib/forge-std/src/mocks/MockERC20.sol",
-        "lib/forge-std/src/mocks/MockERC721.sol",
-        "lib/forge-std/src/safeconsole.sol"
-      ],
-      "versionRequirement": "^0.8.13",
-      "artifacts": {
-        "CounterScript": {
-          "0.8.22+commit.4fc1097e.Darwin.appleclang": "Counter.s.sol/CounterScript.json"
+          "0.8.15+commit.e14f2714.Darwin.appleclang": "contracts/libraries/TransferHelper.sol/TransferHelper.json"
         }
       }
     },
     "src/ERC20Mintable.sol": {
-      "lastModificationDate": 1704582894300,
+      "lastModificationDate": 1704583246523,
       "contentHash": "5290612a78a9d1b90bf38d22f111457d",
       "sourceName": "src/ERC20Mintable.sol",
       "solcConfig": {
@@ -4571,7 +4456,6 @@
         }
       },
       "imports": [
-        "lib/forge-std/src/console.sol",
         "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol",
         "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Enumerable.sol",
         "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Metadata.sol",
@@ -4591,7 +4475,7 @@
       }
     },
     "test/modified_uniswap/v3-periphery-modified/ISwapRouterModified.sol": {
-      "lastModificationDate": 1704657279742,
+      "lastModificationDate": 1704657588922,
       "contentHash": "47b8aac98dde0557fb43d37384b551f0",
       "sourceName": "test/modified_uniswap/v3-periphery-modified/ISwapRouterModified.sol",
       "solcConfig": {
