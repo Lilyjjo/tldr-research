@@ -19,3 +19,6 @@
 [submodule "poc_first_swap_auction/lib/v3-core"]
 	path = poc_first_swap_auction/lib/v3-core
 	url = https://github.com/uniswap/v3-core
+[submodule "poc_first_swap_auction/lib/v3-periphery"]
+	path = poc_first_swap_auction/lib/v3-periphery
+	url = https://github.com/uniswap/v3-periphery
