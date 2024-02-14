@@ -16,3 +16,6 @@
 [submodule "poc_first_swap_auction/lib/suave-std"]
 	path = poc_first_swap_auction/lib/suave-std
 	url = https://github.com/flashbots/suave-std
+[submodule "poc_first_swap_auction/lib/v3-core"]
+	path = poc_first_swap_auction/lib/v3-core
+	url = https://github.com/uniswap/v3-core
