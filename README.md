@@ -6,10 +6,8 @@ Each PoC will consist of normal solidity smart contracts, to be launched on Goer
 
 
 SUAVE PoCs in progress of being written:
-- Basic smart contract whose main functionality is only sequence-able by a SUAVE app (“suapp”) [currently being written]
-- First swap (‘top of block’) auction for AMM with uniswap v4 hooks [not started]
+- Basic smart contract whose main functionality is only sequence-able by a SUAVE app (“suapp”) [⚠️ needs to be rewritten to reflect Suave's [non-consistent and non-synchronous](https://github.com/flashbots/suave-geth/issues/190) off-chain programming model]
+- First swap (‘top of block’) auction for AMM for uniswap v2 [currently being written]
 - AMM which is sequenced with Matheus’s [Greedy Algorithm](https://arxiv.org/pdf/2209.15569.pdf) AMM sequencing rules [not started]
 - AMM combining first swap and greedy rules [not started]
-
-poc_only_sequenceable_by_suave
 
