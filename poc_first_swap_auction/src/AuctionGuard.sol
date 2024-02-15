@@ -1,8 +1,9 @@
 pragma solidity =0.8.12;
 
 import {IERC20Minimal} from 'v3-core/interfaces/IERC20Minimal.sol';
+import {IAuctionGuard} from './IAuctionGuard.sol';
 
-contract AuctionGate {
+contract AuctionGuard is IAuctionGuard {
     address public auctionFeeDistributor;
     address public firstSwapTxOrigin;
     uint256 public firstSwapValidBlock;
@@ -24,7 +25,7 @@ contract AuctionGate {
     event AuctioneerChanged(address indexed _oldAuctioneer, address indexed _newAuctioneer);
     event AuctionsEnabled(bool enabled);
 
-    modifier auctionCheck() {
+    modifier auctionGuard() {
         if(auctionsEnabled && lastSwapBlock < block.number){
             // Ensure swapper is auction winner
             if(block.number != firstSwapValidBlock) revert WrongValidSwapBlock();

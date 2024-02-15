@@ -2,12 +2,12 @@
 pragma solidity ^0.8;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC20Mintable} from "../src/ERC20Mintable.sol";
+import {ERC20Mintable} from "../src/utils/ERC20Mintable.sol";
 
 import {IUniswapV3Factory} from "v3-core/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3PoolAuctionedFirstSwap} from "../src/IUniswapV3PoolAuctionedFirstSwap.sol";
-import {INonfungiblePositionManagerModified} from "../src/modified_uniswap_casing/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
-import {ISwapRouterModified} from "../src/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
+import {IUniswapV3PoolAuctionedFirstSwap} from "../src/uniswap_modifications/IUniswapV3PoolAuctionedFirstSwap.sol";
+import {INonfungiblePositionManagerModified} from "../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
+import {ISwapRouterModified} from "../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
 import {TickMath} from "v3-core/libraries/TickMath.sol";
 import {OracleLibrary} from "v3-periphery/libraries/OracleLibrary.sol";
 import "forge-std/console.sol";
