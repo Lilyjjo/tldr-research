@@ -1,4 +1,4 @@
-pragma solidity =0.8.12;
+pragma solidity ^0.8;
 
 import {IERC20Minimal} from 'v3-core/interfaces/IERC20Minimal.sol';
 import {IAuctionGuard} from './IAuctionGuard.sol';
