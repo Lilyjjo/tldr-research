@@ -13,9 +13,8 @@ import {OracleLibrary} from "v3-periphery/libraries/OracleLibrary.sol";
 import "forge-std/console.sol";
 
 /**
- * @title UniV3GenericSetup
- * @notice Sets up and explores a Uniswap v3 pool with with two ERC20 tokens,
- * sets up liquidity, and allows for simulation of swaps and price changes.
+ * @title UniV3GenericTestSetup
+ * @notice Sets up a Uniswap v3 pool with associated router and position manager.
  * @dev Uses modified version of NonfungiblePositionManager to allow for
  * modifications of the pool. Original code enforces a check that a pool's
  * bytecode was not modified for security purposes.
@@ -48,7 +47,6 @@ contract UniV3GenericTestSetup is Test {
 
     /**
      * @notice Advances the block timestamp and number by one.
-     * @dev This is a helper function for testing purposes to simulate the passage of time in the EVM.
      */
     function _incTime() public {
         uint256 blockTimestamp = block.timestamp + 1;
@@ -59,8 +57,8 @@ contract UniV3GenericTestSetup is Test {
 
     /**
      * @notice Sets up the initial state of the Uniswap v3 pool and related components.
-     * @dev Deploys ERC20 tokens, creates a Uniswap V3 pool, and provides initial liquidity.
-     * Also sets up the modified Nonfungible Position Manager and Swap Router.
+     * @dev Deploys ERC20 tokens, creates a Uniswap V3 pool, and sets up the
+     * modified Nonfungible Position Manager and Swap Router.
      */
     function setUp() virtual public {
         // initialize addresses 
@@ -130,6 +128,10 @@ contract UniV3GenericTestSetup is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @notice Helper function to give funds and approve a third
+     * party to spend those funds.
+     */
     function _fundAndApprove(
         address user,
         address approved,
@@ -144,20 +146,22 @@ contract UniV3GenericTestSetup is Test {
         vm.stopPrank();
     }
 
-    function _swap(address swapper, bool token0In, uint256 amountIn, uint256 amountOut, bool mintTokens, ExpectedRevert memory revertParams) internal {
-        address tokenIn = address(token0In ? token0 : token1);
-        address tokenOut = address(token0In ? token1 : token0); 
+    /**
+     * @notice Performs swap.
+     */
+    function _swap(address swapper, ERC20Mintable tokenIn, uint256 amountIn, uint256 amountOut, bool mintTokens, ExpectedRevert memory revertParams) internal {
+        ERC20Mintable tokenOut = tokenIn == token0 ? token1 : token0; 
         
         if(mintTokens) {
             // mint swapper tokens 
-            _fundAndApprove(swapper, address(swapRouter), ERC20Mintable(tokenIn), amountIn);
+            _fundAndApprove(swapper, address(swapRouter), tokenIn, amountIn);
         }
 
         ISwapRouterModified.ExactInputSingleParams memory swapParams; 
         swapParams = ISwapRouterModified
         .ExactInputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
+                tokenIn: address(tokenIn),
+                tokenOut: address(tokenOut),
                 fee: POOL_FEE,
                 recipient: swapper,
                 deadline: block.timestamp + 10,
@@ -170,6 +174,9 @@ contract UniV3GenericTestSetup is Test {
         swapRouter.exactInputSingle(swapParams);
     }
 
+    /**
+     * @notice Adds liquidity.
+     */
     function _addLiquidity(address liquidityProvider, uint256 token0Amount, uint256 token1Amount, bool mintTokens) internal returns (uint256, uint256) {
         if(mintTokens) {
             // mint liquidity provider tokens
@@ -223,7 +230,6 @@ contract UniV3GenericTestSetup is Test {
 
     /**
      * @notice Displays the user's balance for both tokens in the pool.
-     * @dev Logs the current balance of token0 and token1 for the specified user address.
      */
     function printUserBalances(address user) public view {
         console.log("user balance of 0: %d", token0.balanceOf(user));
@@ -231,8 +237,7 @@ contract UniV3GenericTestSetup is Test {
     }
 
     /**
-    * @notice Prints the current price and tick information of the pool.
-    * @dev Retrieves and logs the current sqrt price, tick, and the calculated token price based on the pool's state.
+    * @notice Prints the current price.
     */
     function printPrice() public view {
         (uint160 sqrt, int24 curTick, , , , , ) = pool.slot0();

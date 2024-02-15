@@ -16,16 +16,16 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
     IUniswapV3PoolAuctionedFirstSwap auctionPool; 
 
     /**
+     * @notice Sets up the pool and initalizes the auction.
      */
     function setUp() public override {
         // setup genric uniswap pool logic
         super.setUp();
+        auctionPool = IUniswapV3PoolAuctionedFirstSwap(address(pool)); // recasting for readability 
 
         // setup auction specific logic
         auctioneer = _nextAddress();
         suappKey = _nextAddress();
-
-        auctionPool = IUniswapV3PoolAuctionedFirstSwap(address(pool)); // recasting for readability 
 
         // set pool's auctioneer as owner
         auctionPool.setAuctioneer(auctioneer);
@@ -41,17 +41,13 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
         // advance block, now auctions are enabled
         _incTime();
     }
-
-    /**
-     * @notice Test first swap 
-     */
-    function test_swapPriceImpact() public {
+    
+    function test_nonAuctionedFirstSwapShouldFail() public {
         address liquidityProvider = _nextAddress();
-        address swapper = _nextAddress();
         _addLiquidity(liquidityProvider, 10 ether, 10 ether, true);
-        printPrice();
-        _swap(swapper, true, 1 ether, 0, true, ExpectedRevert(true, AuctionGuard.WrongValidSwapBlock.selector));
-        printPrice();
+
+        address swapper = _nextAddress();
+        _swap(swapper, token0, 1 ether, 0, true, ExpectedRevert(true, AuctionGuard.WrongValidSwapBlock.selector));
     }
 
 }
