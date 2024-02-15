@@ -25,7 +25,11 @@ import {IUniswapV3MintCallback} from 'v3-core/interfaces/callback/IUniswapV3Mint
 import {IUniswapV3SwapCallback} from 'v3-core/interfaces/callback/IUniswapV3SwapCallback.sol';
 import {IUniswapV3FlashCallback} from 'v3-core/interfaces/callback/IUniswapV3FlashCallback.sol';
 
-contract UniswapV3PoolModified is IUniswapV3Pool, NoDelegateCall {
+import {AuctionGate} from './AuctionGate.sol';
+
+import "forge-std/console.sol";
+
+contract UniswapV3PoolAuctionedFirstSwap is IUniswapV3Pool, NoDelegateCall, AuctionGate {
     using SafeCast for uint256;
     using SafeCast for int256;
     using Tick for mapping(int24 => Tick.Info);
@@ -608,7 +612,7 @@ contract UniswapV3PoolModified is IUniswapV3Pool, NoDelegateCall {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external override noDelegateCall returns (int256 amount0, int256 amount1) {
+    ) external override auctionCheck noDelegateCall returns (int256 amount0, int256 amount1) {
         if (amountSpecified == 0) revert AS();
 
         Slot0 memory slot0Start = slot0;

@@ -3,7 +3,7 @@ pragma solidity =0.8.12;
 
 import {IUniswapV3PoolDeployer} from 'v3-core/interfaces/IUniswapV3PoolDeployer.sol';
 
-import {UniswapV3PoolModified} from '../../UniswapV3PoolModified.sol';
+import {UniswapV3PoolAuctionedFirstSwap} from '../../UniswapV3PoolAuctionedFirstSwap.sol';
 
 contract UniswapV3PoolDeployerModified is IUniswapV3PoolDeployer {
     struct Parameters {
@@ -32,7 +32,7 @@ contract UniswapV3PoolDeployerModified is IUniswapV3PoolDeployer {
         int24 tickSpacing
     ) internal returns (address pool) {
         parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing});
-        pool = address(new UniswapV3PoolModified{salt: keccak256(abi.encode(token0, token1, fee))}());
+        pool = address(new UniswapV3PoolAuctionedFirstSwap{salt: keccak256(abi.encode(token0, token1, fee))}());
         delete parameters;
     }
 }

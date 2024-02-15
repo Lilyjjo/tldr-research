@@ -13,6 +13,10 @@ forge install OpenZeppelin/openzeppelin-contracts@release-v4.0
 List of modifications made to the Uniswap Pool:
 - A modifier was added to the swap logic which will cause reverts if a swap has not been made yet and enforces that the first swap was sequenced by the associated Suave auctioned contract.
 
+Cool extentions:
+- Determine if fees for arbitrage swap should be changed. Since the LPs are already getting paid for this swap via the bid, turning off the fees would help incentivize the arbitraguer to want to bid even on smaller CEX price differences.
+- Restrict adding/removing liquidity to after swaps finish. This is to prevent liquidity snipping. 
+
 
 NOTES:
 - None of this is implemented yet, this PoC is a work in progress.

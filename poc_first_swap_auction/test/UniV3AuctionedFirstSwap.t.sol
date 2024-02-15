@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20Mintable} from "../src/ERC20Mintable.sol";
 
 import {IUniswapV3Factory} from "v3-core/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3Pool} from "v3-core/interfaces/IUniswapV3Pool.sol";
+import {IUniswapV3PoolAuctionedFirstSwap} from "../src/IUniswapV3PoolAuctionedFirstSwap.sol";
 import {INonfungiblePositionManagerModified} from "../src/modified_uniswap_casing/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
 import {ISwapRouterModified} from "../src/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
 import {TickMath} from "v3-core/libraries/TickMath.sol";
@@ -24,12 +24,14 @@ import "forge-std/console.sol";
  * v3-periphery : release 0.8
  * openzeppelin-contracts : release release-v4.0
  */
-contract UniV3PoolExplorer is Test {
+contract UniV3AuctionedFirstSwap is Test {
     ERC20Mintable public token0;
     ERC20Mintable public token1;
     address owner;
     address user;
-    IUniswapV3Pool pool;
+    address auctioneer;
+    address suappKey;
+    IUniswapV3PoolAuctionedFirstSwap pool;
     INonfungiblePositionManagerModified positionManager;
     ISwapRouterModified swapRouter;
     address liquidityProvider;
@@ -44,6 +46,8 @@ contract UniV3PoolExplorer is Test {
         owner = address(1);
         liquidityProvider = address(2);
         user = address(3);
+        auctioneer = address(4);
+        suappKey = address(5);
 
         vm.startPrank(owner);
         address tokenA = address(new ERC20Mintable("A", "A"));
@@ -68,7 +72,7 @@ contract UniV3PoolExplorer is Test {
             deployCode("UniswapV3FactoryModified.sol")
         );
 
-        pool = IUniswapV3Pool(
+        pool = IUniswapV3PoolAuctionedFirstSwap(
             uniswapV3Factory.createPool(address(tokenA), address(tokenB), fee)
         );
 
@@ -94,6 +98,9 @@ contract UniV3PoolExplorer is Test {
                 )
             )
         );
+
+        console.log("router");
+        console.log(address(swapRouter));
 
         // ensure that starting tick is spaced properly and starts at 1:1
         int24 tickSpacing = pool.tickSpacing();
@@ -152,6 +159,22 @@ contract UniV3PoolExplorer is Test {
 
         // grow available observations in pool
         pool.increaseObservationCardinalityNext(10);
+
+        // set pool's auctioneer as owner
+        pool.setAuctioneer(auctioneer);
+
+        // set pool's suapp key
+        vm.prank(auctioneer);
+        pool.setSuappKey(suappKey);
+
+        // turn auctions on 
+        vm.prank(suappKey);
+        pool.enableAuction(true);
+
+        // advance block, now auctions are enabled
+        _incTime();
+
+
     }
 
     /**
@@ -251,7 +274,8 @@ contract UniV3PoolExplorer is Test {
 
         printPrice();
         vm.recordLogs();
-        vm.startPrank(user);
+        vm.startPrank(user, user);
+        console.log("preswap");
         swapRouter.exactInputSingle(swapParamsGive0);
         printPrice();
         swapRouter.exactInputSingle(swapParamsGive0);

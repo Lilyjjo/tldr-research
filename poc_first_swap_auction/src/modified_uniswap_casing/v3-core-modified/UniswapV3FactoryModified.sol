@@ -6,7 +6,6 @@ import {IUniswapV3Factory} from 'v3-core/interfaces/IUniswapV3Factory.sol';
 import {UniswapV3PoolDeployerModified} from './UniswapV3PoolDeployerModified.sol';
 import {NoDelegateCall} from 'v3-core/NoDelegateCall.sol';
 
-import {UniswapV3PoolModified} from '../../UniswapV3PoolModified.sol';
 
 /// @title Canonical Uniswap V3 factory
 /// @notice Deploys Uniswap V3 pools and manages ownership and control over pool protocol fees
