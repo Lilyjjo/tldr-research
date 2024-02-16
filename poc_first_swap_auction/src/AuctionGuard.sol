@@ -2,11 +2,15 @@ pragma solidity ^0.8;
 
 import {IERC20Minimal} from 'v3-core/interfaces/IERC20Minimal.sol';
 import {IAuctionGuard} from './IAuctionGuard.sol';
+import {IAuctionDeposits} from "./IAuctionDeposits.sol";
 
 contract AuctionGuard is IAuctionGuard {
+    IAuctionDeposits public auctionDeposits;  
     address public auctionFeeDistributor;
+
     address public firstSwapTxOrigin;
     uint256 public firstSwapValidBlock;
+
     uint256 public lastSwapBlock;
     IERC20Minimal public paymentToken;
     bool public auctionsEnabled;
@@ -21,8 +25,10 @@ contract AuctionGuard is IAuctionGuard {
     error OnlySuappKey();
     error ZeroAddress();
 
-    event SuappKeyChanged(address indexed _oldSuappKey, address indexed _newSuappKey);
     event AuctioneerChanged(address indexed _oldAuctioneer, address indexed _newAuctioneer);
+    event SuappKeyChanged(address indexed _oldSuappKey, address indexed _newSuappKey);
+    event FeeAddressChanged(address indexed _oldFeeAddress, address indexed _newFeeAddress);
+
     event AuctionsEnabled(bool enabled);
     
     modifier onlyAuctioneer() {
@@ -36,6 +42,13 @@ contract AuctionGuard is IAuctionGuard {
         _;
     }
 
+    function setAuctioneer(address newAuctioneer) external onlyAuctioneer {
+        if (newAuctioneer == address(0)) revert ZeroAddress();
+        address oldAuctioneer = auctioneer;
+        auctioneer = newAuctioneer;
+        emit AuctioneerChanged(oldAuctioneer, auctioneer);
+    }
+
     function setSuappKey(address newSuappKey) external onlyAuctioneer {
         if (newSuappKey == address(0)) revert ZeroAddress();
         address oldSuappKey = suappKey;
@@ -43,11 +56,11 @@ contract AuctionGuard is IAuctionGuard {
         emit SuappKeyChanged(oldSuappKey, newSuappKey);
     }
 
-    function setAuctioneer(address newAuctioneer) external onlyAuctioneer {
-        if (newAuctioneer == address(0)) revert ZeroAddress();
-        address oldAuctioneer = auctioneer;
-        auctioneer = newAuctioneer;
-        emit AuctioneerChanged(oldAuctioneer, auctioneer);
+    function setFeeAddress(address newFeeAddress) external onlyAuctioneer {
+        if (newFeeAddress == address(0)) revert ZeroAddress();
+        address oldFeeAddress = auctionFeeDistributor;
+        auctionFeeDistributor = newFeeAddress;
+        emit FeeAddressChanged(oldFeeAddress, newFeeAddress);
     }
 
     function enableAuction(bool setAuction) onlySuappKey external {
@@ -67,7 +80,15 @@ contract AuctionGuard is IAuctionGuard {
         _;
     }
 
-    function postAuctionResults(address firstSwapper, uint256 validBlock, uint256 price, bool auction) onlySuappKey external {
+    function postAuctionResults(
+        address bidder, 
+        uint256 validBlock, 
+        uint256 price, 
+        bool auction, 
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) onlySuappKey external {
         if(!auctionsEnabled) revert AuctionsNotRunning();
         if(lastSwapBlock == block.number || firstSwapValidBlock == block.number) revert AuctionAlreadyPosted();
         if(auction == false) {
@@ -76,7 +97,7 @@ contract AuctionGuard is IAuctionGuard {
         } else {
             // try colleting payment
             bool successfulPayment;
-            try paymentToken.transferFrom(firstSwapper, auctionFeeDistributor, price) returns (bool success) {
+            try auctionDeposits.withdrawBid(bidder, validBlock, price, v, r, s) returns (bool success) {
                 // TODO ensure wrong / missing returns doesn't mess things up
                 successfulPayment = success;
             } catch {
@@ -85,7 +106,7 @@ contract AuctionGuard is IAuctionGuard {
 
             if(successfulPayment) {
                 // enable first protected swap
-                firstSwapTxOrigin = firstSwapper;
+                firstSwapTxOrigin = bidder;
                 firstSwapValidBlock = validBlock;
             } else {
                 // auction payment failed, let all swaps pass
@@ -94,5 +115,14 @@ contract AuctionGuard is IAuctionGuard {
         }
     } 
 
-    
+    // returns if auction has completed or not for the current block 
+    // helper function for deposit contract
+    function currentBlockAuctionDone() external view returns (bool) {
+        return !auctionsEnabled || lastSwapBlock == block.number;
+    }
+
+    function getFeeAddress() external view returns (address) {
+        return auctionFeeDistributor;
+    }
+ 
 }
