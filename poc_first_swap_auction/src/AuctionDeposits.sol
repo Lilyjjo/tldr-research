@@ -46,6 +46,10 @@ contract AuctionDeposits is Ownable, EIP712, IAuctionDeposits {
         emit Deposit(msg.sender, msg.sender, msg.value);
     }
 
+    function balanceOf(address user) external view returns(uint256) {
+        return balances[user];
+    }
+
     function withdraw(address to, uint256 amount) external {
         // check if auction ongoing
         if(!auction.currentBlockAuctionDone()) {

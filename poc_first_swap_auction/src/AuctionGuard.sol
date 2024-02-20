@@ -28,6 +28,8 @@ contract AuctionGuard is IAuctionGuard {
     event AuctioneerChanged(address indexed _oldAuctioneer, address indexed _newAuctioneer);
     event SuappKeyChanged(address indexed _oldSuappKey, address indexed _newSuappKey);
     event FeeAddressChanged(address indexed _oldFeeAddress, address indexed _newFeeAddress);
+    event SuccessfulPayment();
+    event AuctionSucceeded();
 
     event AuctionsEnabled(bool enabled);
     
@@ -76,6 +78,7 @@ contract AuctionGuard is IAuctionGuard {
             if(tx.origin != firstSwapTxOrigin) revert WrongFirstSwapper();
             // let rest of swaps pass
             lastSwapBlock = block.number;
+            emit AuctionSucceeded();    
         } 
         _;
     }
@@ -108,6 +111,7 @@ contract AuctionGuard is IAuctionGuard {
                 // enable first protected swap
                 firstSwapTxOrigin = bidder;
                 firstSwapValidBlock = validBlock;
+                emit SuccessfulPayment(); // note: is read in suave app 
             } else {
                 // auction payment failed, let all swaps pass
                 lastSwapBlock = block.number;

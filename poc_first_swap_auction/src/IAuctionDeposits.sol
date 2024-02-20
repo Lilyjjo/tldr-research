@@ -9,4 +9,6 @@ interface IAuctionDeposits {
         bytes32 r,
         bytes32 s
     ) external returns (bool);
+
+    function balanceOf(address user) external returns(uint256);
 }
