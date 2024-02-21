@@ -18,18 +18,18 @@ import {TickMath} from 'v3-core/libraries/TickMath.sol';
 import {SqrtPriceMath} from 'v3-core/libraries/SqrtPriceMath.sol';
 import {SwapMath} from 'v3-core/libraries/SwapMath.sol';
 
-import {IUniswapV3PoolDeployer} from 'v3-core/interfaces/IUniswapV3PoolDeployer.sol';
+import {IUniswapV3PoolDeployerModified} from './modified_uniswap_casing/v3-core-modified/IUniswapV3PoolDeployerModified.sol';
 import {IUniswapV3Factory} from 'v3-core/interfaces/IUniswapV3Factory.sol';
 import {IERC20Minimal} from 'v3-core/interfaces/IERC20Minimal.sol';
 import {IUniswapV3MintCallback} from 'v3-core/interfaces/callback/IUniswapV3MintCallback.sol';
 import {IUniswapV3SwapCallback} from 'v3-core/interfaces/callback/IUniswapV3SwapCallback.sol';
 import {IUniswapV3FlashCallback} from 'v3-core/interfaces/callback/IUniswapV3FlashCallback.sol';
 
-import {AuctionGuard} from '../AuctionGuard.sol';
+import {IAuctionGuard} from '../IAuctionGuard.sol';
 
 import "forge-std/console.sol";
 
-contract UniswapV3PoolAuctionedFirstSwap is IUniswapV3Pool, NoDelegateCall, AuctionGuard {
+contract UniswapV3PoolAuctionedFirstSwap is IUniswapV3Pool, NoDelegateCall {
     using SafeCast for uint256;
     using SafeCast for int256;
     using Tick for mapping(int24 => Tick.Info);
@@ -98,6 +98,8 @@ contract UniswapV3PoolAuctionedFirstSwap is IUniswapV3Pool, NoDelegateCall, Auct
     /// @inheritdoc IUniswapV3PoolState
     Oracle.Observation[65535] public override observations;
 
+    IAuctionGuard public auction;
+
     /// @dev Mutually exclusive reentrancy protection into the pool to/from a method. This method also prevents entrance
     /// to a function before the pool is initialized. The reentrancy guard is required throughout the contract because
     /// we use balance checks to determine the payment status of interactions such as mint, swap and flash.
@@ -116,8 +118,10 @@ contract UniswapV3PoolAuctionedFirstSwap is IUniswapV3Pool, NoDelegateCall, Auct
 
     constructor() {
         int24 _tickSpacing;
-        (factory, token0, token1, fee, _tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
+        address _auction;
+        (factory, token0, token1, fee, _tickSpacing, _auction) = IUniswapV3PoolDeployerModified(msg.sender).parameters();
         tickSpacing = _tickSpacing;
+        auction = IAuctionGuard(_auction);
 
         maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
     }
@@ -612,7 +616,8 @@ contract UniswapV3PoolAuctionedFirstSwap is IUniswapV3Pool, NoDelegateCall, Auct
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external override auctionGuard noDelegateCall returns (int256 amount0, int256 amount1) {
+    ) external override noDelegateCall returns (int256 amount0, int256 amount1) {
+        auction.auctionGuard();
         if (amountSpecified == 0) revert AS();
 
         Slot0 memory slot0Start = slot0;

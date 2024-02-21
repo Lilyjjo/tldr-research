@@ -4,6 +4,7 @@ import {Suave} from "suave-std/suavelib/Suave.sol";
 import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "./utils/Bundle.sol";
 import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
+import "forge-std/console.sol";
 
 /**
  * @title AMMAuctionSuapp 
@@ -103,7 +104,7 @@ contract AMMAuctionSuapp {
         targetDepositContract = targetDepositContract_;
         chainId = chainId_;
         gasNeededPostAuctionResults = gasNeededPostAuctionResults_;
-        gasPrice = gasPrice_;
+        gasPrice = gasPrice_; // todo: have this update itself
     }
 
 
@@ -111,10 +112,8 @@ contract AMMAuctionSuapp {
     function newPendingTxn() external returns(bytes memory) {
         bytes memory txnData = Suave.confidentialInputs(); 
 
-        // allowedPeekers: which contracts can read the record (only this contract)
         address[] memory allowedPeekers = new address[](1);
         allowedPeekers[0] = address(this);
-        // allowedStores: which kettles can read the record (any kettle)
         address[] memory allowedStores = new address[](1);
         allowedStores[0] = Suave.ANYALLOWED; // TODO: restrict this to a single kettle
 
@@ -305,7 +304,7 @@ contract AMMAuctionSuapp {
         }
         if(!foundSwapSuccessLog) return false;
 
-        // bid's exection is valid 
+        // bid's execution is valid 
         return true;
     }
 
@@ -316,6 +315,7 @@ contract AMMAuctionSuapp {
             bid.bidder,
             bid.blockNumber,
             bid.payment,
+            auctionHasWinner,
             bid.v,
             bid.r,
             bid.s
@@ -350,15 +350,34 @@ contract AMMAuctionSuapp {
         return signedTxn;
     }
 
-
-    
-
     // TODO: if there is time   
     function updateBid() external returns (bytes memory) {}
     function callBackUpdateBid() external {}
 
     function _getLastL1BlockTime() internal returns (uint256) {
+        
         return 0;
+    }
+
+    function _getLastL1Block() internal returns (uint256) {
+        string memory httpURL = string(Suave.confidentialRetrieve(_ethGoerliUrlRecord, KEY_URL));
+
+        Suave.HttpRequest memory request;
+        request.method = "POST";
+        request.body = '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}';
+        request.headers = new string[](1);
+        request.headers[0] = "Content-Type: application/json";
+        request.withFlashbotsSignature = false;
+        request.url = httpURL;
+
+        string memory result = string(Suave.doHTTPRequest(request));
+        console.logString(result);
+
+        // TODO: how tf to parse this result? 
+
+        // parse into block object
+        
+ 
     }
 
     function _getLastL1BlockNumber() internal returns (uint256) {
@@ -366,6 +385,8 @@ contract AMMAuctionSuapp {
     }
 
     function _getLastL1BlockInfo() internal returns (uint256, uint256) {
+        
+
         return (0,0);
     }
 

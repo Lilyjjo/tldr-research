@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.12;
 
-import {IUniswapV3PoolDeployer} from 'v3-core/interfaces/IUniswapV3PoolDeployer.sol';
+import {IUniswapV3PoolDeployerModified} from './IUniswapV3PoolDeployerModified.sol';
 
 import {UniswapV3PoolAuctionedFirstSwap} from '../../UniswapV3PoolAuctionedFirstSwap.sol';
 
-contract UniswapV3PoolDeployerModified is IUniswapV3PoolDeployer {
+contract UniswapV3PoolDeployerModified is IUniswapV3PoolDeployerModified {
     struct Parameters {
         address factory;
         address token0;
         address token1;
         uint24 fee;
         int24 tickSpacing;
+        address auction;
     }
 
-    /// @inheritdoc IUniswapV3PoolDeployer
+    /// @inheritdoc IUniswapV3PoolDeployerModified
     Parameters public override parameters;
 
     /// @dev Deploys a pool with the given parameters by transiently setting the parameters storage slot and then
@@ -29,9 +30,10 @@ contract UniswapV3PoolDeployerModified is IUniswapV3PoolDeployer {
         address token0,
         address token1,
         uint24 fee,
-        int24 tickSpacing
+        int24 tickSpacing,
+        address auction
     ) internal returns (address pool) {
-        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing});
+        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing, auction: auction});
         pool = address(new UniswapV3PoolAuctionedFirstSwap{salt: keccak256(abi.encode(token0, token1, fee))}());
         delete parameters;
     }

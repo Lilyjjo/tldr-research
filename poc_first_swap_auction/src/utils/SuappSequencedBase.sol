@@ -8,9 +8,15 @@ contract SuappSequencedBase {
     address public suappAdmin;
 
     // Event emitted when the owner is changed.
-    event SuappAdminChanged(address indexed _oldAdmin, address indexed _newAdmin);
+    event SuappAdminChanged(
+        address indexed _oldAdmin,
+        address indexed _newAdmin
+    );
     // Event emitted when the SUAPP address is changed.
-    event SuappKeyChanged(address indexed _oldSuappKey, address indexed _newSuappKey);
+    event SuappKeyChanged(
+        address indexed _oldSuappKey,
+        address indexed _newSuappKey
+    );
 
     // Errors for various contract exceptions.
     error OnlySuappAdmin();
