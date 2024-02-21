@@ -4,26 +4,30 @@ import {Suave} from "suave-std/suavelib/Suave.sol";
 import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "./utils/Bundle.sol";
 import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
-import "forge-std/console.sol";
+import {JSONParserLib} from "../lib/suave-std/lib/solady/src/utils/JSONParserLib.sol";
 
 /**
- * @title AMMAuctionSuapp 
+ * @title AMMAuctionSuapp
  * @author lilyjjo
- * @dev 
+ * @dev
  * @dev
  */
 contract AMMAuctionSuapp {
-    /// @notice Target L1 AuctionedAMM 
+    using JSONParserLib for *;
+
+    /// @notice Target L1 AuctionedAMM
     address public targetAMM;
     /// @notice Target L1 deposit contract for AuctionAMM
     address public targetDepositContract;
     /// @notice Contract owner address
     address public owner;
 
+    uint256 grabbedTime;
+
     /// @dev DataId for the signing key in Suave's confidential storage
     Suave.DataId private _signingKeyRecord;
     /// @dev DataId for the L1 URL in Suave's confidential storage
-    Suave.DataId private _ethGoerliUrlRecord; 
+    Suave.DataId private _ethGoerliUrlRecord;
     /// @dev last block sent auction result for
     Suave.DataId private _lastBlockProcessedRecord;
 
@@ -32,22 +36,24 @@ contract AMMAuctionSuapp {
     /// @dev Gas needed for auction result txn
     uint256 public gasNeededPostAuctionResults;
     /// @dev Gas price for auction result txn
-    uint256 public gasPrice; // TODO: pull somehow 
-    /// @dev Nonce to use for Suapp's signing key 
-    uint256 public signingKeyNonce; 
+    uint256 public gasPrice; // TODO: pull somehow
+    /// @dev Nonce to use for Suapp's signing key
+    uint256 public signingKeyNonce;
     /// @dev Time past last block's time to finish auction and send bundle
     uint256 public auctionDuration;
 
+    string constant tempGoerliUrl =
+        "https://eth-goerli.g.alchemy.com/v2/jAxK12NoRIIP6BgWZfFAMQOjDhEgEtSV";
+
     /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
-     /// @dev Key for accessing the Ethereum Goerli network URL in Suave's confidential storage
+    /// @dev Key for accessing the Ethereum Goerli network URL in Suave's confidential storage
     string public KEY_URL = "URL";
     string public KEY_LAST_BLOCK_PROCESSED = "LAST_BLOCK";
-    
 
-    /// @dev bids for a block number 
+    /// @dev bids for a block number
     /// @dev blockNumber => bids
-    mapping(uint256 => Suave.DataId[]) private _blockBids;  
+    mapping(uint256 => Suave.DataId[]) private _blockBids;
 
     /// @dev normal transactions
     Suave.DataId[] private _nonBidTxns;
@@ -58,7 +64,6 @@ contract AMMAuctionSuapp {
     string public bidNamespace = "bid_namespace";
     string public contractNamespace = "amm_generic_namespace";
 
-
     struct Bid {
         address bidder;
         uint256 blockNumber;
@@ -68,6 +73,12 @@ contract AMMAuctionSuapp {
         uint8 v;
         bytes32 r;
         bytes32 s;
+    }
+
+    struct Block {
+        uint256 number;
+        uint256 timestamp;
+        uint256 baseFeePerGas;
     }
 
     /// @dev Error for when ownership is required
@@ -107,10 +118,9 @@ contract AMMAuctionSuapp {
         gasPrice = gasPrice_; // todo: have this update itself
     }
 
-
     // let users (who aren't in auction) put their swaps into the system for inclusion
-    function newPendingTxn() external returns(bytes memory) {
-        bytes memory txnData = Suave.confidentialInputs(); 
+    function newPendingTxn() external returns (bytes memory) {
+        bytes memory txnData = Suave.confidentialInputs();
 
         address[] memory allowedPeekers = new address[](1);
         allowedPeekers[0] = address(this);
@@ -124,11 +134,19 @@ contract AMMAuctionSuapp {
             nonBidTxnNamespace
         );
         Suave.confidentialStore(txnRecord.id, nonBidTxnNamespace, txnData);
-        return abi.encodeWithSelector(this.callbackNewPendingTxn.selector, msg.sender, txnRecord.id);
+        return
+            abi.encodeWithSelector(
+                this.callbackNewPendingTxn.selector,
+                msg.sender,
+                txnRecord.id
+            );
     }
 
     // TODO: add guard to keep people from calling
-    function callbackNewPendingTxn(address sender, Suave.DataId txnId) external {
+    function callbackNewPendingTxn(
+        address sender,
+        Suave.DataId txnId
+    ) external {
         _nonBidTxns.push(txnId);
         emit NonBidTxnId(sender, txnId);
     }
@@ -136,9 +154,21 @@ contract AMMAuctionSuapp {
     // lets people put new bids into txn
     function newBid(uint salt) external returns (bytes memory) {
         Bid memory bid = abi.decode(Suave.confidentialInputs(), (Bid));
-        uint256 lastBlockProcessed = uint256(bytes32(Suave.confidentialRetrieve(_lastBlockProcessedRecord, KEY_LAST_BLOCK_PROCESSED)));
+        uint256 lastBlockProcessed = uint256(
+            bytes32(
+                Suave.confidentialRetrieve(
+                    _lastBlockProcessedRecord,
+                    KEY_LAST_BLOCK_PROCESSED
+                )
+            )
+        );
 
-        if(bid.blockNumber <= _getLastL1BlockNumber() || bid.blockNumber == lastBlockProcessed) revert StaleBid();
+        string memory httpURL = tempGoerliUrl;
+
+        if (
+            bid.blockNumber <= _getLastL1BlockNumberUint(httpURL) ||
+            bid.blockNumber == lastBlockProcessed
+        ) revert StaleBid();
 
         // allowedPeekers: which contracts can read the record (only this contract)
         address[] memory allowedPeekers = new address[](1);
@@ -157,32 +187,53 @@ contract AMMAuctionSuapp {
         Suave.confidentialStore(bidRecord.id, bidNamespace, abi.encode(bid));
         bytes32 saltedReturn = keccak256(abi.encode(msg.sender, salt));
 
-        return abi.encodeWithSelector(this.callbackNewBid.selector, bidRecord.id, bid.blockNumber, saltedReturn);
+        return
+            abi.encodeWithSelector(
+                this.callbackNewBid.selector,
+                bidRecord.id,
+                bid.blockNumber,
+                saltedReturn
+            );
     }
 
     // TODO: add guard to keep people from calling
-    function callbackNewBid(Suave.DataId bidId, uint256 blockNum, bytes32 saltedReturn) external {
+    function callbackNewBid(
+        Suave.DataId bidId,
+        uint256 blockNum,
+        bytes32 saltedReturn
+    ) external {
         _blockBids[blockNum].push(bidId);
         emit NewBid(saltedReturn, bidId);
     }
 
     function runAuction() external returns (bytes memory) {
         // grab last L1 block's info
-        (uint256 lastL1Block, uint256 lastL1BlockTime) = _getLastL1BlockInfo();
+        Block memory lastL1Block = getLastL1Block();
+
         // grab last auctioned block
         uint256 lastBlockAuctioned = uint256(
-            bytes32(Suave.confidentialRetrieve(_lastBlockProcessedRecord, KEY_LAST_BLOCK_PROCESSED))
+            bytes32(
+                Suave.confidentialRetrieve(
+                    _lastBlockProcessedRecord,
+                    KEY_LAST_BLOCK_PROCESSED
+                )
+            )
         );
-        uint256 currentTime = block.timestamp; // TODO what does this return in a CCR?
-        
-        // check if time to run auction 
-        if(lastBlockAuctioned >= lastL1Block) revert AuctionAlreadyRan();
-        if(currentTime < lastL1BlockTime + auctionDuration) revert AuctionNotEnded();
 
-        uint256 currentBlock = lastL1Block + 1;
+        uint256 currentTime = block.timestamp; // TODO what does this return in a CCR?
+
+        // check if time to run auction
+        if (lastBlockAuctioned >= lastL1Block.number)
+            revert AuctionAlreadyRan();
+        if (currentTime < lastL1Block.timestamp + auctionDuration)
+            revert AuctionNotEnded();
+
+        uint256 currentBlock = lastL1Block.number + 1;
 
         // find auction winner
-        (Bid memory winningBid, uint256 secondPrice) = _findAuctionWinner(currentBlock);
+        (Bid memory winningBid, uint256 secondPrice) = _findAuctionWinner(
+            currentBlock
+        );
 
         // construct bundle
         Bundle.BundleObj memory bundle;
@@ -192,7 +243,10 @@ contract AMMAuctionSuapp {
         bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
 
         // construct payment transaction
-        bytes memory signedPaymentTxn = _createPostAuctionTransaction(winningBid, secondPrice == 0 ? false : true);
+        bytes memory signedPaymentTxn = _createPostAuctionTransaction(
+            winningBid,
+            secondPrice == 0 ? false : true
+        );
 
         // add payment and bid transactions to bundle
         bundle.txns[0] = signedPaymentTxn;
@@ -200,46 +254,72 @@ contract AMMAuctionSuapp {
 
         // add non-bid transactions
         uint256 includedTransactionCount = 0;
-        for(uint i = nextTxnIndexToInclude; i < _nonBidTxns.length; i++) {
-            bytes memory nonBidTxn = Suave.confidentialRetrieve(_nonBidTxns[i], nonBidTxnNamespace);
+        for (uint i = nextTxnIndexToInclude; i < _nonBidTxns.length; i++) {
+            bytes memory nonBidTxn = Suave.confidentialRetrieve(
+                _nonBidTxns[i],
+                nonBidTxnNamespace
+            );
             bundle.txns[2 + includedTransactionCount] = nonBidTxn;
-            bundle.revertingTxnsHash[includedTransactionCount] = keccak256(nonBidTxn);
+            bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
+                nonBidTxn
+            );
             includedTransactionCount++;
         }
 
         // send bundle
-        bytes memory bundleRes = Bundle.sendBundle("https://relay-goerli.flashbots.net", bundle);
-            require(
-                // this hex is '{"id":1,"result"'
-                // close-enough way to check for successful sendBundle call
-                bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422,
-                "bundle failed"
-            );
+        bytes memory bundleRes = Bundle.sendBundle(
+            "https://relay-goerli.flashbots.net",
+            bundle
+        );
+        require(
+            // this hex is '{"id":1,"result"'
+            // close-enough way to check for successful sendBundle call
+            bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422,
+            "bundle failed"
+        );
 
         // update confidential store's last ran block
-        Suave.confidentialStore(_lastBlockProcessedRecord, KEY_LAST_BLOCK_PROCESSED, abi.encode(currentBlock)); // todo might need packed
+        Suave.confidentialStore(
+            _lastBlockProcessedRecord,
+            KEY_LAST_BLOCK_PROCESSED,
+            abi.encode(currentBlock)
+        ); // todo might need packed
 
-        abi.encodeWithSelector(this.callbackRunAuction.selector, nextTxnIndexToInclude + includedTransactionCount);
+        return
+            abi.encodeWithSelector(
+                this.callbackRunAuction.selector,
+                nextTxnIndexToInclude + includedTransactionCount,
+                currentTime
+            );
     }
 
-    function callbackRunAuction(uint256 nextTxnIndexToInclude_) external {
+    function callbackRunAuction(
+        uint256 nextTxnIndexToInclude_,
+        uint256 grabbedTime_
+    ) external {
         nextTxnIndexToInclude = nextTxnIndexToInclude_;
+        grabbedTime = grabbedTime_;
     }
 
-    function _findAuctionWinner(uint256 blockNum) internal returns (Bid memory, uint256) {
+    function _findAuctionWinner(
+        uint256 blockNum
+    ) internal returns (Bid memory, uint256) {
         // filter through bids for last auction
         Suave.DataId[] storage bids = _blockBids[blockNum];
-        
+
         uint256 bestPrice = 0;
         uint256 secondPrice;
         Bid memory bestBid;
 
-        for(uint i = 0; i < bids.length; i++) {
-            Bid memory bid = abi.decode(Suave.confidentialRetrieve(bids[i], bidNamespace), (Bid));
+        for (uint i = 0; i < bids.length; i++) {
+            Bid memory bid = abi.decode(
+                Suave.confidentialRetrieve(bids[i], bidNamespace),
+                (Bid)
+            );
             // check if bid passes simulation checks, if so, consider as valid bid
             bool passed = _simulateBid(bid);
-            if(passed) {
-                if(bid.payment > bestPrice) {
+            if (passed) {
+                if (bid.payment > bestPrice) {
                     secondPrice = bestPrice;
                     bestPrice = bid.payment;
                     bestBid = bid;
@@ -248,7 +328,7 @@ contract AMMAuctionSuapp {
                 }
             }
         }
-        if(secondPrice == 0) {
+        if (secondPrice == 0) {
             // TODO: don't do this
             secondPrice = bestPrice;
         }
@@ -258,57 +338,74 @@ contract AMMAuctionSuapp {
 
     function _simulateBid(Bid memory bid) internal returns (bool) {
         // check that bidder has enough funds to cover
-        bytes memory depositResult = Suave.ethcall(targetDepositContract, abi.encodeWithSignature("balanceOf(address)", abi.encode(bid.bidder)));
+        bytes memory depositResult = Suave.ethcall(
+            targetDepositContract,
+            abi.encodeWithSignature(
+                "balanceOf(address)",
+                abi.encode(bid.bidder)
+            )
+        );
         uint256 deposit = abi.decode(depositResult, (uint256));
-        if(deposit < bid.payment) return false;
+        if (deposit < bid.payment) return false;
 
         // check that the withdraw and swap txns succeed
         string memory sessionId = string(bid.swapTxn);
-        
+
         // (1) simulate pulling payments
         bytes memory paymentTxn = _createPostAuctionTransaction(bid, true);
-        Suave.SimulateTransactionResult memory simRes = Suave.simulateTransaction(sessionId, paymentTxn);
-        if(simRes.success = false) return false; // payment txn reverted
+        Suave.SimulateTransactionResult memory simRes = Suave
+            .simulateTransaction(sessionId, paymentTxn);
+        if (simRes.success = false) return false; // payment txn reverted
 
         // check for success log
         bool foundPaymentSuccessLog;
-        for(uint i = 0; i < simRes.logs.length; ++i) {
+        for (uint i = 0; i < simRes.logs.length; ++i) {
             Suave.SimulatedLog memory log = simRes.logs[i];
-            if(log.addr == targetAMM) {
-                for(uint j = 0; j < log.topics.length; j++) {
-                    if(log.topics[j] == keccak256(abi.encode("SuccessfulPayment"))) {
+            if (log.addr == targetAMM) {
+                for (uint j = 0; j < log.topics.length; j++) {
+                    if (
+                        log.topics[j] ==
+                        keccak256(abi.encode("SuccessfulPayment"))
+                    ) {
                         foundPaymentSuccessLog = true;
                         break;
                     }
                 }
             }
-            if(foundPaymentSuccessLog) break;
+            if (foundPaymentSuccessLog) break;
         }
-        if(!foundPaymentSuccessLog) return false;
+        if (!foundPaymentSuccessLog) return false;
 
         // (2) simluate swap txn
         simRes = Suave.simulateTransaction(sessionId, paymentTxn);
-        if(simRes.success = false) return false; // payment txn reverted
+        if (simRes.success = false) return false; // payment txn reverted
 
         bool foundSwapSuccessLog;
-        for(uint i = 0; i < simRes.logs.length; ++i) {
+        for (uint i = 0; i < simRes.logs.length; ++i) {
             Suave.SimulatedLog memory log = simRes.logs[i];
-            if(log.addr == targetAMM) {                for(uint j = 0; j < log.topics.length; j++) {
-                    if(log.topics[j] == keccak256(abi.encode("AuctionSucceeded"))) {
+            if (log.addr == targetAMM) {
+                for (uint j = 0; j < log.topics.length; j++) {
+                    if (
+                        log.topics[j] ==
+                        keccak256(abi.encode("AuctionSucceeded"))
+                    ) {
                         foundSwapSuccessLog = true;
                         break;
                     }
                 }
             }
-            if(foundSwapSuccessLog) break;
+            if (foundSwapSuccessLog) break;
         }
-        if(!foundSwapSuccessLog) return false;
+        if (!foundSwapSuccessLog) return false;
 
-        // bid's execution is valid 
+        // bid's execution is valid
         return true;
     }
 
-    function _createPostAuctionTransaction(Bid memory bid, bool auctionHasWinner) internal returns (bytes memory) {
+    function _createPostAuctionTransaction(
+        Bid memory bid,
+        bool auctionHasWinner
+    ) internal returns (bytes memory) {
         // create tx to sign with private key
         bytes memory targetCall = abi.encodeWithSignature(
             "postAuctionResults(address,uint256,uint256,bool,uint8,bytes32,bytes32)",
@@ -332,15 +429,17 @@ contract AMMAuctionSuapp {
             chainId: chainId
         });
 
-        // encode transaction 
+        // encode transaction
         bytes memory rlpTxn = Transactions.encodeRLP(txn);
 
         // grab signing key
         uint256 signingKey = uint256(
-            bytes32(Suave.confidentialRetrieve(_signingKeyRecord, KEY_PRIVATE_KEY))
+            bytes32(
+                Suave.confidentialRetrieve(_signingKeyRecord, KEY_PRIVATE_KEY)
+            )
         );
 
-         // sign transaction with key
+        // sign transaction with key
         bytes memory signedTxn = Suave.signEthTransaction(
             rlpTxn,
             LibString.toMinimalHexString(chainId),
@@ -350,51 +449,100 @@ contract AMMAuctionSuapp {
         return signedTxn;
     }
 
-    // TODO: if there is time   
+    // TODO: if there is time
     function updateBid() external returns (bytes memory) {}
     function callBackUpdateBid() external {}
 
-    function _getLastL1BlockTime() internal returns (uint256) {
-        
-        return 0;
-    }
-
-    function _getLastL1Block() internal returns (uint256) {
-        string memory httpURL = string(Suave.confidentialRetrieve(_ethGoerliUrlRecord, KEY_URL));
-
+    function getLastL1BlockNumber(
+        string memory httpURL
+    ) public returns (string memory) {
         Suave.HttpRequest memory request;
         request.method = "POST";
-        request.body = '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}';
+        request
+            .body = '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}';
         request.headers = new string[](1);
         request.headers[0] = "Content-Type: application/json";
         request.withFlashbotsSignature = false;
         request.url = httpURL;
 
-        string memory result = string(Suave.doHTTPRequest(request));
-        console.logString(result);
+        /// returns: {"jsonrpc":"2.0","id":1,"result":"0xa15714"}
+        bytes memory result = Suave.doHTTPRequest(request);
 
-        // TODO: how tf to parse this result? 
+        JSONParserLib.Item memory item = string(result).parse();
+        string memory stringResult = trimQuotes(
+            string(item.at('"result"').value())
+        );
 
-        // parse into block object
-        
- 
+        return stringResult;
     }
 
-    function _getLastL1BlockNumber() internal returns (uint256) {
-        return 0;
+    function _getLastL1BlockNumberUint(
+        string memory httpURL
+    ) internal returns (uint256) {
+        return JSONParserLib.parseUintFromHex(getLastL1BlockNumber(httpURL));
     }
 
-    function _getLastL1BlockInfo() internal returns (uint256, uint256) {
-        
+    function getLastL1Block() public returns (Block memory blockData) {
+        string memory httpURL = tempGoerliUrl;
 
-        return (0,0);
+        string memory blockNumber = getLastL1BlockNumber(httpURL);
+
+        bytes memory body = abi.encodePacked(
+            '{"method":"eth_getBlockByNumber","params":["',
+            blockNumber,
+            '",false],"id":1,"jsonrpc":"2.0"}'
+        );
+
+        Suave.HttpRequest memory request;
+        request.method = "POST";
+        request.body = body;
+        request.headers = new string[](1);
+        request.headers[0] = "Content-Type: application/json";
+        request.withFlashbotsSignature = false;
+        request.url = httpURL;
+
+        /// returns: https://docs.chainstack.com/reference/ethereum-getblockbynumber
+        bytes memory result = Suave.doHTTPRequest(request);
+
+        JSONParserLib.Item memory outerItem = string(result).parse();
+        JSONParserLib.Item memory item = outerItem.at('"result"');
+
+        blockData.baseFeePerGas = JSONParserLib.parseUintFromHex(
+            trimQuotes(string(item.at('"baseFeePerGas"').value()))
+        );
+        blockData.timestamp = JSONParserLib.parseUintFromHex(
+            trimQuotes(string(item.at('"timestamp"').value()))
+        );
+        blockData.number = JSONParserLib.parseUintFromHex(blockNumber);
+    }
+
+    function trimQuotes(
+        string memory input
+    ) private pure returns (string memory) {
+        bytes memory inputBytes = bytes(input);
+        require(
+            inputBytes.length >= 2 &&
+                inputBytes[0] == '"' &&
+                inputBytes[inputBytes.length - 1] == '"',
+            "Invalid input"
+        );
+
+        bytes memory result = new bytes(inputBytes.length - 2);
+
+        for (uint256 i = 1; i < inputBytes.length - 1; i++) {
+            result[i - 1] = inputBytes[i];
+        }
+
+        return string(result);
     }
 
     /**
      * @notice Sets the signing key in Suave's confidential storage
      * @return bytes Encoded data for updating the key callback
      */
-    function setSigningKey(uint256 keyNonce) external onlyOwner returns (bytes memory) {
+    function setSigningKey(
+        uint256 keyNonce
+    ) external onlyOwner returns (bytes memory) {
         bytes memory keyData = Suave.confidentialInputs();
 
         // allowedPeekers: which contracts can read the record (only this contract)
@@ -424,10 +572,8 @@ contract AMMAuctionSuapp {
      * @notice Callback function to update the signing key record
      * @dev To be called as a Confidential Compute Callback.
      * @param signingKeyBid_ The new signing key record ID
-     */ 
-    function callbackSetSigningKey(
-        Suave.DataId signingKeyBid_
-    ) external {
+     */
+    function callbackSetSigningKey(Suave.DataId signingKeyBid_) external {
         _signingKeyRecord = signingKeyBid_;
         emit UpdateKey(_signingKeyRecord);
     }
@@ -456,9 +602,7 @@ contract AMMAuctionSuapp {
         Suave.confidentialStore(bid.id, KEY_URL, keyData);
 
         return
-            abi.encodeWithSelector(
-                this.callbackSetGoerliUrl.selector, bid.id
-            );
+            abi.encodeWithSelector(this.callbackSetGoerliUrl.selector, bid.id);
     }
 
     /**
@@ -466,9 +610,7 @@ contract AMMAuctionSuapp {
      * @dev To be called as a Confidential Compute Callback.
      * @param goerliKeyId The record ID for the Goerli URL
      */
-    function callbackSetGoerliUrl(
-        Suave.DataId goerliKeyId
-    ) external {
+    function callbackSetGoerliUrl(Suave.DataId goerliKeyId) external {
         _ethGoerliUrlRecord = goerliKeyId;
     }
 
@@ -492,22 +634,25 @@ contract AMMAuctionSuapp {
             allowedStores,
             contractNamespace
         );
-        Suave.confidentialStore(bid.id, KEY_LAST_BLOCK_PROCESSED, abi.encode(0));
+        Suave.confidentialStore(
+            bid.id,
+            KEY_LAST_BLOCK_PROCESSED,
+            abi.encode(0)
+        );
 
         return
             abi.encodeWithSelector(
-                this.callbackInitLastL1Block.selector, bid.id
+                this.callbackInitLastL1Block.selector,
+                bid.id
             );
     }
 
     /**
-     * @notice Callback function to init the last processed block data record 
+     * @notice Callback function to init the last processed block data record
      * @dev To be called as a Confidential Compute Request.
      * @param lastL1BlockKeyId The record ID for the last processed block
      */
-    function callbackInitLastL1Block(
-        Suave.DataId lastL1BlockKeyId 
-    ) external {
+    function callbackInitLastL1Block(Suave.DataId lastL1BlockKeyId) external {
         _lastBlockProcessedRecord = lastL1BlockKeyId;
     }
 }

@@ -55,7 +55,7 @@ contract Interactions is Script {
     uint forkIdGoerli;
 
     address constant SUAPP_AMM_DEPLOYED =
-        0x9a151AA453329f3cdf04D8e4e81585A423f7fC25;
+        0x7D6DA32034574E0Db468282875e9c389008456f6;
     address constant AUCTION_DEPOSITS =
         0x249d1Af8569a692Bc036ef0eF25D898b16CaC728;
     IAuctionGuard constant AUCTION_GUARD =
@@ -92,36 +92,6 @@ contract Interactions is Script {
         );
         console2.log("ammAuctionSuapp addresss: ");
         console2.log(address(ammAuctionSuapp));
-    }
-
-    /**
-     * @notice Initializes the PokeRelayer's Confidential Control System
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "initializeConfidentialControl()" -vv
-     */
-    function initializeConfidentialControl() public {
-        vm.selectFork(forkIdSuave);
-        // setup data for confidential compute request
-        bytes32 secret = keccak256(abi.encode("secret")); // note: generate privately
-        bytes memory confidentialInputs = abi.encodePacked(secret);
-        bytes memory targetCall = abi.encodeWithSignature(
-            "confidentialConstructor()"
-        );
-
-        uint64 nonce = vm.getNonce(addressUserSuave);
-        console2.log("suave address nonce:");
-        console2.log(nonce);
-        ccrUtil.createAndSendCCR({
-            signingPrivateKey: privateKeyUserSuave,
-            confidentialInputs: confidentialInputs,
-            targetCall: targetCall,
-            nonce: nonce,
-            to: SUAPP_AMM_DEPLOYED,
-            gas: 10000000,
-            gasPrice: 1000000000,
-            value: 0,
-            executionNode: addressKettle,
-            chainId: uint256(0x01008C45)
-        });
     }
 
     /**
@@ -186,9 +156,35 @@ contract Interactions is Script {
     }
 
     /**
+     * @notice Sets the RPC URL in PokedRelayer used to send transaction to
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "testBlockCode()" -vv
+     */
+    function testBlockCode() public {
+        vm.selectFork(forkIdSuave);
+        bytes memory confidentialInputs = abi.encodePacked("");
+        bytes memory targetCall = abi.encodeWithSignature(
+            "getLastL1Block(string)",
+            rpcUrlGoerli
+        );
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: SUAPP_AMM_DEPLOYED,
+            gas: 2000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    /**
      * @notice Performs a read on PokeRelayer's storage slots.
-     * @dev Useful for reading slot 5 which will hold the set DataIds for the confidential stores
-     * @dev command: forge script script/Interactions.s.sol:Interactions -vv --sig "grabSlotSuapp(uint256)" 5
+     * @dev Useful for reading slot 3 which will hold the set DataIds for the confidential stores
+     * @dev command: forge script script/Interactions.s.sol:Interactions -vv --sig "grabSlotSuapp(uint256)" 3
      */
     function grabSlotSuapp(uint256 slot) public {
         vm.selectFork(forkIdSuave);
