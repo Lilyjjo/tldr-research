@@ -35,8 +35,6 @@ contract AMMAuctionSuapp {
     uint256 public chainId;
     /// @dev Gas needed for auction result txn
     uint256 public gasNeededPostAuctionResults;
-    /// @dev Gas price for auction result txn
-    uint256 public gasPrice; // TODO: pull somehow
     /// @dev Nonce to use for Suapp's signing key
     uint256 public signingKeyNonce;
     /// @dev Time past last block's time to finish auction and send bundle
@@ -69,7 +67,6 @@ contract AMMAuctionSuapp {
         uint256 blockNumber;
         uint256 payment;
         bytes swapTxn;
-        bytes withdrawEIP712;
         uint8 v;
         bytes32 r;
         bytes32 s;
@@ -107,15 +104,13 @@ contract AMMAuctionSuapp {
         address targetAMM_,
         address targetDepositContract_,
         uint256 chainId_,
-        uint256 gasNeededPostAuctionResults_,
-        uint256 gasPrice_
+        uint256 gasNeededPostAuctionResults_
     ) {
         owner = msg.sender;
         targetAMM = targetAMM_;
         targetDepositContract = targetDepositContract_;
         chainId = chainId_;
         gasNeededPostAuctionResults = gasNeededPostAuctionResults_;
-        gasPrice = gasPrice_; // todo: have this update itself
     }
 
     // let users (who aren't in auction) put their swaps into the system for inclusion
@@ -152,7 +147,7 @@ contract AMMAuctionSuapp {
     }
 
     // lets people put new bids into txn
-    function newBid(uint salt) external returns (bytes memory) {
+    function newBid(string memory salt) external returns (bytes memory) {
         Bid memory bid = abi.decode(Suave.confidentialInputs(), (Bid));
         uint256 lastBlockProcessed = uint256(
             bytes32(
@@ -232,7 +227,8 @@ contract AMMAuctionSuapp {
 
         // find auction winner
         (Bid memory winningBid, uint256 secondPrice) = _findAuctionWinner(
-            currentBlock
+            currentBlock,
+            lastL1Block
         );
 
         // construct bundle
@@ -245,6 +241,7 @@ contract AMMAuctionSuapp {
         // construct payment transaction
         bytes memory signedPaymentTxn = _createPostAuctionTransaction(
             winningBid,
+            lastL1Block,
             secondPrice == 0 ? false : true
         );
 
@@ -282,9 +279,10 @@ contract AMMAuctionSuapp {
         Suave.confidentialStore(
             _lastBlockProcessedRecord,
             KEY_LAST_BLOCK_PROCESSED,
-            abi.encode(currentBlock)
+            abi.encodePacked(currentBlock)
         ); // todo might need packed
 
+        // update consumed user transactions
         return
             abi.encodeWithSelector(
                 this.callbackRunAuction.selector,
@@ -302,7 +300,8 @@ contract AMMAuctionSuapp {
     }
 
     function _findAuctionWinner(
-        uint256 blockNum
+        uint256 blockNum,
+        Block memory blockData
     ) internal returns (Bid memory, uint256) {
         // filter through bids for last auction
         Suave.DataId[] storage bids = _blockBids[blockNum];
@@ -317,7 +316,7 @@ contract AMMAuctionSuapp {
                 (Bid)
             );
             // check if bid passes simulation checks, if so, consider as valid bid
-            bool passed = _simulateBid(bid);
+            bool passed = false; //_simulateBid(bid, blockData);
             if (passed) {
                 if (bid.payment > bestPrice) {
                     secondPrice = bestPrice;
@@ -336,7 +335,10 @@ contract AMMAuctionSuapp {
         return (bestBid, secondPrice);
     }
 
-    function _simulateBid(Bid memory bid) internal returns (bool) {
+    function _simulateBid(
+        Bid memory bid,
+        Block memory blockData
+    ) internal returns (bool) {
         // check that bidder has enough funds to cover
         bytes memory depositResult = Suave.ethcall(
             targetDepositContract,
@@ -352,7 +354,11 @@ contract AMMAuctionSuapp {
         string memory sessionId = string(bid.swapTxn);
 
         // (1) simulate pulling payments
-        bytes memory paymentTxn = _createPostAuctionTransaction(bid, true);
+        bytes memory paymentTxn = _createPostAuctionTransaction(
+            bid,
+            blockData,
+            true
+        );
         Suave.SimulateTransactionResult memory simRes = Suave
             .simulateTransaction(sessionId, paymentTxn);
         if (simRes.success = false) return false; // payment txn reverted
@@ -404,6 +410,7 @@ contract AMMAuctionSuapp {
 
     function _createPostAuctionTransaction(
         Bid memory bid,
+        Block memory blockData,
         bool auctionHasWinner
     ) internal returns (bytes memory) {
         // create tx to sign with private key
@@ -422,7 +429,7 @@ contract AMMAuctionSuapp {
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
             to: targetAMM,
             gas: gasNeededPostAuctionResults,
-            gasPrice: gasPrice,
+            gasPrice: (blockData.baseFeePerGas * 120000) / 100000, // inflate for possible block growth
             value: 0,
             nonce: signingKeyNonce,
             data: targetCall,
@@ -448,10 +455,6 @@ contract AMMAuctionSuapp {
 
         return signedTxn;
     }
-
-    // TODO: if there is time
-    function updateBid() external returns (bytes memory) {}
-    function callBackUpdateBid() external {}
 
     function getLastL1BlockNumber(
         string memory httpURL

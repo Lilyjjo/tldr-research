@@ -3,6 +3,9 @@ pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
 import {Test} from "forge-std/Test.sol";
+import {Transactions} from "suave-std/Transactions.sol";
+import {Suave} from "suave-std/suavelib/Suave.sol";
+import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
 
 import {AMMAuctionSuapp} from "../src/AMMAuctionSuapp.sol";
 import {AuctionDeposits} from "../src/AuctionDeposits.sol";
@@ -33,6 +36,10 @@ contract Interactions is Script {
     CCRForgeUtil ccrUtil;
     address addressUserGoerli;
     uint256 privateKeyUserGoerli;
+    address addressUserGoerli2;
+    uint256 privateKeyUserGoerli2;
+    address addressUserGoerli3;
+    uint256 privateKeyUserGoerli3;
 
     address addressUserSuave;
     uint256 privateKeyUserSuave;
@@ -55,7 +62,7 @@ contract Interactions is Script {
     uint forkIdGoerli;
 
     address constant SUAPP_AMM_DEPLOYED =
-        0x7D6DA32034574E0Db468282875e9c389008456f6;
+        0x492F9fcC8358D22e372648FCE1328fbBfdAB7399;
     address constant AUCTION_DEPOSITS =
         0x249d1Af8569a692Bc036ef0eF25D898b16CaC728;
     IAuctionGuard constant AUCTION_GUARD =
@@ -87,8 +94,7 @@ contract Interactions is Script {
             POOL_DEPLOYED,
             AUCTION_DEPOSITS,
             chainIdGoerli,
-            gasNeededGoerliPoke,
-            100 // gasPrice
+            gasNeededGoerliPoke
         );
         console2.log("ammAuctionSuapp addresss: ");
         console2.log(address(ammAuctionSuapp));
@@ -157,6 +163,276 @@ contract Interactions is Script {
 
     /**
      * @notice Sets the RPC URL in PokedRelayer used to send transaction to
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "initLastL1Block()" -vv
+     */
+    function initLastL1Block() public {
+        vm.selectFork(forkIdSuave);
+        bytes memory confidentialInputs = abi.encodePacked("");
+        bytes memory targetCall = abi.encodeWithSignature("initLastL1Block()");
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: SUAPP_AMM_DEPLOYED,
+            gas: 1000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    /**
+     * @notice Sets the RPC URL in PokedRelayer used to send transaction to
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "runAuction()" -vv
+     */
+    function runAuction() public {
+        vm.selectFork(forkIdSuave);
+        bytes memory confidentialInputs = abi.encodePacked("");
+        bytes memory targetCall = abi.encodeWithSignature("runAuction()");
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: SUAPP_AMM_DEPLOYED,
+            gas: 10000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    /**
+     * @notice
+     * @dev command: forge script script/Interactions.s.sol:Interactions -vv --sig "newPendingTxn(bool)" true
+     */
+    function newPendingTxn(bool token0) public {
+        bytes memory signedTxn = _createSwapTranscation(
+            addressUserGoerli3,
+            privateKeyUserGoerli3,
+            token0 ? TOKEN_0_DEPLOYED : TOKEN_1_DEPLOYED,
+            .1 ether,
+            0
+        );
+
+        bytes memory targetCall = abi.encodeWithSignature("newPendingTxn()");
+        vm.selectFork(forkIdSuave);
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: signedTxn,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: SUAPP_AMM_DEPLOYED,
+            gas: 2000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    function _createSwapTranscation(
+        address swapper,
+        uint256 swapperPrivateKey,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOut
+    ) internal returns (bytes memory) {
+        // create txn to be signed
+        bytes memory targetCall;
+        {
+            // scoping for stack too deep errors
+            ERC20Mintable tokenOut = ERC20Mintable(
+                tokenIn == TOKEN_0_DEPLOYED
+                    ? TOKEN_1_DEPLOYED
+                    : TOKEN_0_DEPLOYED
+            );
+
+            ISwapRouterModified.ExactInputSingleParams memory swapParams;
+            swapParams = ISwapRouterModified.ExactInputSingleParams({
+                tokenIn: address(tokenIn),
+                tokenOut: address(tokenOut),
+                fee: POOL_FEE,
+                recipient: swapper,
+                deadline: block.timestamp + 10000,
+                amountIn: amountIn,
+                amountOutMinimum: amountOut,
+                sqrtPriceLimitX96: 0
+            });
+            targetCall = abi.encodeWithSelector(
+                ISwapRouterModified.exactInputSingle.selector,
+                swapParams
+            );
+        }
+
+        vm.selectFork(forkIdGoerli);
+        uint64 nonce = vm.getNonce(swapper); // todo if the minting messes up this nonce
+
+        return
+            _signTransaction({
+                to: ROUTER_DEPLOYED,
+                gas: 100000,
+                gasPrice: 100,
+                value: 0,
+                nonce: nonce,
+                targetCall: targetCall,
+                chainId: chainIdGoerli,
+                privateKey: swapperPrivateKey
+            });
+    }
+
+    function _signTransaction(
+        address to,
+        uint256 gas,
+        uint256 gasPrice,
+        uint256 value,
+        uint256 nonce,
+        bytes memory targetCall,
+        uint256 chainId,
+        uint256 privateKey
+    ) internal pure returns (bytes memory) {
+        // create transaction
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+        {
+            // scoping for stack too deep
+            Transactions.EIP155Request memory txn = Transactions.EIP155Request({
+                to: to,
+                gas: gas,
+                gasPrice: gasPrice,
+                value: value,
+                nonce: nonce,
+                data: targetCall,
+                chainId: chainId
+            });
+
+            // TODO: this might be wrong somehow
+            // encode transaction
+            bytes memory rlpTxn = Transactions.encodeRLP(txn);
+            bytes32 digest = keccak256(rlpTxn);
+            (v, r, s) = vm.sign(privateKey, digest);
+        }
+
+        // encode signed transaction
+        Transactions.EIP155 memory signedTxn = Transactions.EIP155({
+            to: to,
+            gas: gas,
+            gasPrice: gasPrice,
+            value: value,
+            nonce: nonce,
+            data: targetCall,
+            chainId: chainId,
+            v: v,
+            r: r,
+            s: s
+        });
+
+        return Transactions.encodeRLP(signedTxn);
+    }
+
+    /**
+     * @notice
+     * @dev command: forge script script/Interactions.s.sol:Interactions -vv --sig "newBid()"
+     */
+    function newBid() public {
+        // gather bid's values
+        address bidder = addressUserGoerli2;
+        uint256 bidderPk = privateKeyUserGoerli2;
+
+        vm.selectFork(forkIdGoerli);
+        uint256 blockNumber = block.number + 1;
+        uint256 bidAmount = 55;
+
+        console2.log("block number: %d", blockNumber);
+
+        (uint8 v, bytes32 r, bytes32 s) = _createWithdrawEIP712(
+            bidder,
+            bidderPk,
+            blockNumber,
+            bidAmount
+        );
+        bytes memory swapTxn = _createSwapTranscation(
+            bidder,
+            bidderPk,
+            TOKEN_0_DEPLOYED,
+            .01 ether,
+            0
+        );
+
+        // create confidential store inputs
+        AMMAuctionSuapp.Bid memory bid;
+        bid.bidder = bidder;
+        bid.blockNumber = blockNumber;
+        bid.payment = bidAmount;
+        bid.swapTxn = swapTxn;
+        bid.v = v;
+        bid.r = r;
+        bid.s = s;
+
+        bytes memory confidentialInputs = abi.encode(bid); // encode packed?
+
+        bytes memory targetCall = abi.encodeWithSignature(
+            "newBid(string)",
+            "salt"
+        );
+
+        vm.selectFork(forkIdSuave);
+        uint64 nonce = vm.getNonce(addressUserSuave);
+        ccrUtil.createAndSendCCR({
+            signingPrivateKey: privateKeyUserSuave,
+            confidentialInputs: confidentialInputs,
+            targetCall: targetCall,
+            nonce: nonce,
+            to: SUAPP_AMM_DEPLOYED,
+            gas: 2000000,
+            gasPrice: 1000000000,
+            value: 0,
+            executionNode: addressKettle,
+            chainId: uint256(0x01008C45)
+        });
+    }
+
+    /**
+     * @notice Helper function for signing pokes.
+     */
+    function _createWithdrawEIP712(
+        address user,
+        uint256 userPk,
+        uint256 blockNumber,
+        uint256 payment
+    ) internal returns (uint8 v, bytes32 r, bytes32 s) {
+        // setup SigUtils
+        bytes32 TYPEHASH = keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        );
+
+        bytes32 WITHDRAW_TYPEHASH = keccak256(
+            "withdrawBid(address bidder,uint256 blockNumber,uint256 amount)"
+        );
+
+        bytes32 DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                TYPEHASH,
+                keccak256(bytes("AuctionDeposits")),
+                keccak256(bytes("v1")),
+                5,
+                SUAPP_AMM_DEPLOYED
+            )
+        );
+        SigUtils sigUtils = new SigUtils(DOMAIN_SEPARATOR, WITHDRAW_TYPEHASH);
+        bytes32 digest = sigUtils.getTypedDataHash(user, blockNumber, payment);
+        (v, r, s) = vm.sign(userPk, digest);
+    }
+
+    /**
+     * @notice Sets the RPC URL in PokedRelayer used to send transaction to
      * @dev command: forge script script/Interactions.s.sol:Interactions --sig "testBlockCode()" -vv
      */
     function testBlockCode() public {
@@ -191,97 +467,6 @@ contract Interactions is Script {
         bytes32 value = vm.load(SUAPP_AMM_DEPLOYED, bytes32(slot));
         console2.log("slot: %d", slot);
         console2.logBytes32(value);
-    }
-
-    /**
-     * @notice Crafts and signs a poke to be sent to Suave
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "sendPokeToSuave()" -vv
-     */
-    function sendPokeToSuave() public {
-        // make signed message from any private/public keyapir
-        address user = addressPoking;
-        uint256 userPk = privateKeyPoking;
-        uint deadline = (vm.unixTime() / 1e3) + uint(200);
-
-        // grab next poke nonce for user
-        vm.selectFork(forkIdGoerli);
-        //Poked poked = Poked(POKED_DEPLOYED);
-        //uint256 userNonce = poked.nonces(user);
-
-        // sign over message
-        // (uint8 v, bytes32 r, bytes32 s) = _createPoke(user, userPk, deadline, userNonce);
-
-        // TODO Have suapp grab this price itself. Is a DoS vector if users
-        // send transactions with too-low gas prices as it will cause the
-        // transactions to pend.
-        /*
-        uint256 gasPrice = 1001;
-
-        bytes memory confidentialInputs = abi.encode("");
-        bytes memory targetCall = abi.encodeWithSignature(
-            "newPokeBid(address,address,uint256,uint256,uint8,bytes32,bytes32,uint256)",
-            user,
-            addressStoredSuapp,
-            deadline,
-            userNonce,
-            v,
-            r,
-            s,
-            gasPrice
-        );
-
-        vm.selectFork(forkIdSuave);
-        uint64 nonce = vm.getNonce(addressUserSuave);
-
-        ccrUtil.createAndSendCCR({
-            signingPrivateKey: privateKeyUserSuave,
-            confidentialInputs: confidentialInputs,
-            targetCall: targetCall,
-            nonce: nonce,
-            to: POKE_RELAYER_DEPLOYED,
-            gas: 10000000,
-            gasPrice: 1000000000,
-            value: 0,
-            executionNode: addressKettle,
-            chainId: uint256(0x01008C45)
-        });
-        */
-    }
-
-    /**
-     * @notice Helper function for signing pokes.
-     */
-    function _createPoke(
-        address user,
-        uint256 userPk,
-        uint256 deadline,
-        uint256 userNonce
-    ) internal returns (uint8 v, bytes32 r, bytes32 s) {
-        // setup SigUtils
-        bytes32 POKE_TYPEHASH = keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
-
-        bytes32 DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                POKE_TYPEHASH,
-                keccak256(bytes("SuappCounter")),
-                keccak256(bytes("1")),
-                5,
-                SUAPP_AMM_DEPLOYED
-            )
-        );
-        SigUtils sigUtils = new SigUtils(DOMAIN_SEPARATOR);
-
-        SigUtils.Poke memory poke = SigUtils.Poke({
-            user: user,
-            permittedSuapp: addressStoredSuapp,
-            deadline: deadline,
-            nonce: userNonce
-        });
-
-        bytes32 digest = sigUtils.getTypedDataHash(poke);
-        (v, r, s) = vm.sign(userPk, digest);
     }
 
     /**
@@ -495,8 +680,8 @@ contract Interactions is Script {
     function addLiquidity() public {
         vm.selectFork(forkIdGoerli);
         _addLiquidity(
-            addressUserGoerli,
-            privateKeyUserGoerli,
+            addressUserGoerli2,
+            privateKeyUserGoerli2,
             10 ether,
             10 ether,
             false
@@ -504,7 +689,7 @@ contract Interactions is Script {
     }
 
     /**
-     * @notice Sets the Poked's expected Suave stored private key.
+     * @notice
      * @dev command: forge script script/Interactions.s.sol:Interactions --sig "enableAuctions()" --broadcast --legacy -vv
      */
     function enableAuctions() public {
@@ -524,6 +709,16 @@ contract Interactions is Script {
         addressUserGoerli = vm.envAddress("FUNDED_ADDRESS_GOERLI");
         privateKeyUserGoerli = uint256(
             vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI")
+        );
+
+        addressUserGoerli2 = vm.envAddress("FUNDED_ADDRESS_GOERLI_I");
+        privateKeyUserGoerli2 = uint256(
+            vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI_I")
+        );
+
+        addressUserGoerli3 = vm.envAddress("FUNDED_ADDRESS_GOERLI_II");
+        privateKeyUserGoerli3 = uint256(
+            vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI_II")
         );
 
         // Poking related values
