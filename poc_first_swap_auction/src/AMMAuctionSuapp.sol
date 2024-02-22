@@ -316,7 +316,7 @@ contract AMMAuctionSuapp {
                 (Bid)
             );
             // check if bid passes simulation checks, if so, consider as valid bid
-            bool passed = false; //_simulateBid(bid, blockData);
+            bool passed = _simulateBid(bid, blockData);
             if (passed) {
                 if (bid.payment > bestPrice) {
                     secondPrice = bestPrice;

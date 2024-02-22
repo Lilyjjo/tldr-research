@@ -12,5 +12,7 @@ interface IAuctionDeposits {
         bytes32 s
     ) external returns (bool);
 
+    function deposit() external payable;
+
     function balanceOf(address user) external returns (uint256);
 }
