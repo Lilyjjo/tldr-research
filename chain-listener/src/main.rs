@@ -2,8 +2,22 @@ use dotenv::dotenv;
 use futures_util::sink::SinkExt;
 use futures_util::stream::StreamExt;
 use serde_json::Value;
+use std::process::Command;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
+
+async fn trigger_auction(block_number: u128) {
+    let mut child = Command::new("forge")
+        .current_dir("../poc_first_swap_auction/")
+        .arg("script")
+        .arg("script/Interactions.s.sol:Interactions")
+        .arg("--sig")
+        .arg("testCall()")
+        .spawn()
+        .expect("Failed to start child process");
+
+    let _result = child.wait().unwrap();
+}
 
 async fn process_header(text: String) {
     let v: Value = serde_json::from_str(&text).unwrap();
@@ -23,7 +37,7 @@ async fn process_header(text: String) {
     println!("timestamp: {}", timestamp);
     println!("block_number: {}", block_number);
 
-    // todo: use to trigger auction logic
+    trigger_auction(block_number).await;
 }
 
 #[tokio::main]
