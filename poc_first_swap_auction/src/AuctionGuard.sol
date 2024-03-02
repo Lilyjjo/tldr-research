@@ -1,8 +1,8 @@
 pragma solidity ^0.8;
 
 import {IERC20Minimal} from "v3-core/interfaces/IERC20Minimal.sol";
-import {IAuctionGuard} from "./IAuctionGuard.sol";
-import {IAuctionDeposits} from "./IAuctionDeposits.sol";
+import {IAuctionGuard} from "./interfaces/IAuctionGuard.sol";
+import {IAuctionDeposits} from "./interfaces/IAuctionDeposits.sol";
 
 contract AuctionGuard is IAuctionGuard {
     IAuctionDeposits public auctionDeposits;

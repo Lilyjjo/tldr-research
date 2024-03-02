@@ -4,8 +4,8 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 // TODO check if any issues in using older verion of EIP712 OZ contract
 import {EIP712} from "openzeppelin-contracts/utils/cryptography/draft-EIP712.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
-import {IAuctionGuard} from "./IAuctionGuard.sol";
-import {IAuctionDeposits} from "./IAuctionDeposits.sol";
+import {IAuctionGuard} from "./interfaces/IAuctionGuard.sol";
+import {IAuctionDeposits} from "./interfaces/IAuctionDeposits.sol";
 
 contract AuctionDeposits is Ownable, EIP712, IAuctionDeposits {
     IAuctionGuard public auction;

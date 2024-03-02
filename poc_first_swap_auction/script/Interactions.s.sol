@@ -6,8 +6,8 @@ import {Script, console2} from "forge-std/Script.sol";
 import {AMMAuctionSuapp} from "../src/AMMAuctionSuapp.sol";
 import {AuctionDeposits} from "../src/AuctionDeposits.sol";
 import {AuctionGuard} from "../src/AuctionGuard.sol";
-import {IAuctionDeposits} from "../src/IAuctionDeposits.sol";
-import {IAuctionGuard} from "../src/IAuctionGuard.sol";
+import {IAuctionDeposits} from "../src/interfaces/IAuctionDeposits.sol";
+import {IAuctionGuard} from "../src/interfaces/IAuctionGuard.sol";
 
 import {CCRForgeUtil} from "./utils/CCRForgeUtil.sol";
 
