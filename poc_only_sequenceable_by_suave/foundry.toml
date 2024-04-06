@@ -5,9 +5,9 @@ libs = ["lib"]
 ffi = true
 
 [rpc_endpoints]
-goerli = "${RPC_URL_GOERLI}"
+sepolia = "${RPC_URL_SEPOLIA}"
 
 [etherscan]
-goerli = { key = "${ETHERSCAN_KEY}" }
+sepolia = { key = "${ETHERSCAN_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

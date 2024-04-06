@@ -10,7 +10,7 @@ import {ConfidentialControl} from "./utils/ConfidentialControl.sol";
  * @title PokeRelayer Suave App
  * @author lilyjjo
  * @dev Relays a specific EIP712 signed message to a target L1 app.
- * @dev To be deployed on the Suave chain. 
+ * @dev To be deployed on the Suave chain.
  */
 contract PokeRelayer is ConfidentialControl {
     /// @notice Target L1 smart contract address for relayed transactions
@@ -21,7 +21,7 @@ contract PokeRelayer is ConfidentialControl {
     /// @dev DataId for the signing key in Suave's confidential storage
     Suave.DataId private signingKeyRecord;
     /// @dev DataId for the L1 URL in Suave's confidential storage
-    Suave.DataId private ethGoerliUrlRecord; 
+    Suave.DataId private ethSepoliaUrlRecord;
 
     /// @notice ChainID for L1
     uint256 public chainId;
@@ -30,9 +30,9 @@ contract PokeRelayer is ConfidentialControl {
     /// @notice L1 nonce for the pk in storage used to sign transactions
     uint256 public keyNonce;
 
-     /// @dev Key for accessing the private key in Suave's confidential storage
+    /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
-     /// @dev Key for accessing the Ethereum Goerli network URL in Suave's confidential storage
+    /// @dev Key for accessing the Ethereum Sepolia network URL in Suave's confidential storage
     string public KEY_URL = "URL";
 
     /// @dev Error for when ownership is required
@@ -53,11 +53,7 @@ contract PokeRelayer is ConfidentialControl {
      * @param chainId_ ID of the blockchain where the targetApp is deployed
      * @param gasNeeded_ Gas amount required for L1 Poke transaction
      */
-    constructor(
-        address targetApp_,
-        uint256 chainId_,
-        uint256 gasNeeded_
-    ) {
+    constructor(address targetApp_, uint256 chainId_, uint256 gasNeeded_) {
         owner = msg.sender;
         targetApp = targetApp_;
         chainId = chainId_;
@@ -70,7 +66,13 @@ contract PokeRelayer is ConfidentialControl {
      * are made.
      * @return bytes Encoded confidential initialization data
      */
-    function confidentialConstructor() public onlyOwner view override returns (bytes memory) {
+    function confidentialConstructor()
+        public
+        view
+        override
+        onlyOwner
+        returns (bytes memory)
+    {
         return super.confidentialConstructor();
     }
 
@@ -96,7 +98,7 @@ contract PokeRelayer is ConfidentialControl {
      * @param signingKeyBid_ The new signing key record ID
      * @param keyNonce_ The updated nonce value
      * @param uArgs Unlock arguments for the operation
-     */ 
+     */
     function updateKeyCallback(
         Suave.DataId signingKeyBid_,
         uint256 keyNonce_,
@@ -132,30 +134,36 @@ contract PokeRelayer is ConfidentialControl {
         return
             abi.encodeWithSelector(
                 this.updateKeyCallback.selector,
-                bid.id, 
-                keyNonce_, 
+                bid.id,
+                keyNonce_,
                 getUnlockPair()
             );
     }
 
     /**
-     * @notice Callback function to update the Goerli network URL record
+     * @notice Callback function to update the Sepolia network URL record
      * @dev To be called as a Confidential Compute Callback.
-     * @param goerliKeyId The record ID for the Goerli URL
+     * @param sepoliaKeyId The record ID for the Sepolia URL
      * @param uArgs Unlock arguments for the operation
      */
-    function updateGoerliUrlCallback(
-        Suave.DataId goerliKeyId,
+    function updateSepoliaUrlCallback(
+        Suave.DataId sepoliaKeyId,
         UnlockArgs calldata uArgs
     ) external unlock(uArgs) {
-        ethGoerliUrlRecord = goerliKeyId;
+        ethSepoliaUrlRecord = sepoliaKeyId;
     }
 
     /**
-     * @notice Sets the Ethereum Goerli network URL in Suave's confidential storage
-     * @return bytes Encoded data for updating the Goerli URL callback
+     * @notice Sets the Ethereum Sepolia network URL in Suave's confidential storage
+     * @return bytes Encoded data for updating the Sepolia URL callback
      */
-    function setGoerliUrl() external view onlyOwner onlyConfidential returns (bytes memory) {
+    function setSepoliaUrl()
+        external
+        view
+        onlyOwner
+        onlyConfidential
+        returns (bytes memory)
+    {
         require(Suave.isConfidential());
         bytes memory keyData = Suave.confidentialInputs();
 
@@ -172,7 +180,9 @@ contract PokeRelayer is ConfidentialControl {
 
         return
             abi.encodeWithSelector(
-                this.updateGoerliUrlCallback.selector, bid.id, getUnlockPair()
+                this.updateSepoliaUrlCallback.selector,
+                bid.id,
+                getUnlockPair()
             );
     }
 
@@ -181,7 +191,9 @@ contract PokeRelayer is ConfidentialControl {
      * @dev To be called as a Confidential Compute Callback.
      * @param uArgs Unlock arguments for the operation
      */
-    function updateNonceCallback(UnlockArgs calldata uArgs) external unlock(uArgs) {
+    function updateNonceCallback(
+        UnlockArgs calldata uArgs
+    ) external unlock(uArgs) {
         keyNonce++;
     }
 
@@ -209,12 +221,16 @@ contract PokeRelayer is ConfidentialControl {
     ) public payable onlyConfidential returns (bytes memory) {
         // grab signing key
         uint256 signingKey = uint256(
-            bytes32(Suave.confidentialRetrieve(signingKeyRecord, KEY_PRIVATE_KEY))
+            bytes32(
+                Suave.confidentialRetrieve(signingKeyRecord, KEY_PRIVATE_KEY)
+            )
         );
 
         // grab http URL
-        string memory httpURL = string(Suave.confidentialRetrieve(ethGoerliUrlRecord, KEY_URL));
-        
+        string memory httpURL = string(
+            Suave.confidentialRetrieve(ethSepoliaUrlRecord, KEY_URL)
+        );
+
         // create tx to sign with private key
         bytes memory targetCall = abi.encodeWithSignature(
             "poke(address,address,uint256,uint256,uint8,bytes32,bytes32)",
@@ -238,7 +254,7 @@ contract PokeRelayer is ConfidentialControl {
             chainId: chainId
         });
 
-        // encode transaction 
+        // encode transaction
         bytes memory rlpTxn = Transactions.encodeRLP(txn);
 
         // sign transaction with key
@@ -248,14 +264,18 @@ contract PokeRelayer is ConfidentialControl {
             LibString.toHexStringNoPrefix(signingKey)
         );
 
-        // send transaction over http json to stored enpoint 
-        Suave.HttpRequest memory httpRequest = encodeEthSendRawTransaction(signedTxn, httpURL);
+        // send transaction over http json to stored enpoint
+        Suave.HttpRequest memory httpRequest = encodeEthSendRawTransaction(
+            signedTxn,
+            httpURL
+        );
         Suave.doHTTPRequest(httpRequest);
 
         // update signing nonce in callback
         return
             abi.encodeWithSelector(
-                this.updateNonceCallback.selector, getUnlockPair()
+                this.updateNonceCallback.selector,
+                getUnlockPair()
             );
     }
 
@@ -266,11 +286,10 @@ contract PokeRelayer is ConfidentialControl {
      * @return Suave.HttpRequest Struct containing HTTP request information
      */
     function encodeEthSendRawTransaction(
-       bytes memory signedTxn,
-       string memory url
+        bytes memory signedTxn,
+        string memory url
     ) internal pure returns (Suave.HttpRequest memory) {
-
-         bytes memory body = abi.encodePacked(
+        bytes memory body = abi.encodePacked(
             '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["',
             LibString.toHexString(signedTxn),
             '"],"id":1}'

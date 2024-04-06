@@ -2,14 +2,14 @@
 This proof of concept is designed to show a L1 smart contract that has portions of its functionality sequenced by Suave. 
 
 Contracts include:
-- Poked: A smart contract on Goerli that can receive EIP712 messages signed by users. Only a specified private key, stored suapp, is allowed to submit these messages to the Goerli contract.
+- Poked: A smart contract on Sepolia that can receive EIP712 messages signed by users. Only a specified private key, stored suapp, is allowed to submit these messages to the Sepolia contract.
 - PokeRelayer: A suapp on Rigil, with the private key, that can relay EIP712 messages for users by sending transactions.
 
 ## Logic Flow
-A user signs a `Poke` EIP712 message and submits it to the `PokeRelayer` contract via a confidential compute request. The `PokeRelayer` constructs and signs a transaction carrying the `Poke` and sends the transaction to Goerli. The `Poked` contract on Goerli receives the transaction and updates the original user's nonce. 
+A user signs a `Poke` EIP712 message and submits it to the `PokeRelayer` contract via a confidential compute request. The `PokeRelayer` constructs and signs a transaction carrying the `Poke` and sends the transaction to Sepolia. The `Poked` contract on Sepolia receives the transaction and updates the original user's nonce. 
 
 # Smart Contract Deployments
-Poked (Goerli): [0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378](https://goerli.etherscan.io/address/0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378) 
+Poked (Sepolia): [0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378](https://sepolia.etherscan.io/address/0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378) 
 
 PokeRelayer (Suapp): [0xe1936a1de5f2f311F1d69254bd22C94F47610A63](https://explorer.rigil.suave.flashbots.net/address/0xe1936a1de5f2f311F1d69254bd22C94F47610A63)
 
@@ -30,20 +30,20 @@ Recommended order of functions:
 3. `deploySuavePokeRelayer()` -> set `POKE_RELAYER_DEPLOYED`.
 4. `initializeConfidentialControl()`
 5. `setSigningKey()`
-6. `setGoerliRpcUrl()`
+6. `setSepoliaRpcUrl()`
 7. Check that both confidential stores succeeded by checking their packed storage slot with: `grabSlotSuapp(uint256) 5`, successful calls will have both halfs of the bytes32 slot non-zero.
-8. `sendPokeToSuave()` -> check on Goerli to see the poke 
+8. `sendPokeToSuave()` -> check on Sepolia to see the poke 
 
 The needed commands for the script are above the script functions in the Interactions.s.sol file. For example, running the command above the `deployPoke()` function will run the function.
 ```
    /**
-    * @notice Deploys the Poke contract to Goerli.
+    * @notice Deploys the Poke contract to Sepolia.
     * @dev note: Put this deployed address at the top of the file
     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "deployPoke()" --broadcast --legacy -vv --verify
     */
     function deployPoke() public {
-        vm.selectFork(forkIdGoerli);
-        vm.startBroadcast(privateKeyUserGoerli);
+        vm.selectFork(forkIdSepolia);
+        vm.startBroadcast(privateKeyUserSepolia);
         Poked poked = new Poked();
         console2.log("poked: ");
         console2.log(address(poked));

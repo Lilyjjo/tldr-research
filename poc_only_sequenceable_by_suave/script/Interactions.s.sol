@@ -13,14 +13,14 @@ import {CCRForgeUtil} from "./utils/CCRForgeUtil.sol";
 /**
  * @title Interactions for Poke<>PokeRelayer Contracts
  * @author lilyjjo
- * @dev Commands for interacting with Poked and PokeRelayer on Suave/Goerli
+ * @dev Commands for interacting with Poked and PokeRelayer on Suave/Sepolia
  * @dev Need to fill out environment variables in .env
  * @dev Can toggle between Rigil and local devnet with USE_RIGIL env var
  */
 contract Interactions is Script {
     CCRForgeUtil ccrUtil;
-    address addressUserGoerli;
-    uint256 privateKeyUserGoerli;
+    address addressUserSepolia;
+    uint256 privateKeyUserSepolia;
 
     address addressUserSuave;
     uint256 privateKeyUserSuave;
@@ -33,59 +33,70 @@ contract Interactions is Script {
 
     address addressKettle;
 
-    uint gasNeededGoerliPoke;
+    uint gasNeededSepoliaPoke;
 
-    uint chainIdGoerli;
+    uint chainIdSepolia;
     uint chainIdSuave;
-    string rpcUrlGoerli;
+    string rpcUrlSepolia;
     string rpcUrlSuave;
     uint forkIdSuave;
-    uint forkIdGoerli;
+    uint forkIdSepolia;
 
-    address constant POKE_RELAYER_DEPLOYED = 0xe1936a1de5f2f311F1d69254bd22C94F47610A63;
-    address constant POKED_DEPLOYED = 0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378;
+    address constant POKE_RELAYER_DEPLOYED =
+        0xe1936a1de5f2f311F1d69254bd22C94F47610A63;
+    address constant POKED_DEPLOYED =
+        0x58840C1dA9cECB92399FcAbaD30f7d3dCF711cB9;
 
     /**
      * @notice Pulls environment variables and sets up fork urls.
      * @dev Toggle between Rigil and local devnet with 'USE_RIGIL'
      */
     function setUp() public {
-        // setup goerli variables
-        chainIdGoerli = vm.envUint("CHAIN_ID_GOERLI");
-        rpcUrlGoerli = vm.envString("RPC_URL_GOERLI");
-        addressUserGoerli = vm.envAddress("FUNDED_ADDRESS_GOERLI"); 
-        privateKeyUserGoerli = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI"));
-         
+        // setup sepolia variables
+        chainIdSepolia = vm.envUint("CHAIN_ID_SEPOLIA");
+        rpcUrlSepolia = vm.envString("RPC_URL_SEPOLIA");
+        addressUserSepolia = vm.envAddress("FUNDED_ADDRESS_SEPOLIA");
+        privateKeyUserSepolia = uint256(
+            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA")
+        );
+
         // Poking related values
-        addressPoking = vm.envAddress("ADDRESS_SIGNING_POKE"); 
-        privateKeyPoking = uint256(vm.envBytes32("PRIVATE_KEY_SIGNING_POKE")); 
-        gasNeededGoerliPoke = vm.envUint("GAS_NEEDED_GOERLI_POKE");
+        addressPoking = vm.envAddress("ADDRESS_SIGNING_POKE");
+        privateKeyPoking = uint256(vm.envBytes32("PRIVATE_KEY_SIGNING_POKE"));
+        gasNeededSepoliaPoke = vm.envUint("GAS_NEEDED_SEPOLIA_POKE");
 
         // private key to store in suapp
-        addressStoredSuapp = vm.envAddress("FUNDED_GOERLI_ADDRESS_TO_PUT_INTO_SUAPP");
-        privateKeyStoredSuapp = uint256(vm.envBytes32("FUNDED_GOERLI_PRIVATE_KEY_TO_PUT_INTO_SUAPP")); 
+        addressStoredSuapp = vm.envAddress(
+            "FUNDED_SEPOLIA_ADDRESS_TO_PUT_INTO_SUAPP"
+        );
+        privateKeyStoredSuapp = uint256(
+            vm.envBytes32("FUNDED_SEPOLIA_PRIVATE_KEY_TO_PUT_INTO_SUAPP")
+        );
 
         // setup suave variable, toggle between using local devnet and rigil testnet
-        if(vm.envBool("USE_RIGIL")) {
+        if (vm.envBool("USE_RIGIL")) {
             // grab rigil variables
             chainIdSuave = vm.envUint("CHAIN_ID_RIGIL");
             rpcUrlSuave = vm.envString("RPC_URL_RIGIL");
             addressUserSuave = vm.envAddress("FUNDED_ADDRESS_RIGIL");
-            privateKeyUserSuave = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_RIGIL"));
+            privateKeyUserSuave = uint256(
+                vm.envBytes32("FUNDED_PRIVATE_KEY_RIGIL")
+            );
             addressKettle = vm.envAddress("KETTLE_ADDRESS_RIGIL");
         } else {
             // grab local variables
             chainIdSuave = vm.envUint("CHAIN_ID_LOCAL_SUAVE");
             rpcUrlSuave = vm.envString("RPC_URL_LOCAL_SUAVE");
             addressUserSuave = vm.envAddress("FUNDED_ADDRESS_SUAVE_LOCAL");
-            privateKeyUserSuave = uint256(vm.envBytes32("FUNDED_PRIVATE_KEY_SUAVE_LOCAL"));
+            privateKeyUserSuave = uint256(
+                vm.envBytes32("FUNDED_PRIVATE_KEY_SUAVE_LOCAL")
+            );
             addressKettle = vm.envAddress("KETTLE_ADDRESS_SUAVE_LOCAL");
-
         }
-        
-        // create forkURLs to toggle between chains 
+
+        // create forkURLs to toggle between chains
         forkIdSuave = vm.createFork(rpcUrlSuave);
-        forkIdGoerli = vm.createFork(rpcUrlGoerli);
+        forkIdSepolia = vm.createFork(rpcUrlSepolia);
 
         // setup confidential compute request util for use on suave fork (note is local)
         vm.selectFork(forkIdSuave);
@@ -93,13 +104,13 @@ contract Interactions is Script {
     }
 
     /**
-     * @notice Deploys the Poke contract to Goerli.
+     * @notice Deploys the Poke contract to Sepolia.
      * @dev note: Put this deployed address at the top of the file
      * @dev command: forge script script/Interactions.s.sol:Interactions --sig "deployPoke()" --broadcast --legacy -vv --verify
      */
     function deployPoke() public {
-        vm.selectFork(forkIdGoerli);
-        vm.startBroadcast(privateKeyUserGoerli);
+        vm.selectFork(forkIdSepolia);
+        vm.startBroadcast(privateKeyUserSepolia);
         Poked poked = new Poked();
         console2.log("poked: ");
         console2.log(address(poked));
@@ -111,8 +122,8 @@ contract Interactions is Script {
      * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setPokeExpectedSuaveKey()" --broadcast --legacy -vv
      */
     function setPokeExpectedSuaveKey() public {
-        vm.selectFork(forkIdGoerli);
-        vm.startBroadcast(privateKeyUserGoerli);
+        vm.selectFork(forkIdSepolia);
+        vm.startBroadcast(privateKeyUserSepolia);
         Poked poked = Poked(POKED_DEPLOYED);
         poked.setSuapp(addressStoredSuapp);
         vm.stopBroadcast();
@@ -121,15 +132,15 @@ contract Interactions is Script {
     /**
      * @notice Deploys the PokeRelayer contract on Suave.
      * @dev note: Put this deployed address at the top of the file
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "deploySuavePokeRelayer()" --broadcast --legacy -vv 
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "deploySuavePokeRelayer()" --broadcast --legacy -vv
      */
     function deploySuavePokeRelayer() public {
         vm.selectFork(forkIdSuave);
         vm.startBroadcast(privateKeyUserSuave);
         PokeRelayer pokeRelayer = new PokeRelayer(
             POKED_DEPLOYED,
-            chainIdGoerli,
-            gasNeededGoerliPoke
+            chainIdSepolia,
+            gasNeededSepoliaPoke
         );
         console2.log("addresss: ");
         console2.log(address(pokeRelayer));
@@ -137,7 +148,7 @@ contract Interactions is Script {
 
     /**
      * @notice Initializes the PokeRelayer's Confidential Control System
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "initializeConfidentialControl()" -vv 
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "initializeConfidentialControl()" -vv
      */
     function initializeConfidentialControl() public {
         vm.selectFork(forkIdSuave);
@@ -145,7 +156,7 @@ contract Interactions is Script {
         bytes32 secret = keccak256(abi.encode("secret")); // note: generate privately
         bytes memory confidentialInputs = abi.encodePacked(secret);
         bytes memory targetCall = abi.encodeWithSignature(
-           "confidentialConstructor()"
+            "confidentialConstructor()"
         );
 
         uint64 nonce = vm.getNonce(addressUserSuave);
@@ -168,12 +179,12 @@ contract Interactions is Script {
     /**
      * @notice Sets the signing key for the PokedRelayer, expected to be the same key
      * that was used with setPokeExpectedSuaveKey()
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setSigningKey()" -vv 
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setSigningKey()" -vv
      */
     function setSigningKey() public {
         // grab most recent singing key with an ethcall
         // note: this can get messed up if there are pending pokes with the key
-        vm.selectFork(forkIdGoerli);
+        vm.selectFork(forkIdSepolia);
         uint64 nonceStoredSuapp = vm.getNonce(addressStoredSuapp);
         console2.log("suave stored signer nonce:");
         console2.log(nonceStoredSuapp);
@@ -204,15 +215,13 @@ contract Interactions is Script {
     }
 
     /**
-     * @notice Sets the RPC URL in PokedRelayer used to send transaction to 
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setGoerliUrl()" -vv 
+     * @notice Sets the RPC URL in PokedRelayer used to send transaction to
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setSepoliaUrl()" -vv
      */
-    function setGoerliUrl() public {
+    function setSepoliaUrl() public {
         vm.selectFork(forkIdSuave);
-        bytes memory confidentialInputs = abi.encodePacked(rpcUrlGoerli);
-        bytes memory targetCall = abi.encodeWithSignature(
-            "setGoerliUrl()"
-        );
+        bytes memory confidentialInputs = abi.encodePacked(rpcUrlSepolia);
+        bytes memory targetCall = abi.encodeWithSignature("setSepoliaUrl()");
         uint64 nonce = vm.getNonce(addressUserSuave);
         ccrUtil.createAndSendCCR({
             signingPrivateKey: privateKeyUserSuave,
@@ -229,7 +238,7 @@ contract Interactions is Script {
     }
 
     /**
-     * @notice Performs a read on PokeRelayer's storage slots. 
+     * @notice Performs a read on PokeRelayer's storage slots.
      * @dev Useful for reading slot 5 which will hold the set DataIds for the confidential stores
      * @dev command: forge script script/Interactions.s.sol:Interactions -vv --sig "grabSlotSuapp(uint256)" 5
      */
@@ -242,7 +251,7 @@ contract Interactions is Script {
 
     /**
      * @notice Crafts and signs a poke to be sent to Suave
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "sendPokeToSuave()" -vv  
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "sendPokeToSuave()" -vv
      */
     function sendPokeToSuave() public {
         // make signed message from any private/public keyapir
@@ -250,13 +259,18 @@ contract Interactions is Script {
         uint256 userPk = privateKeyPoking;
         uint deadline = (vm.unixTime() / 1e3) + uint(200);
 
-        // grab next poke nonce for user  
-        vm.selectFork(forkIdGoerli);
+        // grab next poke nonce for user
+        vm.selectFork(forkIdSepolia);
         Poked poked = Poked(POKED_DEPLOYED);
         uint256 userNonce = poked.nonces(user);
 
         // sign over message
-        (uint8 v, bytes32 r, bytes32 s) = _createPoke(user, userPk, deadline, userNonce); 
+        (uint8 v, bytes32 r, bytes32 s) = _createPoke(
+            user,
+            userPk,
+            deadline,
+            userNonce
+        );
 
         // TODO Have suapp grab this price itself. Is a DoS vector if users
         // send transactions with too-low gas prices as it will cause the
@@ -296,7 +310,12 @@ contract Interactions is Script {
     /**
      * @notice Helper function for signing pokes.
      */
-    function _createPoke(address user, uint256 userPk, uint256 deadline, uint256 userNonce) internal returns (uint8 v, bytes32 r, bytes32 s) {
+    function _createPoke(
+        address user,
+        uint256 userPk,
+        uint256 deadline,
+        uint256 userNonce
+    ) internal returns (uint8 v, bytes32 r, bytes32 s) {
         // setup SigUtils
         bytes32 POKE_TYPEHASH = keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
@@ -308,7 +327,7 @@ contract Interactions is Script {
                 keccak256(bytes("SuappCounter")),
                 keccak256(bytes("1")),
                 5,
-                POKED_DEPLOYED 
+                POKED_DEPLOYED
             )
         );
         SigUtils sigUtils = new SigUtils(DOMAIN_SEPARATOR);
@@ -321,6 +340,6 @@ contract Interactions is Script {
         });
 
         bytes32 digest = sigUtils.getTypedDataHash(poke);
-        (v, r, s) = vm.sign(userPk, digest);   
+        (v, r, s) = vm.sign(userPk, digest);
     }
 }
