@@ -6,12 +6,12 @@ import {CCRForgeUtil} from "./utils/CCRForgeUtil.sol";
 
 contract TestingBase is Script {
     CCRForgeUtil ccrUtil;
-    address addressUserGoerli;
-    uint256 privateKeyUserGoerli;
-    address addressUserGoerli2;
-    uint256 privateKeyUserGoerli2;
-    address addressUserGoerli3;
-    uint256 privateKeyUserGoerli3;
+    address addressUserSepolia;
+    uint256 privateKeyUserSepolia;
+    address addressUserSepolia2;
+    uint256 privateKeyUserSepolia2;
+    address addressUserSepolia3;
+    uint256 privateKeyUserSepolia3;
 
     address addressUserSuave;
     uint256 privateKeyUserSuave;
@@ -24,14 +24,14 @@ contract TestingBase is Script {
 
     address addressKettle;
 
-    uint gasNeededGoerliPoke;
+    uint gasNeededSepoliaPoke;
 
-    uint chainIdGoerli;
+    uint chainIdSepolia;
     uint chainIdSuave;
-    string rpcUrlGoerli;
+    string rpcUrlSepolia;
     string rpcUrlSuave;
     uint forkIdSuave;
-    uint forkIdGoerli;
+    uint forkIdSepolia;
 
     address constant SUAPP_AMM_DEPLOYED =
         0x7481C68EC1BE6b2d29d26532d4f205C99C5AE031;
@@ -57,35 +57,35 @@ contract TestingBase is Script {
      * @dev Toggle between Rigil and local devnet with 'USE_RIGIL'
      */
     function TestingBaseSetUp() public {
-        // setup goerli variables
-        chainIdGoerli = vm.envUint("CHAIN_ID_GOERLI");
-        rpcUrlGoerli = vm.envString("RPC_URL_GOERLI");
-        addressUserGoerli = vm.envAddress("FUNDED_ADDRESS_GOERLI");
-        privateKeyUserGoerli = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI")
+        // setup sepolia variables
+        chainIdSepolia = vm.envUint("CHAIN_ID_SEPOLIA");
+        rpcUrlSepolia = vm.envString("RPC_URL_SEPOLIA");
+        addressUserSepolia = vm.envAddress("FUNDED_ADDRESS_SEPOLIA");
+        privateKeyUserSepolia = uint256(
+            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA")
         );
 
-        addressUserGoerli2 = vm.envAddress("FUNDED_ADDRESS_GOERLI_I");
-        privateKeyUserGoerli2 = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI_I")
+        addressUserSepolia2 = vm.envAddress("FUNDED_ADDRESS_SEPOLIA_I");
+        privateKeyUserSepolia2 = uint256(
+            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA_I")
         );
 
-        addressUserGoerli3 = vm.envAddress("FUNDED_ADDRESS_GOERLI_II");
-        privateKeyUserGoerli3 = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_GOERLI_II")
+        addressUserSepolia3 = vm.envAddress("FUNDED_ADDRESS_SEPOLIA_II");
+        privateKeyUserSepolia3 = uint256(
+            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA_II")
         );
 
         // Poking related values
         addressPoking = vm.envAddress("ADDRESS_SIGNING_POKE");
         privateKeyPoking = uint256(vm.envBytes32("PRIVATE_KEY_SIGNING_POKE"));
-        gasNeededGoerliPoke = vm.envUint("GAS_NEEDED_GOERLI_POKE");
+        gasNeededSepoliaPoke = vm.envUint("GAS_NEEDED_SEPOLIA_POKE");
 
         // private key to store in suapp
         addressStoredSuapp = vm.envAddress(
-            "FUNDED_GOERLI_ADDRESS_TO_PUT_INTO_SUAPP"
+            "FUNDED_SEPOLIA_ADDRESS_TO_PUT_INTO_SUAPP"
         );
         privateKeyStoredSuapp = uint256(
-            vm.envBytes32("FUNDED_GOERLI_PRIVATE_KEY_TO_PUT_INTO_SUAPP")
+            vm.envBytes32("FUNDED_SEPOLIA_PRIVATE_KEY_TO_PUT_INTO_SUAPP")
         );
 
         // setup suave variable, toggle between using local devnet and rigil testnet
@@ -111,7 +111,7 @@ contract TestingBase is Script {
 
         // create forkURLs to toggle between chains
         forkIdSuave = vm.createFork(rpcUrlSuave);
-        forkIdGoerli = vm.createFork(rpcUrlGoerli);
+        forkIdSepolia = vm.createFork(rpcUrlSepolia);
 
         // setup confidential compute request util for use on suave fork (note is local)
         vm.selectFork(forkIdSuave);

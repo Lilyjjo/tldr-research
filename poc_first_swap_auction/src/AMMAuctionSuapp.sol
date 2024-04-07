@@ -27,7 +27,7 @@ contract AMMAuctionSuapp {
     /// @dev DataId for the signing key in Suave's confidential storage
     Suave.DataId private _signingKeyRecord;
     /// @dev DataId for the L1 URL in Suave's confidential storage
-    Suave.DataId private _ethGoerliUrlRecord;
+    Suave.DataId private _ethSepoliaUrlRecord;
     /// @dev last block sent auction result for
     Suave.DataId private _lastBlockProcessedRecord;
 
@@ -40,12 +40,12 @@ contract AMMAuctionSuapp {
     /// @dev Time past last block's time to finish auction and send bundle
     uint256 public auctionDuration;
 
-    string constant tempGoerliUrl =
-        "https://eth-goerli.g.alchemy.com/v2/jAxK12NoRIIP6BgWZfFAMQOjDhEgEtSV";
+    string constant tempSepoliaUrl =
+        "https://eth-sepolia.g.alchemy.com/v2/jAxK12NoRIIP6BgWZfFAMQOjDhEgEtSV";
 
     /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
-    /// @dev Key for accessing the Ethereum Goerli network URL in Suave's confidential storage
+    /// @dev Key for accessing the Ethereum Sepolia network URL in Suave's confidential storage
     string public KEY_URL = "URL";
     string public KEY_LAST_BLOCK_PROCESSED = "LAST_BLOCK";
 
@@ -158,7 +158,7 @@ contract AMMAuctionSuapp {
             )
         );
 
-        string memory httpURL = tempGoerliUrl;
+        string memory httpURL = tempSepoliaUrl;
 
         if (
             bid.blockNumber <= _getLastL1BlockNumberUint(httpURL) ||
@@ -265,7 +265,7 @@ contract AMMAuctionSuapp {
 
         // send bundle
         bytes memory bundleRes = Bundle.sendBundle(
-            "https://relay-goerli.flashbots.net",
+            "https://relay-sepolia.flashbots.net",
             bundle
         );
         require(
@@ -486,7 +486,7 @@ contract AMMAuctionSuapp {
     }
 
     function getLastL1Block() public returns (Block memory blockData) {
-        string memory httpURL = tempGoerliUrl;
+        string memory httpURL = tempSepoliaUrl;
 
         string memory blockNumber = getLastL1BlockNumber(httpURL);
 
@@ -582,10 +582,10 @@ contract AMMAuctionSuapp {
     }
 
     /**
-     * @notice Sets the Ethereum Goerli network URL in Suave's confidential storage
-     * @return bytes Encoded data for updating the Goerli URL callback
+     * @notice Sets the Ethereum Sepolia network URL in Suave's confidential storage
+     * @return bytes Encoded data for updating the Sepolia URL callback
      */
-    function setGoerliUrl() external onlyOwner returns (bytes memory) {
+    function setSepoliaUrl() external onlyOwner returns (bytes memory) {
         require(Suave.isConfidential());
         bytes memory keyData = Suave.confidentialInputs();
 
@@ -605,16 +605,16 @@ contract AMMAuctionSuapp {
         Suave.confidentialStore(bid.id, KEY_URL, keyData);
 
         return
-            abi.encodeWithSelector(this.callbackSetGoerliUrl.selector, bid.id);
+            abi.encodeWithSelector(this.callbackSetSepoliaUrl.selector, bid.id);
     }
 
     /**
-     * @notice Callback function to update the Goerli network URL record
+     * @notice Callback function to update the Sepolia network URL record
      * @dev To be called as a Confidential Compute Callback.
-     * @param goerliKeyId The record ID for the Goerli URL
+     * @param sepoliaKeyId The record ID for the Sepolia URL
      */
-    function callbackSetGoerliUrl(Suave.DataId goerliKeyId) external {
-        _ethGoerliUrlRecord = goerliKeyId;
+    function callbackSetSepoliaUrl(Suave.DataId sepoliaKeyId) external {
+        _ethSepoliaUrlRecord = sepoliaKeyId;
     }
 
     /**

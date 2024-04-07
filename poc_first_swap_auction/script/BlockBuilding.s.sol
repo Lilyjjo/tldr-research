@@ -11,7 +11,7 @@ import {UniswapBase} from "./UniswapBase.s.sol";
 /**
  * @title Interactions for Poke<>PokeRelayer Contracts
  * @author lilyjjo
- * @dev Commands for interacting with Poked and PokeRelayer on Suave/Goerli
+ * @dev Commands for interacting with Poked and PokeRelayer on Suave/Sepolia
  * @dev Need to fill out environment variables in .env
  * @dev Can toggle between Rigil and local devnet with USE_RIGIL env var
  */

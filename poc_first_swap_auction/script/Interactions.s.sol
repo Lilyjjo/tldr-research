@@ -20,7 +20,7 @@ import {BlockBuilding} from "./BlockBuilding.s.sol";
  * @author lilyjjo
  * @dev Need to fill out environment variables in .env
  * @dev Can toggle between Rigil and local devnet with USE_RIGIL env var
- * @dev Uses Goerli as fork for L1
+ * @dev Uses Sepolia as fork for L1
  */
 contract Interactions is TestingBase, BlockBuilding, UniswapBase {
     // Test framework is made up in layers
@@ -50,8 +50,8 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
         AMMAuctionSuapp ammAuctionSuapp = new AMMAuctionSuapp(
             POOL_DEPLOYED,
             AUCTION_DEPOSITS,
-            chainIdGoerli,
-            gasNeededGoerliPoke
+            chainIdSepolia,
+            gasNeededSepoliaPoke
         );
         console2.log("ammAuctionSuapp addresss: ");
         console2.log(address(ammAuctionSuapp));
@@ -86,8 +86,8 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
      */
     function newPendingSwapTxn(bool token0) public {
         // (1) build swap transaction to send as confidential information in CCR
-        address swapper = addressUserGoerli3;
-        uint256 swapperPrivateKey = privateKeyUserGoerli;
+        address swapper = addressUserSepolia3;
+        uint256 swapperPrivateKey = privateKeyUserSepolia;
 
         address tokenIn = token0 ? TOKEN_0_DEPLOYED : TOKEN_1_DEPLOYED;
 
@@ -122,10 +122,10 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
      */
     function newBid() public {
         // gather bid's values
-        address bidder = addressUserGoerli2;
-        uint256 bidderPk = privateKeyUserGoerli2;
+        address bidder = addressUserSepolia2;
+        uint256 bidderPk = privateKeyUserSepolia2;
 
-        vm.selectFork(forkIdGoerli);
+        vm.selectFork(forkIdSepolia);
         uint256 blockNumber = block.number + 1;
         uint256 bidAmount = 55;
 
@@ -188,10 +188,10 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
         bool enableAuction,
         bool depositBidPaymet
     ) public {
-        address admin = addressUserGoerli;
-        uint256 adminPk = privateKeyUserGoerli;
+        address admin = addressUserSepolia;
+        uint256 adminPk = privateKeyUserSepolia;
 
-        vm.selectFork(forkIdGoerli);
+        vm.selectFork(forkIdSepolia);
         vm.startBroadcast(adminPk);
 
         // (1) Auction Deposits
@@ -219,33 +219,33 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
                 POOL_FEE,
                 admin,
                 adminPk,
-                forkIdGoerli
+                forkIdSepolia
             );
 
         if (initPoolState) {
             // (4) Add state to uniswap contracts, ready for suapp actors
-            // note: only does new contract liquidity provisioning, all addresses need to have GoerliETH already
+            // note: only does new contract liquidity provisioning, all addresses need to have SepoliaETH already
 
             // add liquidty to the pool
             _addLiquidity(
-                addressUserGoerli2, // liquidity provider
-                privateKeyUserGoerli2,
+                addressUserSepolia2, // liquidity provider
+                privateKeyUserSepolia2,
                 deploymentInfo
             );
             // give swappers tokens to swap with router
             _fundSwapperApproveSwapRouter(
-                addressUserGoerli, // admin
-                privateKeyUserGoerli,
+                addressUserSepolia, // admin
+                privateKeyUserSepolia,
                 deploymentInfo
             );
             _fundSwapperApproveSwapRouter(
-                addressUserGoerli2, // liqudity provider / bidder
-                privateKeyUserGoerli2,
+                addressUserSepolia2, // liqudity provider / bidder
+                privateKeyUserSepolia2,
                 deploymentInfo
             );
             _fundSwapperApproveSwapRouter(
-                addressUserGoerli3, // basic swapper
-                privateKeyUserGoerli3,
+                addressUserSepolia3, // basic swapper
+                privateKeyUserSepolia3,
                 deploymentInfo
             );
         }
@@ -256,8 +256,8 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
             vm.stopBroadcast();
         }
         if (depositBidPaymet) {
-            // (6) if to have bidder place goerli eth into the deposit contracts
-            vm.startBroadcast(privateKeyUserGoerli2);
+            // (6) if to have bidder place Sepolia eth into the deposit contracts
+            vm.startBroadcast(privateKeyUserSepolia2);
             auctionDeposits.deposit{value: .001 ether}();
             vm.stopBroadcast();
         }
@@ -268,7 +268,7 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
      * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setSigningKey()" -vv
      */
     function setSigningKey() public {
-        vm.selectFork(forkIdGoerli);
+        vm.selectFork(forkIdSepolia);
         uint64 nonceStoredSuapp = vm.getNonce(addressStoredSuapp);
         console2.log("suave stored signer nonce:");
         console2.log(nonceStoredSuapp);
@@ -300,12 +300,12 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
 
     /**
      * @notice Sets the RPC URL in Auction AMM used to send transaction to
-     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setGoerliUrl()" -vv
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "setSepoliaUrl()" -vv
      */
-    function setGoerliUrl() public {
+    function setSepoliaUrl() public {
         vm.selectFork(forkIdSuave);
-        bytes memory confidentialInputs = abi.encodePacked(rpcUrlGoerli);
-        bytes memory targetCall = abi.encodeWithSignature("setGoerliUrl()");
+        bytes memory confidentialInputs = abi.encodePacked(rpcUrlSepolia);
+        bytes memory targetCall = abi.encodeWithSignature("setSepoliaUrl()");
         uint64 nonce = vm.getNonce(addressUserSuave);
         ccrUtil.createAndSendCCR({
             signingPrivateKey: privateKeyUserSuave,
@@ -361,8 +361,8 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
      * @dev command: forge script script/Interactions.s.sol:Interactions --sig "enableAuctions()" --broadcast --legacy -vv
      */
     function enableAuctions() public {
-        vm.selectFork(forkIdGoerli);
-        vm.startBroadcast(privateKeyUserGoerli);
+        vm.selectFork(forkIdSepolia);
+        vm.startBroadcast(privateKeyUserSepolia);
         AuctionGuard(AUCTION_GUARD).enableAuction(true);
     }
 
@@ -382,7 +382,7 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
             dInfo
         );
 
-        vm.selectFork(forkIdGoerli);
+        vm.selectFork(forkIdSepolia);
         uint64 nonce = vm.getNonce(swapper); // note: will repeat if user already has txns pending
 
         return
@@ -393,7 +393,7 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
                 value: 0,
                 nonce: nonce,
                 targetCall: txnData,
-                chainId: chainIdGoerli,
+                chainId: chainIdSepolia,
                 privateKey: swapperPrivateKey
             });
     }
@@ -403,14 +403,14 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
         view
         returns (UniswapBase.DeploymentInfo memory dInfo)
     {
-        dInfo.token0 = dInfo.token1 = addressUserGoerli;
+        dInfo.token0 = dInfo.token1 = addressUserSepolia;
         dInfo.pool = POOL_DEPLOYED;
         dInfo.nftPositionManager = NPM_DEPLOYED;
         dInfo.factory = FACTORY_DEPLOYED;
         dInfo.swapRouter = ROUTER_DEPLOYED;
-        dInfo.admin = addressUserGoerli;
-        dInfo.adminPk = privateKeyUserGoerli;
+        dInfo.admin = addressUserSepolia;
+        dInfo.adminPk = privateKeyUserSepolia;
         dInfo.poolFee = POOL_FEE;
-        dInfo.forkId = forkIdGoerli;
+        dInfo.forkId = forkIdSepolia;
     }
 }
