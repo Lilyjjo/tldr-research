@@ -8,7 +8,7 @@ use url::Url;
 
 async fn trigger_auction(block_number: u128) {
     let mut child = Command::new("forge")
-        .current_dir("../poc_first_swap_auction/")
+        .current_dir("../../../poc_first_swap_auction/")
         .arg("script")
         .arg("script/Interactions.s.sol:Interactions")
         .arg("--sig")

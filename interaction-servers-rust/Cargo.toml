@@ -1,0 +1,17 @@
+[workspace]
+members = [
+  "crates/block-server",
+  # "crates/cli-suapp-server",
+  "crates/poc-first-swap-auction",
+]
+resolver = "2"
+
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+authors = ["lilyjjo"]
+license = "MIT OR Apache-2.0"
+exclude = ["benches/", "tests/"]
+
+[workspace.dependencies]
