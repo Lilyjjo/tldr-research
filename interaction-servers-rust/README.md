@@ -11,3 +11,12 @@ Originally I wrote all of the suapp interaction logic in Foundry Solidity but th
 - I needed a command line interface to make sending the suapp commands easier than what Foundry scripting allows for.
 
 These servers utilize Alloy for interacting with Suave and whatever chatgpt recommended otherwise. 
+
+## Repo commands
+
+Format code: 
+```
+## if need to install specific nightly commit:
+rustup toolchain install nightly-2024-02-07-aarch64-apple-darwin 
+cargo +nightly-2024-02-07 fmt --all
+```

@@ -5,7 +5,8 @@ use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
 
-/// `BlockServer` is a service responsible for listening for new block produced on the given RCP websocket endpoint and performing an action.
+/// `BlockServer` is a service responsible for listening for new block produced on the given RCP
+/// websocket endpoint and performing an action.
 pub struct BlockServer {
     // L1 websocket url
     l1_websocket_url: Url,
@@ -35,7 +36,11 @@ impl BlockServer {
         let (mut write, mut read) = ws_stream.split();
 
         // Send a message to start subscription
-        let msg = Message::Text("{\"jsonrpc\":\"2.0\",\"id\": 2, \"method\": \"eth_subscribe\", \"params\": [\"newHeads\"]}".into());
+        let msg = Message::Text(
+            "{\"jsonrpc\":\"2.0\",\"id\": 2, \"method\": \"eth_subscribe\", \"params\": \
+             [\"newHeads\"]}"
+                .into(),
+        );
         write.send(msg).await.expect("Failed to send message");
 
         // Spawn a task to handle incoming messages
@@ -60,18 +65,16 @@ impl BlockServer {
 
 async fn trigger_auction() {
     // TODO: redo using Alloy
-    /*
-    let mut child = Command::new("forge")
-        .current_dir("../../../poc_first_swap_auction/")
-        .arg("script")
-        .arg("script/Interactions.s.sol:Interactions")
-        .arg("--sig")
-        .arg("testCall()")
-        .spawn()
-        .expect("Failed to start child process");
-
-    let _result = child.wait().unwrap();
-    */
+    // let mut child = Command::new("forge")
+    // .current_dir("../../../poc_first_swap_auction/")
+    // .arg("script")
+    // .arg("script/Interactions.s.sol:Interactions")
+    // .arg("--sig")
+    // .arg("testCall()")
+    // .spawn()
+    // .expect("Failed to start child process");
+    //
+    // let _result = child.wait().unwrap();
 }
 
 async fn process_header(text: String) {
