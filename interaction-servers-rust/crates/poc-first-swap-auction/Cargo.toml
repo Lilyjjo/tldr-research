@@ -7,6 +7,7 @@ edition = "2021"
 name = "poc-first-swap-auction"
 
 [dependencies]
+block-server = { path = "../block-server" }
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.17", features = ["native-tls"] }
 futures-util = "0.3"
