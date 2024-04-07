@@ -1,4 +1,4 @@
-use dotenv::dotenv;
+use anyhow::Context;
 use futures_util::{stream::StreamExt, SinkExt};
 use serde_json::Value;
 use tokio::task::JoinHandle;
@@ -13,13 +13,9 @@ pub struct BlockServer {
 }
 
 impl BlockServer {
-    pub async fn new() -> anyhow::Result<Self> {
-        // load env vars
-        dotenv().ok();
-        let rpc_url: String = std::env::var("L1_RPC_URL").expect("L1_RPC_URL env var not set");
-
+    pub async fn new(l1_websocket: String) -> anyhow::Result<Self> {
         // Setup the WebSocket server URL
-        let url = Url::parse(&rpc_url).expect("Failed to parse URL");
+        let url = Url::parse(&l1_websocket).context("failed to parse URL")?;
 
         Ok(Self {
             l1_websocket_url: url,
@@ -30,7 +26,7 @@ impl BlockServer {
         // Connect to the server
         let (ws_stream, _) = connect_async(self.l1_websocket_url)
             .await
-            .expect("Failed to connect");
+            .context("failed to connect to L1 websocket")?;
 
         // Split the stream into a sender and receiver
         let (mut write, mut read) = ws_stream.split();
@@ -41,20 +37,20 @@ impl BlockServer {
              [\"newHeads\"]}"
                 .into(),
         );
-        write.send(msg).await.expect("Failed to send message");
+        write
+            .send(msg)
+            .await
+            .context("failed to send subscription method to websocket")?;
 
         // Spawn a task to handle incoming messages
         let api_task = tokio::spawn(async move {
             while let Some(message) = read.next().await {
                 match message {
-                    Ok(msg) => {
-                        match msg {
-                            Message::Text(text) => process_header(text).await,
-                            // Handle other message types as needed
-                            _ => (),
-                        }
-                    }
-                    Err(e) => println!("Error receiving message: {:?}", e),
+                    Ok(msg) => match msg {
+                        Message::Text(text) => process_header(text).await,
+                        _ => (),
+                    },
+                    Err(e) => println!("error receiving message: {:?}", e),
                 }
             }
         });
@@ -78,7 +74,7 @@ async fn trigger_auction() {
 }
 
 async fn process_header(text: String) {
-    println!("In process_header");
+    // TODO add better error handling around this
     let v: Value = serde_json::from_str(&text).unwrap();
 
     let mut block_number: u128 = 0;
