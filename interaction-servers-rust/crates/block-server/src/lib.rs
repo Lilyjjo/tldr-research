@@ -1,8 +1,14 @@
 use anyhow::Context;
-use futures_util::{stream::StreamExt, SinkExt};
+use futures_util::{
+    stream::StreamExt,
+    SinkExt,
+};
 use serde_json::Value;
 use tokio::task::JoinHandle;
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use tokio_tungstenite::{
+    connect_async,
+    tungstenite::protocol::Message,
+};
 use url::Url;
 
 /// `BlockServer` is a service responsible for listening for new block produced on the given RCP

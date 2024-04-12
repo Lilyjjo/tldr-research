@@ -1,8 +1,8 @@
 [workspace]
 members = [
   "crates/block-server",
-  # "crates/cli-suapp-server",
   "crates/poc-first-swap-auction",
+  "crates/suave-rust",
 ]
 resolver = "2"
 

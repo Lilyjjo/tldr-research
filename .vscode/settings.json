@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./interaction-servers-rust/crates/suave-rust/Cargo.toml",
+        "./interaction-servers-rust/crates/suave-rust/Cargo.toml"
+    ]
+}

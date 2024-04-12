@@ -1,0 +1,43 @@
+[package]
+name = "suave-rust"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+alloy = { git = "https://github.com/alloy-rs/alloy", rev = "bfd0fda", features = [
+    "contract",
+    "network",
+    "node-bindings",
+    "providers",
+    "provider-http",
+    "provider-ipc",
+    "provider-ws",
+    "rpc-client",
+    "rpc-client-ipc",
+    "rpc-client-ws",
+    "rpc-types-eth",
+    "rpc-types-trace",
+    "signers",
+    "signer-keystore",
+    "signer-ledger",
+    "signer-mnemonic",
+    "signer-trezor",
+    "signer-wallet",
+    "signer-yubihsm",
+    "transports",
+    "transport-http",
+    "reqwest",
+    "consensus",
+    "eips"
+] }
+alloy-rlp = { version = "0.3.4", features = ["derive"] }
+alloy-primitives = { version = "0.7.0", default-features = false }
+alloy-sol-types = { version = "0.7.0", default-features = false }
+async-trait = "0.1.79"
+eyre = "0.6.12"
+serde = { version = "1.0.197", features = ["serde_derive", "derive"] }
+tokio = { version = "1.37.0", features = ["full"] }
+url = "2.5.0"
+reqwest = { version = "0.12.2"}
+hex-literal = "0.4"

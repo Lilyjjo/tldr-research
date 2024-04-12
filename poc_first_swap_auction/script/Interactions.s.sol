@@ -100,6 +100,11 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
 
         // (2) setup CCR to submit txn to AMM's pending transactions
         bytes memory targetCall = abi.encodeWithSignature("newPendingTxn()");
+
+        console2.log("targetCall: ");
+        console2.logBytes(targetCall);
+        console2.log("cI:");
+        console2.logBytes(swapTxn);
         vm.selectFork(forkIdSuave);
         uint64 nonce = vm.getNonce(addressUserSuave);
         ccrUtil.createAndSendCCR({
