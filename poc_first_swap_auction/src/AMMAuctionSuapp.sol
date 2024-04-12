@@ -5,14 +5,13 @@ import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "./utils/Bundle.sol";
 import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
 import {JSONParserLib} from "../lib/suave-std/lib/solady/src/utils/JSONParserLib.sol";
+import {IAMMAuctionSuapp} from "./interfaces/IAMMAuctionSuapp.sol";
 
 /**
  * @title AMMAuctionSuapp
  * @author lilyjjo
- * @dev
- * @dev
  */
-contract AMMAuctionSuapp {
+contract AMMAuctionSuapp is IAMMAuctionSuapp {
     using JSONParserLib for *;
 
     /// @notice Target L1 AuctionedAMM
