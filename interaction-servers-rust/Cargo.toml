@@ -1,11 +1,10 @@
 [workspace]
 members = [
-  "crates/block-server",
-  "crates/poc-first-swap-auction",
+  "crates/auction-block-server",
+  "crates/auction-cli-server",
   "crates/suave-rust",
 ]
 resolver = "2"
-
 
 [workspace.package]
 version = "0.0.1"

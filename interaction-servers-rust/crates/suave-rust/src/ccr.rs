@@ -1,36 +1,13 @@
 // todo: split into files
 
 use alloy::{
-    consensus::{
-        SignableTransaction,
-        Signed,
-        Transaction,
-    },
-    primitives::{
-        self,
-        Address,
-        Bytes,
-        ChainId,
-        FixedBytes,
-        Signature,
-        TxKind,
-        U256,
-    },
+    consensus::{SignableTransaction, Signed, Transaction},
+    primitives::{self, Address, Bytes, ChainId, FixedBytes, Signature, TxKind, U256},
     rpc::types::eth::TransactionRequest,
 };
-use alloy_rlp::{
-    Encodable,
-    RlpEncodable,
-};
-use eyre::{
-    eyre,
-    Ok,
-    Result,
-};
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use alloy_rlp::{Encodable, RlpEncodable};
+use eyre::{eyre, Ok, Result};
+use serde::{Deserialize, Serialize};
 
 enum CCTypes {
     ConfidentialComputeRecord = 0x42,
@@ -281,27 +258,15 @@ impl SignableTransaction<Signature> for ConfidentialComputeRequest {
 use std::sync::Arc;
 
 use alloy::{
-    consensus::{
-        self,
-        TxEnvelope,
-    },
-    eips::eip2718::{
-        Decodable2718,
-        Encodable2718,
-    },
+    consensus::{self, TxEnvelope},
+    eips::eip2718::{Decodable2718, Encodable2718},
     network::{
-        BuilderResult,
-        Network,
-        NetworkSigner,
-        TransactionBuilder,
-        TransactionBuilderError,
+        BuilderResult, Network, NetworkSigner, TransactionBuilder, TransactionBuilderError,
         TxSigner,
     },
     providers::ProviderBuilder,
     rpc::types::eth::{
-        Header as EthHeader,
-        Transaction as TransactionResponse,
-        TransactionReceipt,
+        Header as EthHeader, Transaction as TransactionResponse, TransactionReceipt,
     },
     signers::Result as SignerResult,
 };
@@ -531,21 +496,12 @@ where
 #[cfg(test)]
 mod tests {
     use core::time;
-    use std::{
-        str::FromStr,
-        thread,
-    };
+    use std::{str::FromStr, thread};
 
     use alloy::{
-        network::{
-            TransactionBuilder,
-            TxSigner,
-        },
+        network::{TransactionBuilder, TxSigner},
         primitives::B256,
-        providers::{
-            Provider,
-            ProviderBuilder,
-        },
+        providers::{Provider, ProviderBuilder},
         rpc::types::eth::TransactionRequest,
         signers::wallet::LocalWallet,
     };

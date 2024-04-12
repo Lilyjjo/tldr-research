@@ -1,14 +1,14 @@
 [package]
-name = "poc-first-swap-auction"
-version = "0.1.0"
+name = "auction-block-server"
+version = "0.0.1"
 edition = "2021"
 
-[[bin]]
-name = "poc-first-swap-auction"
+[features]
+default = []
+local = []
 
 [dependencies]
 anyhow = "1"
-block-server = { path = "../block-server" }
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.17", features = ["native-tls"] }
 futures-util = "0.3"
