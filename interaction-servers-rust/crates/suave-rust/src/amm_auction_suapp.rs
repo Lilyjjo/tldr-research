@@ -1,22 +1,61 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::HashMap,
+    str::FromStr,
+};
 
 use alloy::{
     consensus::TxEnvelope,
     eips::eip2718::Encodable2718,
-    network::{Ethereum, EthereumSigner, NetworkSigner, TransactionBuilder},
-    providers::{layers::SignerProvider, Provider, ProviderBuilder, RootProvider},
-    rpc::types::eth::{TransactionInput, TransactionRequest},
-    signers::{k256::elliptic_curve::consts::U24, wallet::LocalWallet, Signer},
+    network::{
+        Ethereum,
+        EthereumSigner,
+        NetworkSigner,
+        TransactionBuilder,
+    },
+    providers::{
+        layers::SignerProvider,
+        Provider,
+        ProviderBuilder,
+        RootProvider,
+    },
+    rpc::types::eth::{
+        TransactionInput,
+        TransactionRequest,
+    },
+    signers::{
+        k256::elliptic_curve::consts::U24,
+        wallet::LocalWallet,
+        Signer,
+    },
     transports::http::Http,
 };
-use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256};
+use alloy_primitives::{
+    Address,
+    Bytes,
+    FixedBytes,
+    B256,
+    U16,
+    U160,
+    U256,
+};
 use alloy_rlp::BufMut;
-use alloy_sol_types::{sol, SolCall, SolStruct, SolValue};
-use anyhow::{bail, Context};
+use alloy_sol_types::{
+    sol,
+    SolCall,
+    SolStruct,
+    SolValue,
+};
+use anyhow::{
+    bail,
+    Context,
+};
 use reqwest;
 
 use crate::suave_network::{
-    ConfidentialComputeRecord, ConfidentialComputeRequest, SuaveNetwork, SuaveSigner,
+    ConfidentialComputeRecord,
+    ConfidentialComputeRequest,
+    SuaveNetwork,
+    SuaveSigner,
 };
 
 sol! {
@@ -273,22 +312,21 @@ impl AmmAuctionSuapp {
 
     pub async fn new_bid(
         &self,
-        sender: Address,
-        bidder: Address,
-        bidder_signer: EthereumSigner,
-        bidder_signer_wallet: LocalWallet,
+        funded_suave_sender: Address,
+        bidder: LocalWallet,
         block_number: u128,
         bid_amount: u128,
         in_amount: u128,
         in_token: Address,
         out_token: Address,
+        deposit_contract: Address,
     ) -> anyhow::Result<ConfidentialComputeRequest> {
         // create swap router transaction input
         let swap_input_params = ISwapRouter::ExactInputSingleParams {
             tokenIn: in_token,
             tokenOut: out_token,
             fee: 3000u32,
-            recipient: bidder,
+            recipient: bidder.address(),
             deadline: U256::from(1776038248), // 4/12/2026
             amountIn: U256::from(in_amount),
             amountOutMinimum: U256::from(1),
@@ -297,7 +335,7 @@ impl AmmAuctionSuapp {
 
         // create and sign over the swap transaction
         let mut rlp_encoded_swap_tx = Vec::new();
-        self.build_generic_sepolia_transaction(bidder, self.swap_router_address)
+        self.build_generic_sepolia_transaction(bidder.address(), self.swap_router_address)
             .await
             .context("failed to build generic sepolia transaction")?
             .input(TransactionInput::new(
@@ -307,34 +345,34 @@ impl AmmAuctionSuapp {
                 .abi_encode()
                 .into(),
             ))
-            .build(&bidder_signer)
+            .build(&EthereumSigner::from(bidder.clone()))
             .await
             .context("failed to sign transaction")?
             .encode_2718(&mut rlp_encoded_swap_tx);
 
+        // create and sign over withdraw 712 request
         let my_domain = alloy_sol_types::eip712_domain!(
             name: "AuctionDeposits",
             version: "1",
             chain_id: 11155111u64,
-            verifying_contract: Address::from_str("0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C").unwrap(),
+            verifying_contract: deposit_contract,
         );
 
-        // create EIP712 Bid request to sign over
         let bid_request = withdrawBid {
-            bidder,
+            bidder: bidder.address(),
             blockNumber: U256::from(block_number),
             amount: U256::from(bid_amount),
         };
 
         let bid_signing_hash = bid_request.eip712_signing_hash(&my_domain);
-        let bid_signature = bidder_signer_wallet
+        let bid_signature = bidder
             .sign_hash(&bid_signing_hash)
             .await
             .context("failed to sign bid EIP712 hash")?;
 
         // create bid input
         let bid = IAMMAuctionSuapp::Bid {
-            bidder,
+            bidder: bidder.address(),
             blockNumber: U256::from(block_number),
             payment: U256::from(bid_amount),
             swapTxn: rlp_encoded_swap_tx.into(),
@@ -346,7 +384,7 @@ impl AmmAuctionSuapp {
 
         // create generic transaction request and add function specific data
         let tx = self
-            .build_generic_suave_transaction(sender)
+            .build_generic_suave_transaction(funded_suave_sender)
             .await
             .context("failed to build generic suave transaction")?
             .input(
