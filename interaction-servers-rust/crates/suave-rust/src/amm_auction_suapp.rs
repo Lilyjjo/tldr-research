@@ -113,40 +113,42 @@ pub struct AmmAuctionSuapp {
     execution_node: Address,
     suave_provider: RootProvider<Http<reqwest::Client>>,
     sepolia_provider: RootProvider<Http<reqwest::Client>>,
-    suave_signer_providers: HashMap<
-        Address,
-        SignerProvider<
-            Http<reqwest::Client>,
-            RootProvider<Http<reqwest::Client>, SuaveNetwork>,
-            SuaveSigner,
-            SuaveNetwork,
-        >,
+    suave_signer: SignerProvider<
+        Http<reqwest::Client>,
+        RootProvider<Http<reqwest::Client>, SuaveNetwork>,
+        SuaveSigner,
+        SuaveNetwork,
     >,
-    sepolia_signer_providers: HashMap<
-        Address,
-        SignerProvider<
-            Http<reqwest::Client>,
-            RootProvider<Http<reqwest::Client>, Ethereum>,
-            EthereumSigner,
-            Ethereum,
-        >,
-    >,
+    sepolia_wallets: HashMap<String, LocalWallet>,
 }
 
 // send(to contract (on network), from entity)
 // contracts (with networks), sent to functions from entities
 impl AmmAuctionSuapp {
     pub async fn new(
-        auction_suapp_address: Address,
-        pool_address: Address,
-        token_0_address: Address,
-        token_1_address: Address,
-        swap_router_address: Address,
-        execution_node: Address,
+        auction_suapp_address: String,
+        pool_address: String,
+        token_0_address: String,
+        token_1_address: String,
+        swap_router_address: String,
+        execution_node: String,
         suave_rpc: String,
         sepolia_rpc: String,
-        initial_signers_pks: &Vec<String>,
+        sepolia_eoas: &HashMap<String, (String, String)>,
     ) -> anyhow::Result<Self> {
+        // build strings
+        let auction_suapp_address = Address::from_str(&auction_suapp_address)
+            .context("failed to parse suapp amm address")?;
+        let pool_address = Address::from_str(&pool_address).context("failed to pool_address")?;
+        let token_0_address =
+            Address::from_str(&token_0_address).context("failed to parse token_0_address")?;
+        let token_1_address =
+            Address::from_str(&token_1_address).context("failed to parse token_1_address")?;
+        let swap_router_address = Address::from_str(&swap_router_address)
+            .context("failed to parse swap_router_address")?;
+        let execution_node =
+            Address::from_str(&execution_node).context("failed to parse execution_node")?;
+
         // build sepolia provider
         let sepolia_rpc_url =
             url::Url::parse(&sepolia_rpc).context("failed to build url from suave rpc string")?;
@@ -154,38 +156,40 @@ impl AmmAuctionSuapp {
             .on_reqwest_http(sepolia_rpc_url.clone())
             .context("failed to build provider from given rpc url")?;
 
-        // build suave providers
+        // build suave eth provider (doesn't do CCRs but can do non CCR queries, todo if this is
+        // needed)
         let suave_rpc_url =
             url::Url::parse(&suave_rpc).context("failed to build url from suave rpc string")?;
         let suave_provider = ProviderBuilder::new()
             .on_reqwest_http(suave_rpc_url.clone())
             .context("failed to build provider from given rpc url")?;
 
-        // build CCR signers
-        let mut suave_signer_providers = HashMap::new();
-        for signer_pk in initial_signers_pks {
-            let wallet: LocalWallet = signer_pk
-                .parse()
-                .context("failed to parse pk from input string")?;
-            let pub_key_cache = wallet.address();
-            let signer_provider = ProviderBuilder::<_, SuaveNetwork>::default()
-                .signer(SuaveSigner::from(wallet))
-                .on_reqwest_http(suave_rpc_url.clone())
-                .context("failed to build signer wallet")?;
-            suave_signer_providers.insert(pub_key_cache, signer_provider);
-        }
+        // build suave signer provider
+        let suave_wallet: LocalWallet = sepolia_eoas
+            .get("funded_suave")
+            .context("missing funded_suave eoa in sepolia_eoas")?
+            .1
+            .parse()
+            .context("failed to parse pk for funded_suave")?;
+        let suave_signer = ProviderBuilder::<_, SuaveNetwork>::default()
+            .signer(SuaveSigner::from(suave_wallet))
+            .on_reqwest_http(suave_rpc_url.clone())
+            .context("failed to build suave_signer provider")?;
 
-        let mut sepolia_signer_providers = HashMap::new();
-        for signer_pk in initial_signers_pks {
-            let wallet: LocalWallet = signer_pk
+        // build other eoa wallets
+        let mut sepolia_wallets = HashMap::new();
+        for sepolia_eoa in sepolia_eoas {
+            let wallet: LocalWallet = sepolia_eoa
+                .1
+                .1
                 .parse()
-                .context("failed to parse pk from input string")?;
-            let pub_key_cache = wallet.address();
-            let signer_provider = ProviderBuilder::<_, Ethereum>::default()
-                .signer(EthereumSigner::from(wallet))
-                .on_reqwest_http(suave_rpc_url.clone())
-                .context("failed to build signer wallet")?;
-            sepolia_signer_providers.insert(pub_key_cache, signer_provider);
+                .context("failed to parse pk for sepolia wallet")?;
+            // maybe idk
+            // let signer_provider = ProviderBuilder::<_, SuaveNetwork>::default()
+            // .signer(SuaveSigner::from(wallet))
+            // .on_reqwest_http(suave_rpc_url.clone())
+            // .context("failed to build signer wallet")?;
+            sepolia_wallets.insert(sepolia_eoa.0.to_string(), wallet);
         }
         Ok(AmmAuctionSuapp {
             auction_suapp_address,
@@ -196,31 +200,31 @@ impl AmmAuctionSuapp {
             execution_node,
             suave_provider,
             sepolia_provider,
-            suave_signer_providers,
-            sepolia_signer_providers,
+            suave_signer,
+            sepolia_wallets,
         })
     }
 
     pub async fn send_ccr(
         &self,
-        signer: Address,
         confidential_compute_request: ConfidentialComputeRequest,
     ) -> anyhow::Result<()> {
         // TODO add better error handling, maybe even skipping getting response?
-        if let Some(provider) = self.suave_signer_providers.get(&signer) {
-            println!("sending ccr");
-            let result = provider
-                .send_transaction(confidential_compute_request)
-                .await
-                .context("failed to send ccr")?;
-            let tx_hash = B256::from_slice(&result.tx_hash().to_vec());
-            println!("retrieving response");
-            let tx_response = provider.get_transaction_by_hash(tx_hash).await.unwrap();
-            println!("{:#?}", tx_response);
-            Ok(())
-        } else {
-            bail!("provider for address not created")
-        }
+        println!("sending ccr");
+        let result = self
+            .suave_signer
+            .send_transaction(confidential_compute_request)
+            .await
+            .context("failed to send ccr")?;
+        let tx_hash = B256::from_slice(&result.tx_hash().to_vec());
+        println!("retrieving response");
+        let tx_response = self
+            .suave_signer
+            .get_transaction_by_hash(tx_hash)
+            .await
+            .unwrap();
+        println!("{:#?}", tx_response);
+        Ok(())
     }
 
     pub async fn build_generic_suave_transaction(
