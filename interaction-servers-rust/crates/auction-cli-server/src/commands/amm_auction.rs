@@ -1,3 +1,5 @@
+use std::io::Bytes;
+
 use color_eyre::{
     eyre,
     eyre::{
@@ -34,6 +36,11 @@ pub(crate) async fn send_swap_tx(
     amm_auction: &AmmAuctionSuapp,
 ) -> eyre::Result<()> {
     // TODO write
-    println!("swap cli logic");
+    println!("new pending transaction logic");
+    amm_auction
+        .new_pending_txn(&args.swapper, vec![0u8; 32].into())
+        .await
+        .wrap_err("failed to send swap tx")?;
+    println!("fin");
     Ok(())
 }

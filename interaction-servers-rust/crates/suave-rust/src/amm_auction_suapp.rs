@@ -45,10 +45,15 @@ use alloy_sol_types::{
     SolStruct,
     SolValue,
 };
-use anyhow::{
-    bail,
-    Context,
+use color_eyre::{
+    eyre,
+    eyre::{
+        ensure,
+        eyre,
+        Context,
+    },
 };
+use eyre::ContextCompat;
 use reqwest;
 
 use crate::suave_network::{
@@ -135,34 +140,34 @@ impl AmmAuctionSuapp {
         suave_rpc: String,
         sepolia_rpc: String,
         sepolia_eoas: &HashMap<String, (String, String)>,
-    ) -> anyhow::Result<Self> {
+    ) -> eyre::Result<Self> {
         // build strings
         let auction_suapp_address = Address::from_str(&auction_suapp_address)
-            .context("failed to parse suapp amm address")?;
-        let pool_address = Address::from_str(&pool_address).context("failed to pool_address")?;
+            .wrap_err("failed to parse suapp amm address")?;
+        let pool_address = Address::from_str(&pool_address).wrap_err("failed to pool_address")?;
         let token_0_address =
-            Address::from_str(&token_0_address).context("failed to parse token_0_address")?;
+            Address::from_str(&token_0_address).wrap_err("failed to parse token_0_address")?;
         let token_1_address =
-            Address::from_str(&token_1_address).context("failed to parse token_1_address")?;
+            Address::from_str(&token_1_address).wrap_err("failed to parse token_1_address")?;
         let swap_router_address = Address::from_str(&swap_router_address)
-            .context("failed to parse swap_router_address")?;
+            .wrap_err("failed to parse swap_router_address")?;
         let execution_node =
-            Address::from_str(&execution_node).context("failed to parse execution_node")?;
+            Address::from_str(&execution_node).wrap_err("failed to parse execution_node")?;
 
         // build sepolia provider
         let sepolia_rpc_url =
-            url::Url::parse(&sepolia_rpc).context("failed to build url from suave rpc string")?;
+            url::Url::parse(&sepolia_rpc).wrap_err("failed to build url from suave rpc string")?;
         let sepolia_provider = ProviderBuilder::new()
             .on_reqwest_http(sepolia_rpc_url.clone())
-            .context("failed to build provider from given rpc url")?;
+            .wrap_err("failed to build provider from given rpc url")?;
 
         // build suave eth provider (doesn't do CCRs but can do non CCR queries, todo if this is
         // needed)
         let suave_rpc_url =
-            url::Url::parse(&suave_rpc).context("failed to build url from suave rpc string")?;
+            url::Url::parse(&suave_rpc).wrap_err("failed to build url from suave rpc string")?;
         let suave_provider = ProviderBuilder::new()
             .on_reqwest_http(suave_rpc_url.clone())
-            .context("failed to build provider from given rpc url")?;
+            .wrap_err("failed to build provider from given rpc url")?;
 
         // build suave signer provider
         let suave_wallet: LocalWallet = sepolia_eoas
@@ -170,11 +175,11 @@ impl AmmAuctionSuapp {
             .context("missing funded_suave eoa in sepolia_eoas")?
             .1
             .parse()
-            .context("failed to parse pk for funded_suave")?;
+            .wrap_err("failed to parse pk for funded_suave")?;
         let suave_signer = ProviderBuilder::<_, SuaveNetwork>::default()
             .signer(SuaveSigner::from(suave_wallet))
             .on_reqwest_http(suave_rpc_url.clone())
-            .context("failed to build suave_signer provider")?;
+            .wrap_err("failed to build suave_signer provider")?;
 
         // build other eoa wallets
         let mut sepolia_wallets = HashMap::new();
@@ -183,7 +188,7 @@ impl AmmAuctionSuapp {
                 .1
                 .1
                 .parse()
-                .context("failed to parse pk for sepolia wallet")?;
+                .wrap_err("failed to parse pk for sepolia wallet")?;
             // maybe idk
             // let signer_provider = ProviderBuilder::<_, SuaveNetwork>::default()
             // .signer(SuaveSigner::from(wallet))
@@ -208,7 +213,7 @@ impl AmmAuctionSuapp {
     pub async fn send_ccr(
         &self,
         confidential_compute_request: ConfidentialComputeRequest,
-    ) -> anyhow::Result<()> {
+    ) -> eyre::Result<()> {
         // TODO add better error handling, maybe even skipping getting response?
         println!("sending ccr");
         let result = self
@@ -230,7 +235,7 @@ impl AmmAuctionSuapp {
     pub async fn build_generic_suave_transaction(
         &self,
         signer: Address,
-    ) -> anyhow::Result<TransactionRequest> {
+    ) -> eyre::Result<TransactionRequest> {
         // gather network dependent variables
         let nonce = self
             .suave_provider
@@ -266,7 +271,7 @@ impl AmmAuctionSuapp {
         &self,
         signer: Address,
         target_contract: Address,
-    ) -> anyhow::Result<TransactionRequest> {
+    ) -> eyre::Result<TransactionRequest> {
         // gather network dependent variables
         let nonce = self
             .sepolia_provider
@@ -298,20 +303,23 @@ impl AmmAuctionSuapp {
         Ok(tx)
     }
 
-    pub async fn new_pending_txn(
-        &self,
-        signer: Address,
-        signed_txn: Bytes,
-    ) -> anyhow::Result<ConfidentialComputeRequest> {
+    pub async fn new_pending_txn(&self, swapper: &String, signed_txn: Bytes) -> eyre::Result<()> {
+        let swapper = self
+            .sepolia_wallets
+            .get(swapper)
+            .expect("swapper's wallet not initialized");
         // create generic transaction request and add function specific data
         let tx = self
-            .build_generic_suave_transaction(signer)
+            .build_generic_suave_transaction(swapper.address())
             .await
             .context("failed to build generic transaction")?
             .input(Bytes::from(IAMMAuctionSuapp::newPendingTxnCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
-        Ok(ConfidentialComputeRequest::new(cc_record, signed_txn))
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, signed_txn))
+            .await
+            .wrap_err("failed to send swap CCR")?;
+        Ok(())
     }
 
     pub async fn new_bid(
@@ -324,7 +332,7 @@ impl AmmAuctionSuapp {
         in_token: Address,
         out_token: Address,
         deposit_contract: Address,
-    ) -> anyhow::Result<ConfidentialComputeRequest> {
+    ) -> eyre::Result<ConfidentialComputeRequest> {
         // create swap router transaction input
         let swap_input_params = ISwapRouter::ExactInputSingleParams {
             tokenIn: in_token,
@@ -341,7 +349,7 @@ impl AmmAuctionSuapp {
         let mut rlp_encoded_swap_tx = Vec::new();
         self.build_generic_sepolia_transaction(bidder.address(), self.swap_router_address)
             .await
-            .context("failed to build generic sepolia transaction")?
+            .wrap_err("failed to build generic sepolia transaction")?
             .input(TransactionInput::new(
                 ISwapRouter::exactInputSingleCall {
                     params: swap_input_params,
@@ -351,7 +359,7 @@ impl AmmAuctionSuapp {
             ))
             .build(&EthereumSigner::from(bidder.clone()))
             .await
-            .context("failed to sign transaction")?
+            .wrap_err("failed to sign transaction")?
             .encode_2718(&mut rlp_encoded_swap_tx);
 
         // create and sign over withdraw 712 request
@@ -372,7 +380,7 @@ impl AmmAuctionSuapp {
         let bid_signature = bidder
             .sign_hash(&bid_signing_hash)
             .await
-            .context("failed to sign bid EIP712 hash")?;
+            .wrap_err("failed to sign bid EIP712 hash")?;
 
         // create bid input
         let bid = IAMMAuctionSuapp::Bid {
@@ -390,7 +398,7 @@ impl AmmAuctionSuapp {
         let tx = self
             .build_generic_suave_transaction(funded_suave_sender)
             .await
-            .context("failed to build generic suave transaction")?
+            .wrap_err("failed to build generic suave transaction")?
             .input(
                 Bytes::from(
                     IAMMAuctionSuapp::newBidCall {

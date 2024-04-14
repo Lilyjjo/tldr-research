@@ -46,6 +46,7 @@ async fn async_main() -> eyre::Result<()> {
     } else {
         "rigil.env"
     };
+    println!("env file in use: {}", env_file);
     dotenv::from_filename(env_file).ok();
 
     // collect CLI EOA entities
