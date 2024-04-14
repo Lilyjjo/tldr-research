@@ -111,6 +111,7 @@ sol! {
 
 pub struct AmmAuctionSuapp {
     auction_suapp_address: Address,
+    deposit_contract_address: Address,
     pool_address: Address,
     token_0_address: Address,
     token_1_address: Address,
@@ -132,6 +133,7 @@ pub struct AmmAuctionSuapp {
 impl AmmAuctionSuapp {
     pub async fn new(
         auction_suapp_address: String,
+        deposit_contract_address: String,
         pool_address: String,
         token_0_address: String,
         token_1_address: String,
@@ -144,6 +146,8 @@ impl AmmAuctionSuapp {
         // build strings
         let auction_suapp_address = Address::from_str(&auction_suapp_address)
             .wrap_err("failed to parse suapp amm address")?;
+        let deposit_contract_address = Address::from_str(&deposit_contract_address)
+            .wrap_err("failed to parse deposit contract address")?;
         let pool_address = Address::from_str(&pool_address).wrap_err("failed to pool_address")?;
         let token_0_address =
             Address::from_str(&token_0_address).wrap_err("failed to parse token_0_address")?;
@@ -198,6 +202,7 @@ impl AmmAuctionSuapp {
         }
         Ok(AmmAuctionSuapp {
             auction_suapp_address,
+            deposit_contract_address,
             pool_address,
             token_0_address,
             token_1_address,
@@ -324,19 +329,32 @@ impl AmmAuctionSuapp {
 
     pub async fn new_bid(
         &self,
-        funded_suave_sender: Address,
-        bidder: LocalWallet,
+        bidder: &String,
         block_number: u128,
         bid_amount: u128,
         in_amount: u128,
-        in_token: Address,
-        out_token: Address,
-        deposit_contract: Address,
-    ) -> eyre::Result<ConfidentialComputeRequest> {
+        token_0_in: bool,
+    ) -> eyre::Result<()> {
+        // grab bidder and suave signer
+        let bidder = self
+            .sepolia_wallets
+            .get(bidder)
+            .expect("bidders's wallet not initialized");
+        let suave_signer = self
+            .sepolia_wallets
+            .get("funded_suave")
+            .expect("funded suave's wallet not initialized");
+
         // create swap router transaction input
+        let (token_in, token_out) = if token_0_in {
+            (self.token_0_address, self.token_1_address)
+        } else {
+            (self.token_1_address, self.token_0_address)
+        };
+
         let swap_input_params = ISwapRouter::ExactInputSingleParams {
-            tokenIn: in_token,
-            tokenOut: out_token,
+            tokenIn: token_in,
+            tokenOut: token_out,
             fee: 3000u32,
             recipient: bidder.address(),
             deadline: U256::from(1776038248), // 4/12/2026
@@ -367,7 +385,7 @@ impl AmmAuctionSuapp {
             name: "AuctionDeposits",
             version: "1",
             chain_id: 11155111u64,
-            verifying_contract: deposit_contract,
+            verifying_contract: self.deposit_contract_address,
         );
 
         let bid_request = withdrawBid {
@@ -396,7 +414,7 @@ impl AmmAuctionSuapp {
 
         // create generic transaction request and add function specific data
         let tx = self
-            .build_generic_suave_transaction(funded_suave_sender)
+            .build_generic_suave_transaction(suave_signer.address())
             .await
             .wrap_err("failed to build generic suave transaction")?
             .input(
@@ -410,7 +428,10 @@ impl AmmAuctionSuapp {
             );
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
-        Ok(ConfidentialComputeRequest::new(cc_record, bid.into()))
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, bid.into()))
+            .await
+            .wrap_err("failed to send bid CCR")?;
+        Ok(())
     }
 }
 

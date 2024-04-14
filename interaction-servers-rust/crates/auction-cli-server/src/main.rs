@@ -101,6 +101,7 @@ async fn async_main() -> eyre::Result<()> {
 
     let mut amm_auction_wrapper = AmmAuctionSuapp::new(
         std::env::var("SUAPP_AMM").wrap_err("SUAPP_AMM env var not set")?,
+        std::env::var("AUCTION_DEPOSITS").wrap_err("AUCTION_DEPOSITS env var not set")?,
         std::env::var("POOL").wrap_err("POOL env var not set")?,
         std::env::var("TOKEN_0").wrap_err("TOKEN_0 env var not set")?,
         std::env::var("TOKEN_1").wrap_err("TOKEN_1 env var not set")?,

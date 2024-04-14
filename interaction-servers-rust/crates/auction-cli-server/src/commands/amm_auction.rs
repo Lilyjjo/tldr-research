@@ -27,7 +27,18 @@ pub(crate) async fn trigger_auction(
 
 pub(crate) async fn send_bid(args: &BidArgs, amm_auction: &AmmAuctionSuapp) -> eyre::Result<()> {
     // TODO write
-    println!("bid cli logic");
+    println!("new bid logic");
+    amm_auction
+        .new_bid(
+            &args.bidder,
+            args.target_block,
+            args.bid_amount,
+            args.swap_amount,
+            args.token_0_in,
+        )
+        .await
+        .wrap_err("failed to send bid ccr")?;
+    println!("fin");
     Ok(())
 }
 
@@ -40,7 +51,7 @@ pub(crate) async fn send_swap_tx(
     amm_auction
         .new_pending_txn(&args.swapper, vec![0u8; 32].into())
         .await
-        .wrap_err("failed to send swap tx")?;
+        .wrap_err("failed to send swap tx ccr")?;
     println!("fin");
     Ok(())
 }
