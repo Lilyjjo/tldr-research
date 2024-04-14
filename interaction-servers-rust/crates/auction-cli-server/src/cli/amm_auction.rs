@@ -12,6 +12,7 @@ pub enum Command {
     Auction(AuctionArgs),
     Bid(BidArgs),
     SwapTx(SwapArgs),
+    InitializeSuapp(InitializeSuappArgs),
 }
 
 #[derive(Args, Debug)]
@@ -43,3 +44,6 @@ pub struct SwapArgs {
     #[clap(long, default_value = "true")]
     pub(crate) token_0_in: bool,
 }
+
+#[derive(Args, Debug)]
+pub struct InitializeSuappArgs {}

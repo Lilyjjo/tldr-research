@@ -37,8 +37,12 @@ use alloy_primitives::{
     U16,
     U160,
     U256,
+    U64,
 };
-use alloy_rlp::BufMut;
+use alloy_rlp::{
+    BufMut,
+    Encodable,
+};
 use alloy_sol_types::{
     sol,
     SolCall,
@@ -126,6 +130,8 @@ pub struct AmmAuctionSuapp {
         SuaveNetwork,
     >,
     sepolia_wallets: HashMap<String, LocalWallet>,
+    sepolia_rpc: String,
+    last_used_suave_nonce: u128,
 }
 
 // send(to contract (on network), from entity)
@@ -212,6 +218,8 @@ impl AmmAuctionSuapp {
             sepolia_provider,
             suave_signer,
             sepolia_wallets,
+            sepolia_rpc,
+            last_used_suave_nonce: 0,
         })
     }
 
@@ -238,15 +246,21 @@ impl AmmAuctionSuapp {
     }
 
     pub async fn build_generic_suave_transaction(
-        &self,
+        &mut self,
         signer: Address,
     ) -> eyre::Result<TransactionRequest> {
         // gather network dependent variables
-        let nonce = self
+        let mut nonce = self
             .suave_provider
             .get_transaction_count(signer, None)
             .await
             .context("failed to get transaction count for address")?;
+
+        // nonce management for sending CCRs without waiting for others to complete
+        if self.last_used_suave_nonce >= nonce.to::<u128>() {
+            nonce = U64::from(self.last_used_suave_nonce + 1);
+        }
+        self.last_used_suave_nonce = nonce.to::<u128>();
 
         let gas_price = self
             .suave_provider
@@ -308,14 +322,22 @@ impl AmmAuctionSuapp {
         Ok(tx)
     }
 
-    pub async fn new_pending_txn(&self, swapper: &String, signed_txn: Bytes) -> eyre::Result<()> {
+    pub async fn new_pending_txn(
+        &mut self,
+        swapper: &String,
+        signed_txn: Bytes,
+    ) -> eyre::Result<()> {
         let swapper = self
             .sepolia_wallets
             .get(swapper)
             .expect("swapper's wallet not initialized");
+        let suave_signer = self
+            .sepolia_wallets
+            .get("funded_suave")
+            .expect("funded suave's wallet not initialized");
         // create generic transaction request and add function specific data
         let tx = self
-            .build_generic_suave_transaction(swapper.address())
+            .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
             .input(Bytes::from(IAMMAuctionSuapp::newPendingTxnCall::SELECTOR).into());
@@ -328,7 +350,7 @@ impl AmmAuctionSuapp {
     }
 
     pub async fn new_bid(
-        &self,
+        &mut self,
         bidder: &String,
         block_number: u128,
         bid_amount: u128,
@@ -431,6 +453,83 @@ impl AmmAuctionSuapp {
         self.send_ccr(ConfidentialComputeRequest::new(cc_record, bid.into()))
             .await
             .wrap_err("failed to send bid CCR")?;
+        Ok(())
+    }
+
+    pub async fn initialize_l1_block(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .sepolia_wallets
+            .get("funded_suave")
+            .expect("funded suave's wallet not initialized");
+
+        // create generic transaction request and add function specific data
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAMMAuctionSuapp::initLastL1BlockCall::SELECTOR).into());
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, Bytes::new()))
+            .await
+            .wrap_err("failed to send L1 block init CCR")?;
+        Ok(())
+    }
+
+    pub async fn set_sepolia_url(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .sepolia_wallets
+            .get("funded_suave")
+            .expect("funded suave's wallet not initialized");
+
+        let mut confidential_inputs = Vec::new();
+        self.sepolia_rpc.encode(&mut confidential_inputs);
+
+        // create generic transaction request and add function specific data
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAMMAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        self.send_ccr(ConfidentialComputeRequest::new(
+            cc_record,
+            confidential_inputs.into(),
+        ))
+        .await
+        .wrap_err("failed to send sepolia init CCR")?;
+        Ok(())
+    }
+
+    pub async fn set_signing_key(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .sepolia_wallets
+            .get("funded_suave")
+            .expect("funded suave's wallet not initialized");
+
+        let suave_signing_key = self
+            .sepolia_wallets
+            .get("suapp_signing_key")
+            .expect("suapp's signing wallet not initialized")
+            .signer()
+            .to_bytes()
+            .abi_encode();
+
+        // create generic transaction request and add function specific data
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAMMAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        self.send_ccr(ConfidentialComputeRequest::new(
+            cc_record,
+            suave_signing_key.into(),
+        ))
+        .await
+        .wrap_err("failed to send init signing key CCR")?;
         Ok(())
     }
 }

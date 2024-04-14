@@ -25,18 +25,23 @@ use crate::cli::{
 /// # Panics
 ///
 /// * If the command is not recognized
-pub async fn run(cli: Cli, amm_auction: &AmmAuctionSuapp) -> eyre::Result<()> {
+pub async fn run(cli: Cli, mut amm_auction: AmmAuctionSuapp) -> eyre::Result<()> {
     if let Some(command) = cli.command {
         match command {
             Command::AmmAuction {
                 command,
             } => match command {
                 AmmAuctionCommand::Auction(args) => {
-                    amm_auction::trigger_auction(&args, amm_auction).await?
+                    amm_auction::trigger_auction(&args, &mut amm_auction).await?
                 }
-                AmmAuctionCommand::Bid(args) => amm_auction::send_bid(&args, amm_auction).await?,
+                AmmAuctionCommand::Bid(args) => {
+                    amm_auction::send_bid(&args, &mut amm_auction).await?
+                }
                 AmmAuctionCommand::SwapTx(args) => {
-                    amm_auction::send_swap_tx(&args, amm_auction).await?
+                    amm_auction::send_swap_tx(&args, &mut amm_auction).await?
+                }
+                AmmAuctionCommand::InitializeSuapp(args) => {
+                    amm_auction::initialize_suapp(&args, &mut amm_auction).await?
                 }
             },
         }

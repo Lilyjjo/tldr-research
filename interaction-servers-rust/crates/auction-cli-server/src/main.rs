@@ -99,7 +99,7 @@ async fn async_main() -> eyre::Result<()> {
 
     // build AmmAuction App logic
 
-    let mut amm_auction_wrapper = AmmAuctionSuapp::new(
+    let amm_auction_wrapper = AmmAuctionSuapp::new(
         std::env::var("SUAPP_AMM").wrap_err("SUAPP_AMM env var not set")?,
         std::env::var("AUCTION_DEPOSITS").wrap_err("AUCTION_DEPOSITS env var not set")?,
         std::env::var("POOL").wrap_err("POOL env var not set")?,
@@ -115,5 +115,5 @@ async fn async_main() -> eyre::Result<()> {
     .expect("failed to build amm auction wrapper"); // todo port amm to eyre instead of anyhow
 
     let args = Cli::get_args()?;
-    commands::run(args, &amm_auction_wrapper).await
+    commands::run(args, amm_auction_wrapper).await
 }
