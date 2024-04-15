@@ -508,25 +508,39 @@ impl AmmAuctionSuapp {
             .get("funded_suave")
             .expect("funded suave's wallet not initialized");
 
-        let suave_signing_key = self
+        let suave_stored_wallet = self
             .sepolia_wallets
             .get("suapp_signing_key")
-            .expect("suapp's signing wallet not initialized")
-            .signer()
-            .to_bytes()
-            .abi_encode();
+            .expect("suapp's signing wallet not initialized");
+        // caching so we can borrow as mutable later
+        let suave_stored_wallet_pk = suave_stored_wallet.signer().to_bytes().abi_encode();
+
+        // get sepolia nonce for the key we're storing in the suapp
+        let nonce = self
+            .sepolia_provider
+            .get_transaction_count(suave_stored_wallet.address(), None)
+            .await
+            .context("failed to get transaction count for suapp stored pk")?;
 
         // create generic transaction request and add function specific data
         let tx = self
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
+            .input(
+                Bytes::from(
+                    IAMMAuctionSuapp::setSigningKeyCall {
+                        keyNonce: U256::from(nonce),
+                    }
+                    .abi_encode(),
+                )
+                .into(),
+            );
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
-            suave_signing_key.into(),
+            suave_stored_wallet_pk.into(),
         ))
         .await
         .wrap_err("failed to send init signing key CCR")?;
