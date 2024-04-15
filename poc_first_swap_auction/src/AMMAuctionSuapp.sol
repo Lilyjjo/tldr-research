@@ -31,7 +31,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     Suave.DataId private _lastBlockProcessedRecord;
 
     /// @dev ChainID for L1
-    uint256 public chainId;
+    uint256 public chainId; // slot 6
     /// @dev Gas needed for auction result txn
     uint256 public gasNeededPostAuctionResults;
     /// @dev Nonce to use for Suapp's signing key
@@ -39,8 +39,10 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     /// @dev Time past last block's time to finish auction and send bundle
     uint256 public auctionDuration;
 
+    uint256 public _lastBlockSeen; // for debugging purposes
+
     string constant tempSepoliaUrl =
-        "https://eth-sepolia.g.alchemy.com/v2/jAxK12NoRIIP6BgWZfFAMQOjDhEgEtSV";
+        "https://eth-sepolia.g.alchemy.com/v2/_APlfb-YDocGcY4wZaY4VZ5rqjpJzxoL";
 
     /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
@@ -110,6 +112,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         targetDepositContract = targetDepositContract_;
         chainId = chainId_;
         gasNeededPostAuctionResults = gasNeededPostAuctionResults_;
+        auctionDuration = 4;
     }
 
     // let users (who aren't in auction) put their swaps into the system for inclusion
@@ -148,6 +151,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     // lets people put new bids into txn
     function newBid(string memory salt) external returns (bytes memory) {
         Bid memory bid = abi.decode(Suave.confidentialInputs(), (Bid));
+
         uint256 lastBlockProcessed = uint256(
             bytes32(
                 Suave.confidentialRetrieve(
@@ -157,10 +161,14 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             )
         );
 
-        string memory httpURL = tempSepoliaUrl;
+        string memory httpURL = string(
+            Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
+        );
+
+        uint256 lastBlockSeen = _getLastL1BlockNumberUint(httpURL);
 
         if (
-            bid.blockNumber <= _getLastL1BlockNumberUint(httpURL) ||
+            bid.blockNumber <= lastBlockSeen ||
             bid.blockNumber == lastBlockProcessed
         ) revert StaleBid();
 
@@ -186,7 +194,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 this.callbackNewBid.selector,
                 bidRecord.id,
                 bid.blockNumber,
-                saltedReturn
+                saltedReturn,
+                lastBlockSeen
             );
     }
 
@@ -194,9 +203,11 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     function callbackNewBid(
         Suave.DataId bidId,
         uint256 blockNum,
-        bytes32 saltedReturn
+        bytes32 saltedReturn,
+        uint256 lastBlockSeen
     ) external {
         _blockBids[blockNum].push(bidId);
+        _lastBlockSeen = lastBlockSeen;
         emit NewBid(saltedReturn, bidId);
     }
 
