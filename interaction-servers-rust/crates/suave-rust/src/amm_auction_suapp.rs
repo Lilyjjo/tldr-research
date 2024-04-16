@@ -482,8 +482,7 @@ impl AmmAuctionSuapp {
             .get("funded_suave")
             .expect("funded suave's wallet not initialized");
 
-        let mut confidential_inputs = Vec::new();
-        self.sepolia_rpc.encode(&mut confidential_inputs);
+        let confidential_inputs = self.sepolia_rpc.abi_encode_packed();
 
         // create generic transaction request and add function specific data
         let tx = self

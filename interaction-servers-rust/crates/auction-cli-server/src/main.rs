@@ -41,7 +41,7 @@ fn run() -> eyre::Result<()> {
 
 async fn async_main() -> eyre::Result<()> {
     // load environment variables
-    let env_file = if cfg!(feature = "local") {
+    let env_file = if !cfg!(feature = "local") {
         "local.env"
     } else {
         "rigil.env"

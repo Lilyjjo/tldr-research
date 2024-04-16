@@ -37,8 +37,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     /// @dev Nonce to use for Suapp's signing key
     uint256 public signingKeyNonce;
     /// @dev Time past last block's time to finish auction and send bundle
-    uint256 public auctionDuration;
-
+    uint256 public auctionDuration; // 9
     uint256 public _lastBlockSeen; // for debugging purposes
 
     string constant tempSepoliaUrl =
@@ -225,7 +224,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             )
         );
 
-        uint256 currentTime = block.timestamp; // TODO what does this return in a CCR?
+        // TODO find more secure way to get current time
+        // TODO write why this is a fundamental issue with design
+        uint256 currentTime = _getCurrentTime();
 
         // check if time to run auction
         if (lastBlockAuctioned >= lastL1Block.number)
@@ -464,6 +465,23 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         );
 
         return signedTxn;
+    }
+
+    function _getCurrentTime() internal returns (uint256) {
+        Suave.HttpRequest memory request;
+        request.method = "GET";
+        request.headers = new string[](1);
+        request.headers[0] = "Content-Type: application/json";
+        request.withFlashbotsSignature = false;
+        request.url = "http://worldtimeapi.org/api/timezone/Etc/UTC";
+
+        bytes memory result = Suave.doHTTPRequest(request);
+
+        JSONParserLib.Item memory outerItem = string(result).parse();
+        JSONParserLib.Item memory item = outerItem.at('"unixtime"');
+        uint256 currentTime = JSONParserLib.parseUint(string(item.value()));
+
+        return currentTime;
     }
 
     function getLastL1BlockNumber(
