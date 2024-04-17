@@ -1,10 +1,36 @@
-use anyhow::Context;
+use std::collections::HashMap;
+
+use alloy_primitives::{
+    Address,
+    Bytes,
+    FixedBytes,
+    B256,
+    U16,
+    U160,
+    U256,
+};
+use color_eyre::eyre::{
+    self,
+    Context,
+    Error,
+};
 use futures_util::{
     stream::StreamExt,
     SinkExt,
 };
 use serde_json::Value;
-use tokio::task::JoinHandle;
+use suave_rust::amm_auction_suapp::{
+    self,
+    AmmAuctionSuapp,
+};
+use tokio::{
+    process::Command,
+    task::JoinHandle,
+    time::{
+        sleep,
+        Duration,
+    },
+};
 use tokio_tungstenite::{
     connect_async,
     tungstenite::protocol::Message,
@@ -19,7 +45,7 @@ pub struct BlockServer {
 }
 
 impl BlockServer {
-    pub async fn new(l1_websocket: String) -> anyhow::Result<Self> {
+    pub async fn new(l1_websocket: String) -> eyre::Result<Self> {
         // Setup the WebSocket server URL
         let url = Url::parse(&l1_websocket).context("failed to parse URL")?;
 
@@ -28,11 +54,14 @@ impl BlockServer {
         })
     }
 
-    pub async fn run_until_stopped(self) -> anyhow::Result<JoinHandle<()>> {
+    pub async fn run_until_stopped(
+        &mut self,
+        amm_auction_suapp: AmmAuctionSuapp,
+    ) -> eyre::Result<JoinHandle<()>> {
         // Connect to the server
-        let (ws_stream, _) = connect_async(self.l1_websocket_url)
+        let (ws_stream, _) = connect_async(self.l1_websocket_url.clone())
             .await
-            .context("failed to connect to L1 websocket")?;
+            .wrap_err("failed to connect to L1 websocket")?;
 
         // Split the stream into a sender and receiver
         let (mut write, mut read) = ws_stream.split();
@@ -46,14 +75,15 @@ impl BlockServer {
         write
             .send(msg)
             .await
-            .context("failed to send subscription method to websocket")?;
+            .wrap_err("failed to send subscription method to websocket")?;
 
         // Spawn a task to handle incoming messages
         let api_task = tokio::spawn(async move {
+            let mut amm_auction_suapp = amm_auction_suapp;
             while let Some(message) = read.next().await {
                 match message {
                     Ok(msg) => match msg {
-                        Message::Text(text) => process_header(text).await,
+                        Message::Text(text) => process_header(&mut amm_auction_suapp, text).await,
                         _ => (),
                     },
                     Err(e) => println!("error receiving message: {:?}", e),
@@ -65,21 +95,16 @@ impl BlockServer {
     }
 }
 
-async fn trigger_auction() {
-    // TODO: redo using Alloy
-    // let mut child = Command::new("forge")
-    // .current_dir("../../../poc_first_swap_auction/")
-    // .arg("script")
-    // .arg("script/Interactions.s.sol:Interactions")
-    // .arg("--sig")
-    // .arg("testCall()")
-    // .spawn()
-    // .expect("Failed to start child process");
-    //
-    // let _result = child.wait().unwrap();
+async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp) {
+    // sleep a few seconds to let auction time pass
+    sleep(Duration::from_secs(2)).await;
+
+    if let Err(e) = amm_auction_suapp.trigger_auction().await {
+        print!("{}", e);
+    }
 }
 
-async fn process_header(text: String) {
+async fn process_header(amm_auction_suapp: &mut AmmAuctionSuapp, text: String) {
     // TODO add better error handling around this
     let v: Value = serde_json::from_str(&text).unwrap();
 
@@ -98,5 +123,5 @@ async fn process_header(text: String) {
     println!("timestamp: {}", timestamp);
     println!("block_number: {}", block_number);
 
-    trigger_auction().await;
+    trigger_auction(amm_auction_suapp).await;
 }

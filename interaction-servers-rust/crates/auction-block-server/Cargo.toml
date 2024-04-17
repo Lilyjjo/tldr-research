@@ -16,3 +16,38 @@ url = "2.2.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 dotenv = "0.15.0"
+
+color-eyre = "0.6"
+clap = {features = ["derive", "env"] }
+
+suave-rust = { path = "../suave-rust" }
+
+alloy = { git = "https://github.com/alloy-rs/alloy", rev = "bfd0fda", features = [
+    "contract",
+    "network",
+    "node-bindings",
+    "providers",
+    "provider-http",
+    "provider-ipc",
+    "provider-ws",
+    "rpc-client",
+    "rpc-client-ipc",
+    "rpc-client-ws",
+    "rpc-types-eth",
+    "rpc-types-trace",
+    "signers",
+    "signer-keystore",
+    "signer-ledger",
+    "signer-mnemonic",
+    "signer-trezor",
+    "signer-wallet",
+    "signer-yubihsm",
+    "transports",
+    "transport-http",
+    "reqwest",
+    "consensus",
+    "eips"
+] }
+alloy-rlp = { version = "0.3.4", features = ["derive"] }
+alloy-primitives = { version = "0.7.0", default-features = false }
+alloy-sol-types = { version = "0.7.0", default-features = false }

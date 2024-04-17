@@ -269,7 +269,7 @@ impl AmmAuctionSuapp {
             .context("failed to get gas price")?
             .wrapping_add(U256::from(10));
 
-        let gas = 0x0f4240; // TODO: figure out what is reasonable, probably should be per function
+        let gas = 0x1f4240; // TODO: figure out what is reasonable, probably should be per function
 
         let chain_id = self
             .suave_provider
@@ -512,7 +512,7 @@ impl AmmAuctionSuapp {
             .get("suapp_signing_key")
             .expect("suapp's signing wallet not initialized");
         // caching so we can borrow as mutable later
-        let suave_stored_wallet_pk = suave_stored_wallet.signer().to_bytes().abi_encode();
+        let suave_stored_wallet_pk = suave_stored_wallet.signer().to_bytes().abi_encode_packed();
 
         // get sepolia nonce for the key we're storing in the suapp
         let nonce = self
@@ -543,6 +543,26 @@ impl AmmAuctionSuapp {
         ))
         .await
         .wrap_err("failed to send init signing key CCR")?;
+        Ok(())
+    }
+
+    pub async fn trigger_auction(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .sepolia_wallets
+            .get("funded_suave")
+            .expect("funded suave's wallet not initialized");
+
+        // create generic transaction request and add function specific data
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAMMAuctionSuapp::runAuctionCall::SELECTOR).into());
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, Bytes::new()))
+            .await
+            .wrap_err("failed to send trigger auction CCR")?;
         Ok(())
     }
 }

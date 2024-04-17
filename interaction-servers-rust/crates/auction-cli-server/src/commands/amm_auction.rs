@@ -18,10 +18,15 @@ use crate::cli::amm_auction::{
 };
 
 pub(crate) async fn trigger_auction(
-    args: &AuctionArgs,
+    _args: &AuctionArgs,
     amm_auction: &mut AmmAuctionSuapp,
 ) -> eyre::Result<()> {
     println!("auction cli logic");
+    amm_auction
+        .trigger_auction()
+        .await
+        .wrap_err("failed to send bid ccr")?;
+    println!("fin");
     Ok(())
 }
 
