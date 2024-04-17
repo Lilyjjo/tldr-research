@@ -61,10 +61,10 @@ contract TestingBase is Script {
 */
 
     address constant SUAPP_AMM_DEPLOYED =
-        0xEEa6ebf438B6B702Dccb7c523B0B8cA53Ea2a64d;
+        0xD22CA6bFf045D214a80919e3e32D98f17CCa01d8;
     address constant AUCTION_DEPOSITS =
-        0x84d3c27172dF56151a49925391E96eBF6Eb5EA2C;
-    address constant AUCTION_GUARD = 0x34f2a29C5F685c920183d3819384CFC7D714E585;
+        0x46e42509A8c3127d466f26EBf6A9646D89DEaB39;
+    address constant AUCTION_GUARD = 0x8Bbd2bC8406cA17F46Db16Be8A7917c84a9C4a2E;
 
     // Uniswap Pool vars
     uint16 constant POOL_FEE = 3000;

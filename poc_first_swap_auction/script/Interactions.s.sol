@@ -50,6 +50,7 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
         AMMAuctionSuapp ammAuctionSuapp = new AMMAuctionSuapp(
             POOL_DEPLOYED,
             AUCTION_DEPOSITS,
+            AUCTION_GUARD,
             chainIdSepolia,
             gasNeededSepoliaPoke
         );

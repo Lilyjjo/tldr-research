@@ -60,6 +60,11 @@ contract AuctionGuard is IAuctionGuard {
         _;
     }
 
+    uint256 public poked;
+    function poke() public {
+        poked++;
+    }
+
     function setAuctioneer(address newAuctioneer) external onlyAuctioneer {
         if (newAuctioneer == address(0)) revert ZeroAddress();
         address oldAuctioneer = auctioneer;

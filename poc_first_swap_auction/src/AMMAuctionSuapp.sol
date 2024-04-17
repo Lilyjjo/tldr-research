@@ -18,6 +18,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     address public targetAMM;
     /// @notice Target L1 deposit contract for AuctionAMM
     address public targetDepositContract;
+    /// @notice Target L1 Auction guard
+    address public targetAuctionGuard;
     /// @notice Contract owner address
     address public owner;
 
@@ -31,17 +33,13 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     Suave.DataId private _lastBlockProcessedRecord;
 
     /// @dev ChainID for L1
-    uint256 public chainId; // slot 6
+    uint256 public chainId; // slot 7
     /// @dev Gas needed for auction result txn
     uint256 public gasNeededPostAuctionResults;
-    /// @dev Nonce to use for Suapp's signing key
-    uint256 public signingKeyNonce;
     /// @dev Time past last block's time to finish auction and send bundle
     uint256 public auctionDuration; // 9
     uint256 public _lastBlockSeen; // for debugging purposes
-
-    string constant tempSepoliaUrl =
-        "https://eth-sepolia.g.alchemy.com/v2/_APlfb-YDocGcY4wZaY4VZ5rqjpJzxoL";
+    uint256 public lastAuctionProcessedL1Block;
 
     /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
@@ -103,15 +101,17 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     constructor(
         address targetAMM_,
         address targetDepositContract_,
+        address targetAuctionGuard_,
         uint256 chainId_,
         uint256 gasNeededPostAuctionResults_
     ) {
         owner = msg.sender;
         targetAMM = targetAMM_;
         targetDepositContract = targetDepositContract_;
+        targetAuctionGuard = targetAuctionGuard_;
         chainId = chainId_;
         gasNeededPostAuctionResults = gasNeededPostAuctionResults_;
-        auctionDuration = 4;
+        auctionDuration = 1;
     }
 
     // let users (who aren't in auction) put their swaps into the system for inclusion
@@ -210,9 +210,16 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         emit NewBid(saltedReturn, bidId);
     }
 
-    function runAuction() external returns (bytes memory) {
+    function runAuction(
+        uint256 signingKeyNonce
+    ) external returns (bytes memory) {
+        // grab stored URL
+        string memory httpURL = string(
+            Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
+        );
+
         // grab last L1 block's info
-        Block memory lastL1Block = getLastL1Block();
+        Block memory lastL1Block = getLastL1Block(httpURL);
 
         // grab last auctioned block
         uint256 lastBlockAuctioned = uint256(
@@ -239,26 +246,33 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         // find auction winner
         (Bid memory winningBid, uint256 secondPrice) = _findAuctionWinner(
             currentBlock,
-            lastL1Block
+            lastL1Block,
+            signingKeyNonce
         );
 
         // construct bundle
         Bundle.BundleObj memory bundle;
         bundle.blockNumber = uint64(currentBlock);
+        bundle.minTimestamp = 0;
+        bundle.maxTimestamp = 0;
         uint256 nonBidTxnsCount = _nonBidTxns.length - nextTxnIndexToInclude;
-        bundle.txns = new bytes[](2 + nonBidTxnsCount);
-        bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
+        require(nonBidTxnsCount == 0); // TODO remove once done coding
+        bundle.txns = new bytes[](1 + nonBidTxnsCount);
+        //bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
+        bundle.revertingTxnsHash = new bytes32[](1);
 
         // construct payment transaction
         bytes memory signedPaymentTxn = _createPostAuctionTransaction(
             winningBid,
             lastL1Block,
-            secondPrice == 0 ? false : true
+            secondPrice == 0 ? false : true,
+            signingKeyNonce
         );
 
         // add payment and bid transactions to bundle
         bundle.txns[0] = signedPaymentTxn;
-        bundle.txns[1] = winningBid.swapTxn;
+        //bundle.txns[1] = winningBid.swapTxn;
+        bundle.revertingTxnsHash[0] = keccak256(signedPaymentTxn);
 
         // add non-bid transactions
         uint256 includedTransactionCount = 0;
@@ -298,21 +312,25 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             abi.encodeWithSelector(
                 this.callbackRunAuction.selector,
                 nextTxnIndexToInclude + includedTransactionCount,
-                currentTime
+                currentTime,
+                lastL1Block
             );
     }
 
     function callbackRunAuction(
         uint256 nextTxnIndexToInclude_,
-        uint256 grabbedTime_
+        uint256 grabbedTime_,
+        uint256 lastAuctionProcessedL1Block_
     ) external {
         nextTxnIndexToInclude = nextTxnIndexToInclude_;
         grabbedTime = grabbedTime_;
+        lastAuctionProcessedL1Block = lastAuctionProcessedL1Block_;
     }
 
     function _findAuctionWinner(
         uint256 blockNum,
-        Block memory blockData
+        Block memory blockData,
+        uint256 signingKeyNonce
     ) internal returns (Bid memory, uint256) {
         // filter through bids for last auction
         Suave.DataId[] storage bids = _blockBids[blockNum];
@@ -327,7 +345,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 (Bid)
             );
             // check if bid passes simulation checks, if so, consider as valid bid
-            bool passed = _simulateBid(bid, blockData);
+            bool passed = _simulateBid(bid, blockData, signingKeyNonce);
             if (passed) {
                 if (bid.payment > bestPrice) {
                     secondPrice = bestPrice;
@@ -348,7 +366,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
 
     function _simulateBid(
         Bid memory bid,
-        Block memory blockData
+        Block memory blockData,
+        uint256 signingKeyNonce
     ) internal returns (bool) {
         // check that bidder has enough funds to cover
         bytes memory depositResult = Suave.ethcall(
@@ -368,7 +387,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         bytes memory paymentTxn = _createPostAuctionTransaction(
             bid,
             blockData,
-            true
+            true,
+            signingKeyNonce
         );
         Suave.SimulateTransactionResult memory simRes = Suave
             .simulateTransaction(sessionId, paymentTxn);
@@ -422,9 +442,11 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     function _createPostAuctionTransaction(
         Bid memory bid,
         Block memory blockData,
-        bool auctionHasWinner
+        bool auctionHasWinner,
+        uint256 signingKeyNonce
     ) internal returns (bytes memory) {
         // create tx to sign with private key
+        /*
         bytes memory targetCall = abi.encodeWithSignature(
             "postAuctionResults(address,uint256,uint256,bool,uint8,bytes32,bytes32)",
             bid.bidder,
@@ -435,10 +457,12 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             bid.r,
             bid.s
         );
+        */
+        bytes memory targetCall = abi.encodeWithSignature("poke()");
 
         // create transaction
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
-            to: targetAMM,
+            to: targetAuctionGuard,
             gas: gasNeededPostAuctionResults,
             gasPrice: (blockData.baseFeePerGas * 120000) / 100000, // inflate for possible block growth
             value: 0,
@@ -513,9 +537,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         return JSONParserLib.parseUintFromHex(getLastL1BlockNumber(httpURL));
     }
 
-    function getLastL1Block() public returns (Block memory blockData) {
-        string memory httpURL = tempSepoliaUrl;
-
+    function getLastL1Block(
+        string memory httpURL
+    ) public returns (Block memory blockData) {
         string memory blockNumber = getLastL1BlockNumber(httpURL);
 
         bytes memory body = abi.encodePacked(
@@ -571,9 +595,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
      * @notice Sets the signing key in Suave's confidential storage
      * @return bytes Encoded data for updating the key callback
      */
-    function setSigningKey(
-        uint256 keyNonce
-    ) external onlyOwner returns (bytes memory) {
+    function setSigningKey() external onlyOwner returns (bytes memory) {
         bytes memory keyData = Suave.confidentialInputs();
 
         // allowedPeekers: which contracts can read the record (only this contract)
@@ -592,11 +614,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         Suave.confidentialStore(bid.id, KEY_PRIVATE_KEY, keyData);
 
         return
-            abi.encodeWithSelector(
-                this.callbackSetSigningKey.selector,
-                bid.id,
-                keyNonce
-            );
+            abi.encodeWithSelector(this.callbackSetSigningKey.selector, bid.id);
     }
 
     /**

@@ -72,8 +72,8 @@ sol! {
     interface IAMMAuctionSuapp {
         function newPendingTxn() external returns (bytes memory);
         function newBid(string memory salt) external returns (bytes memory);
-        function runAuction() external returns (bytes memory);
-        function setSigningKey(uint256 keyNonce) external returns (bytes memory);
+        function runAuction(uint256 signingKeyNonce) external returns (bytes memory);
+        function setSigningKey() external returns (bytes memory);
         function setSepoliaUrl() external returns (bytes memory);
         function initLastL1Block() external returns (bytes memory);
 
@@ -280,7 +280,7 @@ impl AmmAuctionSuapp {
         let tx = TransactionRequest::default()
             .to(Some(self.auction_suapp_address))
             .gas_limit(U256::from(gas))
-            .with_gas_price(gas_price)
+            .with_gas_price(U256::from(1000100000))
             .with_chain_id(chain_id.to::<u64>())
             .with_nonce(nonce.to::<u64>());
         Ok(tx)
@@ -507,34 +507,20 @@ impl AmmAuctionSuapp {
             .get("funded_suave")
             .expect("funded suave's wallet not initialized");
 
-        let suave_stored_wallet = self
+        let suave_stored_wallet_pk = self
             .sepolia_wallets
             .get("suapp_signing_key")
-            .expect("suapp's signing wallet not initialized");
-        // caching so we can borrow as mutable later
-        let suave_stored_wallet_pk = suave_stored_wallet.signer().to_bytes().abi_encode_packed();
-
-        // get sepolia nonce for the key we're storing in the suapp
-        let nonce = self
-            .sepolia_provider
-            .get_transaction_count(suave_stored_wallet.address(), None)
-            .await
-            .context("failed to get transaction count for suapp stored pk")?;
+            .expect("suapp's signing wallet not initialized")
+            .signer()
+            .to_bytes()
+            .abi_encode_packed();
 
         // create generic transaction request and add function specific data
         let tx = self
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(
-                Bytes::from(
-                    IAMMAuctionSuapp::setSigningKeyCall {
-                        keyNonce: U256::from(nonce),
-                    }
-                    .abi_encode(),
-                )
-                .into(),
-            );
+            .input(Bytes::from(IAMMAuctionSuapp::setSigningKeyCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
         self.send_ccr(ConfidentialComputeRequest::new(
@@ -552,12 +538,34 @@ impl AmmAuctionSuapp {
             .get("funded_suave")
             .expect("funded suave's wallet not initialized");
 
+        let signing_key = self
+            .sepolia_wallets
+            .get("suapp_signing_key")
+            .expect("fsuapp_signing_key's wallet not initialized")
+            .address();
+
+        let signing_key_nonce = self
+            .sepolia_provider
+            .get_transaction_count(signing_key, None)
+            .await
+            .context("failed to get transaction count for address")?;
+
+        println!("singing key nonce: {}", signing_key_nonce);
+
         // create generic transaction request and add function specific data
         let tx = self
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::runAuctionCall::SELECTOR).into());
+            .input(
+                Bytes::from(
+                    IAMMAuctionSuapp::runAuctionCall {
+                        signingKeyNonce: U256::from(signing_key_nonce),
+                    }
+                    .abi_encode(),
+                )
+                .into(),
+            );
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
         self.send_ccr(ConfidentialComputeRequest::new(cc_record, Bytes::new()))
