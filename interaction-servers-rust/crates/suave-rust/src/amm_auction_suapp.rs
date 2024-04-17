@@ -549,8 +549,18 @@ impl AmmAuctionSuapp {
             .get_transaction_count(signing_key, None)
             .await
             .context("failed to get transaction count for address")?;
-
+        for x in 0..5 {
+            if signing_key_nonce != U64::from(3) {
+                println!("!!!");
+            }
+        }
         println!("singing key nonce: {}", signing_key_nonce);
+        for x in 0..5 {
+            if signing_key_nonce != U64::from(3) {
+                println!("!!!");
+                panic!("works");
+            }
+        }
 
         // create generic transaction request and add function specific data
         let tx = self

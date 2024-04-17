@@ -446,7 +446,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         uint256 signingKeyNonce
     ) internal returns (bytes memory) {
         // create tx to sign with private key
-        /*
         bytes memory targetCall = abi.encodeWithSignature(
             "postAuctionResults(address,uint256,uint256,bool,uint8,bytes32,bytes32)",
             bid.bidder,
@@ -457,8 +456,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             bid.r,
             bid.s
         );
-        */
-        bytes memory targetCall = abi.encodeWithSignature("poke()");
 
         // create transaction
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({

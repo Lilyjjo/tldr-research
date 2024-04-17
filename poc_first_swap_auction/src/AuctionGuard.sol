@@ -45,7 +45,7 @@ contract AuctionGuard is IAuctionGuard {
     constructor(address auctionDeposits_, address suappKey_) {
         auctionDeposits = IAuctionDeposits(auctionDeposits_);
         suappKey = suappKey_;
-        auctionsEnabled = false;
+        auctionsEnabled = true;
         auctioneer = msg.sender;
         auctionFeeDistributor = msg.sender;
     }
@@ -58,11 +58,6 @@ contract AuctionGuard is IAuctionGuard {
     modifier onlySuappKey() {
         if (msg.sender != suappKey) revert OnlySuappKey();
         _;
-    }
-
-    uint256 public poked;
-    function poke() public {
-        poked++;
     }
 
     function setAuctioneer(address newAuctioneer) external onlyAuctioneer {

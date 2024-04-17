@@ -212,6 +212,10 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
         );
         console2.log("auctionGuard: ");
         console2.log(address(auctionGuard));
+        console2.log("auctionGuard's suapp signing key: ");
+        console2.log(addressStoredSuapp);
+
+        /*
 
         // associate the guard in the deposit contract
         auctionDeposits.setAuction(address(auctionGuard));
@@ -267,6 +271,7 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
             auctionDeposits.deposit{value: .001 ether}();
             vm.stopBroadcast();
         }
+        */
     }
 
     /**
