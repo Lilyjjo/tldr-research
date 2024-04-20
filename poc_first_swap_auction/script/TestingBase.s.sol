@@ -61,7 +61,7 @@ contract TestingBase is Script {
 */
 
     address constant SUAPP_AMM_DEPLOYED =
-        0x4B9e63760D2657cA47a4E6A47118E525d8F5eC40;
+        0xb228e81488A77ef557d90fF1c9ad26Ff841f6C67;
     address constant AUCTION_DEPOSITS =
         0x82C5A0585be25CeB3c8BaA7daadC3c3c77ceBd1b;
     address constant AUCTION_GUARD = 0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378;

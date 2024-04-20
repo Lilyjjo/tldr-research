@@ -25,6 +25,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
 
     uint256 grabbedTime;
 
+    address public signingPubKey;
+
     /// @dev DataId for the signing key in Suave's confidential storage
     Suave.DataId private _signingKeyRecord;
     /// @dev DataId for the L1 URL in Suave's confidential storage
@@ -210,9 +212,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         emit NewBid(saltedReturn, bidId);
     }
 
-    function runAuction(
-        uint256 signingKeyNonce
-    ) external returns (bytes memory) {
+    function runAuction() external returns (bytes memory) {
         // grab stored URL
         string memory httpURL = string(
             Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
@@ -231,6 +231,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             )
         );
 
+        // grab key's signing nonce
+        uint256 nonce = _getSigningKeyNonce(httpURL);
+
         // TODO find more secure way to get current time
         // TODO write why this is a fundamental issue with design
         uint256 currentTime = _getCurrentTime();
@@ -247,7 +250,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         (Bid memory winningBid, uint256 secondPrice) = _findAuctionWinner(
             currentBlock,
             lastL1Block,
-            signingKeyNonce
+            nonce
         );
 
         // construct bundle
@@ -266,7 +269,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             winningBid,
             lastL1Block,
             secondPrice == 0 ? false : true,
-            signingKeyNonce
+            nonce
         );
 
         // add payment and bid transactions to bundle
@@ -568,6 +571,34 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         blockData.number = JSONParserLib.parseUintFromHex(blockNumber);
     }
 
+    function _getSigningKeyNonce(
+        string memory httpURL
+    ) internal returns (uint256) {
+        bytes memory body = abi.encodePacked(
+            '{"method":"eth_getTransactionCount","params":["',
+            LibString.toHexString(signingPubKey),
+            '", "latest"],"id":1,"jsonrpc":"2.0"}'
+        );
+
+        Suave.HttpRequest memory request;
+        request.method = "POST";
+        request.body = body;
+        request.headers = new string[](1);
+        request.headers[0] = "Content-Type: application/json";
+        request.withFlashbotsSignature = false;
+        request.url = httpURL;
+
+        /// returns: https://docs.chainstack.com/reference/ethereum-getblocktransactioncountbynumber
+        bytes memory result = Suave.doHTTPRequest(request);
+
+        JSONParserLib.Item memory item = string(result).parse();
+        string memory stringResult = trimQuotes(
+            string(item.at('"result"').value())
+        );
+
+        return JSONParserLib.parseUintFromHex(stringResult);
+    }
+
     function trimQuotes(
         string memory input
     ) private pure returns (string memory) {
@@ -592,7 +623,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
      * @notice Sets the signing key in Suave's confidential storage
      * @return bytes Encoded data for updating the key callback
      */
-    function setSigningKey() external onlyOwner returns (bytes memory) {
+    function setSigningKey(
+        address pubkey
+    ) external onlyOwner returns (bytes memory) {
         bytes memory keyData = Suave.confidentialInputs();
 
         // allowedPeekers: which contracts can read the record (only this contract)
@@ -611,7 +644,11 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         Suave.confidentialStore(bid.id, KEY_PRIVATE_KEY, keyData);
 
         return
-            abi.encodeWithSelector(this.callbackSetSigningKey.selector, bid.id);
+            abi.encodeWithSelector(
+                this.callbackSetSigningKey.selector,
+                pubkey,
+                bid.id
+            );
     }
 
     /**
@@ -619,7 +656,11 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
      * @dev To be called as a Confidential Compute Callback.
      * @param signingKeyBid_ The new signing key record ID
      */
-    function callbackSetSigningKey(Suave.DataId signingKeyBid_) external {
+    function callbackSetSigningKey(
+        address signingPubKey_,
+        Suave.DataId signingKeyBid_
+    ) external {
+        signingPubKey = signingPubKey_;
         _signingKeyRecord = signingKeyBid_;
         emit UpdateKey(_signingKeyRecord);
     }
