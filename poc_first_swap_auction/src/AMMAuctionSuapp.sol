@@ -240,11 +240,11 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         uint256 currentTime = _getCurrentTime();
 
         // check if time to run auction
-        //if (lastBlockAuctioned >= lastL1Block.number + 1)
-        //    // don't double run an auction for a block
-        //    revert AuctionAlreadyRan();
-        // if (currentTime < lastL1Block.timestamp + auctionDuration)
-        //     revert AuctionNotEnded();
+        if (lastBlockAuctioned >= lastL1Block.number + 1)
+            // don't double run an auction for a block
+            revert AuctionAlreadyRan();
+        if (currentTime < lastL1Block.timestamp + auctionDuration)
+            revert AuctionNotEnded();
 
         uint256 currentBlock = lastL1Block.number + 1;
 
