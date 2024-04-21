@@ -102,6 +102,10 @@ async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp) {
     if let Err(e) = amm_auction_suapp.trigger_auction().await {
         print!("{}", e);
     }
+    sleep(Duration::from_secs(3)).await;
+    if let Err(e) = amm_auction_suapp.print_auction_stats().await {
+        print!("{}", e);
+    }
 }
 
 async fn process_header(amm_auction_suapp: &mut AmmAuctionSuapp, text: String) {
@@ -123,5 +127,8 @@ async fn process_header(amm_auction_suapp: &mut AmmAuctionSuapp, text: String) {
     println!("timestamp: {}", timestamp);
     println!("block_number: {}", block_number);
 
-    trigger_auction(amm_auction_suapp).await;
+    if timestamp != 0 {
+        // don't run on first message
+        trigger_auction(amm_auction_suapp).await;
+    }
 }

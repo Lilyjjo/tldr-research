@@ -27,6 +27,10 @@ pub(crate) async fn trigger_auction(
         .await
         .wrap_err("failed to send bid ccr")?;
     println!("fin");
+    amm_auction
+        .print_auction_stats()
+        .await
+        .wrap_err("failed to print auction stats")?;
     Ok(())
 }
 
@@ -55,7 +59,7 @@ pub(crate) async fn send_swap_tx(
 ) -> eyre::Result<()> {
     println!("new pending transaction logic");
     amm_auction
-        .new_pending_txn(&args.swapper, vec![0u8; 32].into())
+        .new_pending_txn(&args.swapper, args.swap_amount, args.token_0_in)
         .await
         .wrap_err("failed to send swap tx ccr")?;
     println!("fin");
