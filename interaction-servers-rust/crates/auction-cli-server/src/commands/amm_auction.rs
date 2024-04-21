@@ -85,6 +85,12 @@ pub(crate) async fn initialize_suapp(
         .set_signing_key()
         .await
         .wrap_err("failed to send signing key init ccr")?;
-    println!("fin");
+    println!("fin setup");
+
+    amm_auction
+        .new_pending_txn(&"bob".to_string(), 10, true)
+        .await
+        .wrap_err("failed to send swap txn")?;
+
     Ok(())
 }

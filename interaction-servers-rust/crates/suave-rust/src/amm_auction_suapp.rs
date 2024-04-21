@@ -1,72 +1,26 @@
-use std::{
-    collections::HashMap,
-    str::FromStr,
-};
+use std::{collections::HashMap, str::FromStr};
 
 use alloy::{
     consensus::TxEnvelope,
     eips::eip2718::Encodable2718,
-    network::{
-        Ethereum,
-        EthereumSigner,
-        NetworkSigner,
-        TransactionBuilder,
-    },
-    providers::{
-        layers::SignerProvider,
-        Provider,
-        ProviderBuilder,
-        RootProvider,
-    },
-    rpc::types::eth::{
-        BlockId,
-        BlockNumberOrTag,
-        TransactionInput,
-        TransactionRequest,
-    },
-    signers::{
-        k256::elliptic_curve::consts::U24,
-        wallet::LocalWallet,
-        Signer,
-    },
+    network::{Ethereum, EthereumSigner, NetworkSigner, TransactionBuilder},
+    providers::{layers::SignerProvider, Provider, ProviderBuilder, RootProvider},
+    rpc::types::eth::{BlockId, BlockNumberOrTag, TransactionInput, TransactionRequest},
+    signers::{k256::elliptic_curve::consts::U24, wallet::LocalWallet, Signer},
     transports::http::Http,
 };
-use alloy_primitives::{
-    Address,
-    Bytes,
-    FixedBytes,
-    B256,
-    U16,
-    U160,
-    U256,
-    U64,
-};
-use alloy_rlp::{
-    BufMut,
-    Encodable,
-};
-use alloy_sol_types::{
-    sol,
-    SolCall,
-    SolStruct,
-    SolValue,
-};
+use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256, U64};
+use alloy_rlp::{BufMut, Encodable};
+use alloy_sol_types::{sol, SolCall, SolStruct, SolValue};
 use color_eyre::{
     eyre,
-    eyre::{
-        ensure,
-        eyre,
-        Context,
-    },
+    eyre::{ensure, eyre, Context},
 };
 use eyre::ContextCompat;
 use reqwest;
 
 use crate::suave_network::{
-    ConfidentialComputeRecord,
-    ConfidentialComputeRequest,
-    SuaveNetwork,
-    SuaveSigner,
+    ConfidentialComputeRecord, ConfidentialComputeRequest, SuaveNetwork, SuaveSigner,
 };
 
 sol! {
@@ -199,7 +153,7 @@ impl AmmAuctionSuapp {
         for sepolia_eoa in sepolia_eoas {
             let wallet: LocalWallet = sepolia_eoa
                 .1
-                .1
+                 .1
                 .parse()
                 .wrap_err("failed to parse pk for sepolia wallet")?;
             // maybe idk
@@ -294,6 +248,9 @@ impl AmmAuctionSuapp {
         signer: Address,
         target_contract: Address,
     ) -> eyre::Result<TransactionRequest> {
+        println!("building swap txn for: {}", signer);
+        println!("target contract: {}", target_contract);
+
         // gather network dependent variables
         let nonce = self
             .sepolia_provider
@@ -306,7 +263,7 @@ impl AmmAuctionSuapp {
             .get_gas_price()
             .await
             .context("failed to get gas price")?
-            .wrapping_add(U256::from(10)); // to account for gas fluction between creation and sending
+            .wrapping_add(U256::from(1_000_000_000)); // to account for gas fluction between creation and sending
 
         let gas = 0x0f4240; // TODO: figure out what is reasonable, probably should be per function
 
@@ -322,6 +279,7 @@ impl AmmAuctionSuapp {
             .with_gas_price(gas_price)
             .with_chain_id(chain_id.to::<u64>())
             .with_nonce(nonce.to::<u64>());
+        println!("tx: {:#?}", tx);
         Ok(tx)
     }
 
@@ -606,59 +564,61 @@ impl AmmAuctionSuapp {
 
     pub async fn print_auction_stats(&mut self) -> eyre::Result<()> {
         // grab from amm's visibility storage slots
-        let test = self
+        let slot_0 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(0), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let last_block_processed = self
+        let slot_1 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(1), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let last_block_processed_time = self
+        let slot_2 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(2), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let time_auction_ran = self
+        let slot_3 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(3), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let nonce_used = self
+        let slot_4 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(4), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let last_bundle_succeeded = self
+        let slot_5 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(5), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let last_stored_auctioned_block = self
+        let slot_6 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(6), None)
             .await
             .context("failed grabbing amm's storage slot")?;
-        let bundle_sent_for = self
+        let slot_7 = self
             .suave_provider
             .get_storage_at(self.auction_suapp_address, U256::from(7), None)
             .await
             .context("failed grabbing amm's storage slot")?;
 
         println!("Auction Stats");
-        println!("  test    : {}", test);
-        println!("  lastBlockProcessed      : {}", last_block_processed);
-        println!("  lastBlockTimeProcessed  : {}", last_block_processed_time);
-        println!("  time auction ran        : {}", time_auction_ran);
-        println!("  last nonce used         : {}", nonce_used);
-        println!("  bundle accepted         : {}", last_bundle_succeeded);
-        println!(
-            "  lastStoredAuctionedBlock: {}",
-            last_stored_auctioned_block
-        );
-        println!("  bundle_sent_for:          {}", bundle_sent_for);
+        // println!("  test    : {}", slot_0);
+        println!("  auctioned block      : {}", slot_1);
+        println!("  last nonce used      : {}", slot_2);
+        println!("  included_txns        : {}", slot_3);
+        println!("  notLandedButSent     : {}", slot_4);
+        println!("  landed               : {}", slot_5);
+        println!("  bundle success       : {}", slot_6);
+        // println!("  bundle accepted         : {}", slot_5);
+        // println!(
+        //    "  lastStoredAuctionedBlock: {}",
+        //    slot_6
+        //);
+        // println!("  bundle_sent_for:          {}", slot_7);
 
         Ok(())
     }

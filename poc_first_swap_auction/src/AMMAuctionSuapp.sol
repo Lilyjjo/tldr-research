@@ -16,13 +16,13 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
 
     // Auction Visibility/Functional Stats
     uint256 public ssalt; // for telling which CCR callback we're reading from
-    uint256 public lastAuctionProcessedL1Block; // 5
-    uint256 public timeOfLastL1ProcessedBlock;
-    uint256 public timeAuctionLastRan;
+    uint256 public lastAuctionProcessedL1Block; //
     uint256 public nonceUsed;
-    bool public lastBundleSucceeded;
-    uint256 public lastStoredAuctionedBlock;
-    uint256 public auctionedBlockNumber;
+    uint256 public includedTxns;
+    uint256 private _notLandedButSent; //
+    uint256 private _landed; //
+    bool public bundleSuccess;
+    uint256 public filler;
 
     // Addresses
     address public targetAMM;
@@ -59,7 +59,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
 
     /// @dev normal transactions
     Suave.DataId[] private _nonBidTxns;
-    uint256 public nextTxnIndexToInclude;
 
     /// @dev names spaces for confidential stores
     string public nonBidTxnNamespace = "non_bid_txns";
@@ -235,6 +234,16 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         // grab key's signing nonce
         uint256 nonce = _getSigningKeyNonce(httpURL);
 
+        // bundles aren't guaranteed to land, send from last included index
+        uint256 txsToSendIndex;
+        if (nonceUsed != 0 && nonce > nonceUsed) {
+            // we landed out last bundle, start from last sent
+            txsToSendIndex = _notLandedButSent; // we did land, update
+        } else {
+            // we didn't land our bundle, resend transactions
+            txsToSendIndex = _landed;
+        }
+
         // TODO find more secure way to get current time
         // TODO write why this is a fundamental issue with design
         uint256 currentTime = _getCurrentTime();
@@ -260,11 +269,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         bundle.blockNumber = uint64(currentBlock);
         bundle.minTimestamp = 0;
         bundle.maxTimestamp = 0;
-        uint256 nonBidTxnsCount = _nonBidTxns.length - nextTxnIndexToInclude;
-        require(nonBidTxnsCount == 0); // TODO remove once done coding
+        uint256 nonBidTxnsCount = _nonBidTxns.length - txsToSendIndex;
         bundle.txns = new bytes[](1 + nonBidTxnsCount);
-        //bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
-        bundle.revertingTxnsHash = new bytes32[](1);
+        bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
 
         // construct payment transaction
         bytes memory signedPaymentTxn = _createPostAuctionTransaction(
@@ -277,23 +284,20 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         // add payment and bid transactions to bundle
         bundle.txns[0] = signedPaymentTxn;
         //bundle.txns[1] = winningBid.swapTxn;
-        bundle.revertingTxnsHash[0] = keccak256(signedPaymentTxn);
 
         // add non-bid transactions
         uint256 includedTransactionCount = 0;
-        /*
-        for (uint i = nextTxnIndexToInclude; i < _nonBidTxns.length; i++) {
+        for (uint i = txsToSendIndex; i < _nonBidTxns.length; i++) {
             bytes memory nonBidTxn = Suave.confidentialRetrieve(
                 _nonBidTxns[i],
                 nonBidTxnNamespace
             );
-            bundle.txns[2 + includedTransactionCount] = nonBidTxn;
+            bundle.txns[1 + includedTransactionCount] = nonBidTxn;
             bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
                 nonBidTxn
             );
-            includedTransactionCount++; // skip non-resubmission for now
+            includedTransactionCount++;
         }
-        */
 
         // send bundle
         bytes memory bundleRes = Bundle.sendBundle(
@@ -301,14 +305,12 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             bundle
         );
         // TODO figure out how to debug failing bundles
-        // require(
-        //     // this hex is '{"id":1,"result"'
-        //     // close-enough way to check for successful sendBundle call
-        //     bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422,
-        //     "bundle failed"
+        //require(
+        // this hex is '{"id":1,"result"'
+        // close-enough way to check for successful sendBundle call
+        //    bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422,
+        //    "bundle failed"
         //);
-        bool bundleSucceeded = bytes16(bundleRes) ==
-            0x7b226964223a312c22726573756c7422;
 
         // update confidential store's last ran block
         Suave.confidentialStore(
@@ -321,40 +323,32 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         return
             abi.encodeWithSelector(
                 this.callbackRunAuction.selector,
-                nextTxnIndexToInclude + includedTransactionCount,
-                lastL1Block.timestamp,
-                currentTime,
-                lastL1Block.number,
+                txsToSendIndex + includedTransactionCount, // not landed but snet
+                txsToSendIndex, // landed
                 nonce,
                 currentBlock,
-                lastBlockAuctioned,
-                bundleSucceeded,
-                salt
+                nonBidTxnsCount,
+                bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422
             );
     }
 
     function callbackRunAuction(
-        uint256 nextTxnIndexToInclude_, // funcitonal
-        uint256 timeOfLastL1ProcessedBlock_,
-        uint256 timeAuctionLastRan_,
-        uint256 lastAuctionProcessedL1Block_,
+        uint256 notLandedButSent, // funcitonal
+        uint256 landed, // functional
         uint256 nonceUsed_,
-        uint256 auctionedBlockNumber_,
-        uint256 lastStoredAuctionedBlock_,
-        bool lastBundleSucceeded_,
-        uint256 salt__
+        uint256 auctioned_block,
+        uint256 nonBidTxnsCount_,
+        bool bundleSuccess_
     ) external {
-        nextTxnIndexToInclude = nextTxnIndexToInclude_;
-        ssalt = salt__;
+        // funcitonal
+        _notLandedButSent = notLandedButSent;
+        _landed = landed;
 
-        timeOfLastL1ProcessedBlock = timeOfLastL1ProcessedBlock_;
-        timeAuctionLastRan = timeAuctionLastRan_;
+        // stats
+        includedTxns = nonBidTxnsCount_;
         nonceUsed = nonceUsed_;
-        lastAuctionProcessedL1Block = lastAuctionProcessedL1Block_;
-        lastBundleSucceeded = lastBundleSucceeded_;
-        auctionedBlockNumber = auctionedBlockNumber_;
-
-        lastStoredAuctionedBlock = lastStoredAuctionedBlock_;
+        lastAuctionProcessedL1Block = auctioned_block;
+        bundleSuccess = bundleSuccess_;
     }
 
     function _findAuctionWinner(
@@ -490,8 +484,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         // create transaction
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
             to: targetAuctionGuard,
-            gas: gasNeededPostAuctionResults,
-            gasPrice: (blockData.baseFeePerGas * 120000) / 100000, // inflate for possible block growth
+            gas: gasNeededPostAuctionResults, //1_318_583_686
+            gasPrice: blockData.baseFeePerGas + 4_000_000_000, // TODO figure out what to set this to
             value: 0,
             nonce: signingKeyNonce,
             data: targetCall,

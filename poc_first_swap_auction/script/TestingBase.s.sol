@@ -61,23 +61,23 @@ contract TestingBase is Script {
 */
 
     address constant SUAPP_AMM_DEPLOYED =
-        0xaa805b4c694C10BB00eF98d8BFf6c1040936dBB2;
+        0xa878e40976A59521EFcC7F1b644D0dc79b7A54C3;
     address constant AUCTION_DEPOSITS =
-        0x82C5A0585be25CeB3c8BaA7daadC3c3c77ceBd1b;
-    address constant AUCTION_GUARD = 0xB8d1d45Af8ffCF9d553b1B38907149f1Aa153378;
+        0x6ED804B9d4FAAE9e092Fe6d73292151FCF5F0413;
+    address constant AUCTION_GUARD = 0x8948F78709Bf2F9837678ec4eE358338Efc1DdAf;
 
     // Uniswap Pool vars
     uint16 constant POOL_FEE = 3000;
-    address constant POOL_DEPLOYED = 0x3Fe62E0E77014E0D7A53C700d9309DBCE5408129;
-    address constant NPM_DEPLOYED = 0x2A132cF9081Ea3ca191A13CA5E5d208f428601DE;
+    address constant POOL_DEPLOYED = 0xB61248c43ec21f2BaD0739f0ae32a4A1BeCB3a71;
+    address constant NPM_DEPLOYED = 0x016d4c87eF982e341E633F3467579E20FF38E089;
     address constant ROUTER_DEPLOYED =
-        0x6364d403fAe57403f924548849a2a40187a27709;
+        0x48C5D0e3bde6E4e2E174Aa9216D2aF496c9A0B21;
     address constant FACTORY_DEPLOYED =
-        0xe54D3F8C9140EbA09d6f76f36ECf2D10C50b5207;
+        0x862DE3391fD6cE8ab668DD316bc3d9655Eda68E5;
     address constant TOKEN_0_DEPLOYED =
-        0x5b554bAAdefd2CE9E65322185d387a2a386E801F;
+        0x298134EC54C3E7Ba9a4b3D0b4E06152391CF1e77;
     address constant TOKEN_1_DEPLOYED =
-        0x7CDd4e7Aa349b5d13189ef3D162eb2EDA25F126C;
+        0xE4b04dC57F7CCe5f57F8c0151c2c914fdeF487a7;
 
     /**
      * @notice Pulls environment variables and sets up fork urls.
