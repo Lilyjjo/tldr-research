@@ -19,8 +19,11 @@ use color_eyre::{
 use eyre::ContextCompat;
 use reqwest;
 
-use crate::suave_network::{
-    ConfidentialComputeRecord, ConfidentialComputeRequest, SuaveNetwork, SuaveSigner,
+use crate::{
+    amm_auction_config::AmmAuctionConfig,
+    suave_network::{
+        ConfidentialComputeRecord, ConfidentialComputeRequest, SuaveNetwork, SuaveSigner,
+    },
 };
 
 sol! {
@@ -70,12 +73,11 @@ sol! {
 }
 
 pub struct AmmAuctionSuapp {
-    auction_suapp_address: Address,
-    deposit_contract_address: Address,
-    pool_address: Address,
-    token_0_address: Address,
-    token_1_address: Address,
-    swap_router_address: Address,
+    auction_suapp: Address,
+    deposit_contract: Address,
+    token_0: Address,
+    token_1: Address,
+    swap_router: Address,
     execution_node: Address,
     suave_provider: RootProvider<Http<reqwest::Client>>,
     sepolia_provider: RootProvider<Http<reqwest::Client>>,
@@ -92,33 +94,105 @@ pub struct AmmAuctionSuapp {
 }
 
 impl AmmAuctionSuapp {
+    pub async fn new_from_config(config: AmmAuctionConfig) -> eyre::Result<Self> {
+        let execution_node;
+        let suave_rpc;
+        let suave_signer_pk;
+        if config.use_local {
+            execution_node = config.execution_node_suave_local;
+            suave_rpc = config.rpc_url_suave_local;
+            suave_signer_pk = config.suave_signer_local_pk;
+        } else {
+            execution_node = config.execution_node_suave;
+            suave_rpc = config.rpc_url_suave;
+            suave_signer_pk = config.suave_signer_pk;
+        }
+
+        // construct eoa accounts
+        let mut eoas = HashMap::<String, LocalWallet>::new();
+        eoas.insert(
+            "suave_signer".to_string(),
+            suave_signer_pk
+                .parse()
+                .wrap_err("failed to parse suave_signer's pk")?,
+        );
+        eoas.insert(
+            "suapp_signer".to_string(),
+            config
+                .suapp_signer_pk
+                .parse()
+                .wrap_err("failed to parse suapp_signer's pk")?,
+        );
+        eoas.insert(
+            "bidder_0".to_string(),
+            config
+                .bidder_0_pk
+                .parse()
+                .wrap_err("failed to parse bidder_0's pk")?,
+        );
+        eoas.insert(
+            "bidder_1".to_string(),
+            config
+                .bidder_1_pk
+                .parse()
+                .wrap_err("failed to parse bidder_1's pk")?,
+        );
+        eoas.insert(
+            "bidder_2".to_string(),
+            config
+                .bidder_2_pk
+                .parse()
+                .wrap_err("failed to parse bidder_2's pk")?,
+        );
+        eoas.insert(
+            "swapper_0".to_string(),
+            config
+                .swapper_0_pk
+                .parse()
+                .wrap_err("failed to parse swapper_0's pk")?,
+        );
+        eoas.insert(
+            "swapper_1".to_string(),
+            config
+                .swapper_1_pk
+                .parse()
+                .wrap_err("failed to parse swapper_1's pk")?,
+        );
+        eoas.insert(
+            "swapper_2".to_string(),
+            config
+                .swapper_2_pk
+                .parse()
+                .wrap_err("failed to parse swapper_2's pk")?,
+        );
+
+        AmmAuctionSuapp::new(
+            config.suapp_amm.wrap_err("auction suapp not set")?,
+            config
+                .auction_deposits
+                .wrap_err("auction deposits not set")?,
+            config.token_0.wrap_err("auction deposits not set")?,
+            config.token_1.wrap_err("auction deposits not set")?,
+            config.swap_router.wrap_err("swap router not set")?,
+            execution_node,
+            suave_rpc,
+            config.rpc_url_l1,
+            eoas,
+        )
+        .await
+    }
+
     pub async fn new(
-        auction_suapp_address: String,
-        deposit_contract_address: String,
-        pool_address: String,
-        token_0_address: String,
-        token_1_address: String,
-        swap_router_address: String,
-        execution_node: String,
+        auction_suapp: Address,
+        deposit_contract: Address,
+        token_0: Address,
+        token_1: Address,
+        swap_router: Address,
+        execution_node: Address,
         suave_rpc: String,
         sepolia_rpc: String,
-        sepolia_eoas: &HashMap<String, (String, String)>,
+        eoa_accounts: HashMap<String, LocalWallet>,
     ) -> eyre::Result<Self> {
-        // build strings
-        let auction_suapp_address = Address::from_str(&auction_suapp_address)
-            .wrap_err("failed to parse suapp amm address")?;
-        let deposit_contract_address = Address::from_str(&deposit_contract_address)
-            .wrap_err("failed to parse deposit contract address")?;
-        let pool_address = Address::from_str(&pool_address).wrap_err("failed to pool_address")?;
-        let token_0_address =
-            Address::from_str(&token_0_address).wrap_err("failed to parse token_0_address")?;
-        let token_1_address =
-            Address::from_str(&token_1_address).wrap_err("failed to parse token_1_address")?;
-        let swap_router_address = Address::from_str(&swap_router_address)
-            .wrap_err("failed to parse swap_router_address")?;
-        let execution_node =
-            Address::from_str(&execution_node).wrap_err("failed to parse execution_node")?;
-
         // build sepolia provider
         let sepolia_rpc_url =
             url::Url::parse(&sepolia_rpc).wrap_err("failed to build url from suave rpc string")?;
@@ -135,39 +209,24 @@ impl AmmAuctionSuapp {
             .wrap_err("failed to build provider from given rpc url")?;
 
         // build suave signer provider
-        let suave_wallet: LocalWallet = sepolia_eoas
-            .get("funded_suave")
-            .context("missing funded_suave eoa in sepolia_eoas")?
-            .1
-            .parse()
-            .wrap_err("failed to parse pk for funded_suave")?;
         let suave_signer = ProviderBuilder::<_, SuaveNetwork>::default()
-            .signer(SuaveSigner::from(suave_wallet))
+            .signer(SuaveSigner::from(
+                eoa_accounts.get("suave_signer").unwrap().clone(),
+            ))
             .on_reqwest_http(suave_rpc_url.clone())
             .wrap_err("failed to build suave_signer provider")?;
 
-        // build other eoa wallets
-        let mut sepolia_wallets = HashMap::new();
-        for sepolia_eoa in sepolia_eoas {
-            let wallet: LocalWallet = sepolia_eoa
-                .1
-                 .1
-                .parse()
-                .wrap_err("failed to parse pk for sepolia wallet")?;
-            sepolia_wallets.insert(sepolia_eoa.0.to_string(), wallet);
-        }
         Ok(AmmAuctionSuapp {
-            auction_suapp_address,
-            deposit_contract_address,
-            pool_address,
-            token_0_address,
-            token_1_address,
-            swap_router_address,
+            auction_suapp,
+            deposit_contract,
+            token_0,
+            token_1,
+            swap_router,
             execution_node,
             suave_provider,
             sepolia_provider,
             suave_signer,
-            sepolia_wallets,
+            sepolia_wallets: eoa_accounts,
             sepolia_rpc,
             last_used_suave_nonce: 0,
             salt: 0,
@@ -227,7 +286,7 @@ impl AmmAuctionSuapp {
             .context("failed to get chain id")?;
 
         let tx = TransactionRequest::default()
-            .to(Some(self.auction_suapp_address))
+            .to(Some(self.auction_suapp))
             .gas_limit(U256::from(gas))
             .with_gas_price(U256::from(1000100000))
             .with_chain_id(chain_id.to::<u64>())
@@ -282,9 +341,9 @@ impl AmmAuctionSuapp {
     ) -> eyre::Result<Vec<u8>> {
         // create swap router transaction input
         let (token_in, token_out) = if token_0_in {
-            (self.token_0_address, self.token_1_address)
+            (self.token_0, self.token_1)
         } else {
-            (self.token_1_address, self.token_0_address)
+            (self.token_1, self.token_0)
         };
 
         let swap_input_params = ISwapRouter::ExactInputSingleParams {
@@ -300,7 +359,7 @@ impl AmmAuctionSuapp {
 
         // create and sign over the swap transaction
         let mut rlp_encoded_swap_tx = Vec::new();
-        self.build_generic_sepolia_transaction(swapper.address(), self.swap_router_address)
+        self.build_generic_sepolia_transaction(swapper.address(), self.swap_router)
             .await
             .wrap_err("failed to build generic sepolia transaction")?
             .input(TransactionInput::new(
@@ -336,7 +395,7 @@ impl AmmAuctionSuapp {
 
         let suave_signer = self
             .sepolia_wallets
-            .get("funded_suave")
+            .get("suave_signer")
             .expect("funded suave's wallet not initialized");
         // create generic transaction request and add function specific data
         let tx = self
@@ -370,7 +429,7 @@ impl AmmAuctionSuapp {
             .expect("bidders's wallet not initialized");
         let suave_signer = self
             .sepolia_wallets
-            .get("funded_suave")
+            .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
         // create swap router transaction input
@@ -384,7 +443,7 @@ impl AmmAuctionSuapp {
             name: "AuctionDeposits",
             version: "v1",
             chain_id: 17000u64, // holesky
-            verifying_contract: self.deposit_contract_address,
+            verifying_contract: self.deposit_contract,
         );
 
         let bid_request = WithdrawBid {
@@ -436,7 +495,7 @@ impl AmmAuctionSuapp {
     pub async fn initialize_l1_block(&mut self) -> eyre::Result<()> {
         let suave_signer = self
             .sepolia_wallets
-            .get("funded_suave")
+            .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
         // create generic transaction request and add function specific data
@@ -456,7 +515,7 @@ impl AmmAuctionSuapp {
     pub async fn set_sepolia_url(&mut self) -> eyre::Result<()> {
         let suave_signer = self
             .sepolia_wallets
-            .get("funded_suave")
+            .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
         let confidential_inputs = self.sepolia_rpc.abi_encode_packed();
@@ -481,12 +540,12 @@ impl AmmAuctionSuapp {
     pub async fn set_signing_key(&mut self) -> eyre::Result<()> {
         let suave_signer = self
             .sepolia_wallets
-            .get("funded_suave")
+            .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
         let suave_stored_wallet_pk = self
             .sepolia_wallets
-            .get("suapp_signing_key")
+            .get("suapp_signer")
             .expect("suapp's signing wallet not initialized")
             .signer()
             .to_bytes()
@@ -494,7 +553,7 @@ impl AmmAuctionSuapp {
 
         let suave_stored_wallet_address = self
             .sepolia_wallets
-            .get("suapp_signing_key")
+            .get("suapp_signer")
             .expect("suapp's signing wallet not initialized")
             .address();
 
@@ -526,7 +585,7 @@ impl AmmAuctionSuapp {
     pub async fn trigger_auction(&mut self) -> eyre::Result<()> {
         let suave_signer = self
             .sepolia_wallets
-            .get("funded_suave")
+            .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
         // create generic transaction request and add function specific data
@@ -557,42 +616,42 @@ impl AmmAuctionSuapp {
         // grab from amm's visibility storage slots
         let slot_0 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(0), None)
+            .get_storage_at(self.auction_suapp, U256::from(0), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_1 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(1), None)
+            .get_storage_at(self.auction_suapp, U256::from(1), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_2 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(2), None)
+            .get_storage_at(self.auction_suapp, U256::from(2), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_3 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(3), None)
+            .get_storage_at(self.auction_suapp, U256::from(3), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_4 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(4), None)
+            .get_storage_at(self.auction_suapp, U256::from(4), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_5 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(5), None)
+            .get_storage_at(self.auction_suapp, U256::from(5), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_6 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(6), None)
+            .get_storage_at(self.auction_suapp, U256::from(6), None)
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_7 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp_address, U256::from(7), None)
+            .get_storage_at(self.auction_suapp, U256::from(7), None)
             .await
             .context("failed grabbing amm's storage slot")?;
 

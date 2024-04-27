@@ -78,7 +78,7 @@ pub(crate) async fn initialize_suapp(
     println!("fin setup");
 
     amm_auction
-        .new_pending_txn(&"caleb".to_string(), 10, true)
+        .new_pending_txn(&"swapper_0".to_string(), 10, true)
         .await
         .wrap_err("failed to send swap txn")?;
 

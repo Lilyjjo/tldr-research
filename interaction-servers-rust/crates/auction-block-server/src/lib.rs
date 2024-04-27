@@ -73,7 +73,7 @@ impl BlockServer {
 
 async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp, block_number: u128) {
     if let Err(e) = amm_auction_suapp
-        .new_bid(&"bob".to_string(), block_number + 1, 100, 10, true)
+        .new_bid(&"bidder_0".to_string(), block_number + 1, 100, 10, true)
         .await
     {
         print!("{}", e);
