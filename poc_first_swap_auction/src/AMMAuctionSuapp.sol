@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 import {Suave} from "suave-std/suavelib/Suave.sol";
 import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "./utils/Bundle.sol";
-import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
-import {JSONParserLib} from "../lib/suave-std/lib/solady/src/utils/JSONParserLib.sol";
+import {LibString} from "solady/utils/LibString.sol";
+import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
 import {IAMMAuctionSuapp} from "./interfaces/IAMMAuctionSuapp.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 

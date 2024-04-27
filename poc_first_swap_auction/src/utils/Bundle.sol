@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "suave-std/suavelib/Suave.sol";
-import "suave-std/lib/solady/src/utils/LibString.sol";
+import "solady/utils/LibString.sol";
 
 // https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle
 library Bundle {
