@@ -56,7 +56,7 @@ contract Deployments is TestingBase, UniswapBase {
      * @notice Deploys and sets up new L1 contracts for testing
      * @dev creates and submits ~30 transactions, will take ~12 minutes to complete
      * @dev note: Put these deployed addresses into the TestingBase file
-     * @dev command: forge script script/Deployments.s.sol:Interactions  --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool,bool)" true true true
+     * @dev command: forge script script/Deployments.s.sol:Deployments  --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool,bool)" true true true
      */
     function freshL1Contracts(
         bool initPoolState,
