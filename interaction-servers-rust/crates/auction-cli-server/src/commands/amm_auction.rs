@@ -2,20 +2,11 @@ use std::io::Bytes;
 
 use color_eyre::{
     eyre,
-    eyre::{
-        ensure,
-        eyre,
-        Context,
-    },
+    eyre::{ensure, eyre, Context},
 };
 use suave_rust::amm_auction_suapp::AmmAuctionSuapp;
 
-use crate::cli::amm_auction::{
-    AuctionArgs,
-    BidArgs,
-    InitializeSuappArgs,
-    SwapArgs,
-};
+use crate::cli::amm_auction::{AuctionArgs, BidArgs, InitializeSuappArgs, SwapArgs};
 
 pub(crate) async fn trigger_auction(
     _args: &AuctionArgs,
@@ -49,7 +40,6 @@ pub(crate) async fn send_bid(
         )
         .await
         .wrap_err("failed to send bid ccr")?;
-    println!("fin");
     Ok(())
 }
 
@@ -88,7 +78,7 @@ pub(crate) async fn initialize_suapp(
     println!("fin setup");
 
     amm_auction
-        .new_pending_txn(&"bob".to_string(), 10, true)
+        .new_pending_txn(&"caleb".to_string(), 10, true)
         .await
         .wrap_err("failed to send swap txn")?;
 

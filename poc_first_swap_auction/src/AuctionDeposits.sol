@@ -16,7 +16,7 @@ contract AuctionDeposits is Ownable, EIP712, IAuctionDeposits {
     // Hash of the bid type for EIP-712 compliance.
     bytes32 public constant WITHDRAW_BID_TYPEHASH =
         keccak256(
-            "withdrawBid(address bidder,uint256 blockNumber,uint256 amount)"
+            "WithdrawBid(address bidder,uint256 blockNumber,uint256 amount)"
         );
 
     error OnlyAuction();
@@ -87,7 +87,7 @@ contract AuctionDeposits is Ownable, EIP712, IAuctionDeposits {
         lastAuction = block.number;
 
         bytes32 structHash = keccak256(
-            abi.encode(WITHDRAW_BID_TYPEHASH, bidder, amount)
+            abi.encode(WITHDRAW_BID_TYPEHASH, bidder, blockNumber, amount)
         );
 
         bytes32 hash = _hashTypedDataV4(structHash);

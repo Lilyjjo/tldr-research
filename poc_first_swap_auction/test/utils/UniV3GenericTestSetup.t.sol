@@ -1,92 +1,94 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8;
+pragma solidity ^0.8.13;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC20Mintable} from "../../src/utils/ERC20Mintable.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import {IUniswapV3Factory} from "v3-core/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3Pool} from "v3-core/interfaces/IUniswapV3Pool.sol";
+import {IUniswapV3FactoryModified} from "../../src/uniswap_modifications/modified_uniswap_casing/v3-core-modified/IUniswapV3FactoryModified.sol";
+import {IUniswapV3PoolAuctionedFirstSwap} from "../../src/uniswap_modifications/IUniswapV3PoolAuctionedFirstSwap.sol";
 import {INonfungiblePositionManagerModified} from "../../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
 import {ISwapRouterModified} from "../../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
+import {ERC20Mintable} from "../../src/utils/ERC20Mintable.sol";
+
 import {TickMath} from "v3-core/libraries/TickMath.sol";
-import {OracleLibrary} from "v3-periphery/libraries/OracleLibrary.sol";
-import "forge-std/console.sol";
 
 /**
- * @title UniV3GenericTestSetup
- * @notice Sets up a Uniswap v3 pool with associated router and position manager.
- * @dev Uses modified version of NonfungiblePositionManager to allow for
- * modifications of the pool. Original code enforces a check that a pool's
- * bytecode was not modified for security purposes.
- * @dev Imports are reliant on specific versioning to avoid compiler errors:
- * v3-core : release 0.8
- * v3-periphery : release 0.8
- * openzeppelin-contracts : release release-v4.0
+ * @title
+ * @author lilyjjo
+ * @dev
  */
 contract UniV3GenericTestSetup is Test {
-    ERC20Mintable public token0;
-    ERC20Mintable public token1;
-
-    IUniswapV3Pool pool;
-    INonfungiblePositionManagerModified positionManager;
-    ISwapRouterModified swapRouter;
-    
-    uint16 constant POOL_FEE = 3000;
-    address poolOwner;
-    
-    uint256 nextAddress;
-
-    struct ExpectedRevert {
-        bool shouldRevert;
-        bytes4 errorSelector;
+    // (uniswap): code realted to uniV3 initialization and use
+    struct DeploymentInfo {
+        address token0;
+        address token1;
+        address pool;
+        address nftPositionManager;
+        address factory;
+        ISwapRouterModified swapRouter;
+        address admin;
+        uint16 poolFee;
     }
 
-    function _nextAddress() internal returns (address) {
-        return address(bytes20(keccak256(abi.encode(nextAddress++))));
-    } 
+    function _deployUniswapConracts(
+        address auctionGuard,
+        uint16 poolFee,
+        address admin
+    ) internal returns (DeploymentInfo memory newDInfo) {
+        newDInfo.admin = admin;
 
-    /**
-     * @notice Advances the block timestamp and number by one.
-     */
-    function _incTime() public {
-        uint256 blockTimestamp = block.timestamp + 1;
-        uint256 blockNumber = block.number + 1;
-        vm.warp(blockTimestamp);
-        vm.roll(blockNumber);
-    }
-
-    /**
-     * @notice Sets up the initial state of the Uniswap v3 pool and related components.
-     * @dev Deploys ERC20 tokens, creates a Uniswap V3 pool, and sets up the
-     * modified Nonfungible Position Manager and Swap Router.
-     */
-    function setUp() virtual public {
-        // initialize addresses 
-        poolOwner = _nextAddress();
-
-        vm.startPrank(poolOwner);
+        // vm.selectFork(forkId);
+        // vm.startBroadcast(adminPk);
+        vm.startPrank(admin);
 
         // initialize token0/token1/WETH
-        address tokenA = address(new ERC20Mintable("A", "A"));
-        address tokenB = address(new ERC20Mintable("B", "B"));
-        if (tokenA < tokenB) {
-            token0 = ERC20Mintable(tokenA);
-            token1 = ERC20Mintable(tokenB);
-        } else {
-            token0 = ERC20Mintable(tokenB);
-            token1 = ERC20Mintable(tokenA);
+        ERC20Mintable token0;
+        ERC20Mintable token1;
+
+        {
+            address tokenA = address(new ERC20Mintable("A", "A"));
+            address tokenB = address(new ERC20Mintable("B", "B"));
+            if (tokenA < tokenB) {
+                token0 = ERC20Mintable(tokenA);
+                token1 = ERC20Mintable(tokenB);
+            } else {
+                token0 = ERC20Mintable(tokenB);
+                token1 = ERC20Mintable(tokenA);
+            }
         }
         ERC20Mintable WETH = new ERC20Mintable("WETH", "WETH");
 
+        newDInfo.token0 = address(token0);
+        newDInfo.token1 = address(token1);
+
+        console.log("token0: ");
+        console.log(address(token0));
+        console.log("token1: ");
+        console.log(address(token1));
+        console.log("WETH: ");
+        console.log(address(WETH));
+
         // initialize Factory
-        IUniswapV3Factory uniswapV3Factory = IUniswapV3Factory(
+        IUniswapV3FactoryModified uniswapV3Factory = IUniswapV3FactoryModified(
             deployCode("UniswapV3FactoryModified.sol")
         );
 
+        newDInfo.factory = address(uniswapV3Factory);
+        console.log("uniswapV3Factory: ");
+        console.log(address(uniswapV3Factory));
+
         // initialize Pool
-        pool = IUniswapV3Pool(
-            uniswapV3Factory.createPool(address(tokenA), address(tokenB), POOL_FEE)
-        );
+        IUniswapV3PoolAuctionedFirstSwap pool = IUniswapV3PoolAuctionedFirstSwap(
+                uniswapV3Factory.createPool(
+                    address(token0),
+                    address(token1),
+                    poolFee,
+                    address(auctionGuard)
+                )
+            );
+
+        newDInfo.pool = address(pool);
+        console.log("pool: ");
+        console.log(address(pool));
 
         int24 tickSpacing = pool.tickSpacing();
         int24 targetStartTick = 0;
@@ -101,20 +103,24 @@ contract UniV3GenericTestSetup is Test {
         pool.increaseObservationCardinalityNext(10);
 
         // initialize PositionManager
-        positionManager = INonfungiblePositionManagerModified(
-            deployCode(
-                "NonfungiblePositionManagerModified.sol",
-                abi.encode(
-                    address(uniswapV3Factory),
-                    address(WETH),
-                    "Test token descriptor",
-                    address(pool)
+        INonfungiblePositionManagerModified positionManager = INonfungiblePositionManagerModified(
+                deployCode(
+                    "NonfungiblePositionManagerModified.sol",
+                    abi.encode(
+                        address(uniswapV3Factory),
+                        address(WETH),
+                        "Test token descriptor",
+                        address(pool)
+                    )
                 )
-            )
-        );
+            );
+
+        newDInfo.nftPositionManager = address(positionManager);
+        console.log("positionManager: ");
+        console.log(address(positionManager));
 
         // initialize swapRouter
-        swapRouter = ISwapRouterModified(
+        ISwapRouterModified swapRouter = ISwapRouterModified(
             deployCode(
                 "SwapRouterModified.sol",
                 abi.encode(
@@ -125,7 +131,83 @@ contract UniV3GenericTestSetup is Test {
             )
         );
 
+        newDInfo.swapRouter = swapRouter;
+        console.log("swapRouter: ");
+        console.log(address(swapRouter));
+
         vm.stopPrank();
+    }
+
+    /**
+     * @notice adds liquidity to contracts
+     * @dev command: forge script script/Interactions.s.sol:Interactions --sig "addLiquidity()" --broadcast --legacy -vv --verify
+     */
+    function _addLiquidity(
+        address liquidityProvider,
+        DeploymentInfo memory dInfo
+    ) internal {
+        _addLiquidityInternal(
+            liquidityProvider,
+            10 ether,
+            10 ether,
+            true,
+            dInfo
+        );
+    }
+
+    function _createSwapTranscationData(
+        address swapper,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOut,
+        DeploymentInfo memory dInfo
+    ) internal view returns (bytes memory) {
+        // create txn to be signed
+        bytes memory targetCall;
+        {
+            // scoping for stack too deep errors
+            ERC20Mintable tokenOut = ERC20Mintable(
+                tokenIn == dInfo.token0 ? dInfo.token1 : dInfo.token0
+            );
+
+            ISwapRouterModified.ExactInputSingleParams memory swapParams;
+            swapParams = ISwapRouterModified.ExactInputSingleParams({
+                tokenIn: address(tokenIn),
+                tokenOut: address(tokenOut),
+                fee: dInfo.poolFee,
+                recipient: swapper,
+                deadline: block.timestamp + 10000,
+                amountIn: amountIn,
+                amountOutMinimum: amountOut,
+                sqrtPriceLimitX96: 0
+            });
+            targetCall = abi.encodeWithSelector(
+                ISwapRouterModified.exactInputSingle.selector,
+                swapParams
+            );
+        }
+
+        return targetCall;
+    }
+
+    function _fundSwapperApproveSwapRouter(
+        address user,
+        DeploymentInfo memory dInfo
+    ) internal {
+        _fundAndApprove(
+            user,
+            address(dInfo.swapRouter),
+            dInfo.token0,
+            10 ether,
+            dInfo
+        );
+        _fundAndApprove(
+            user,
+            address(dInfo.swapRouter),
+            dInfo.token1,
+            10 ether,
+            dInfo
+        );
     }
 
     /**
@@ -135,58 +217,49 @@ contract UniV3GenericTestSetup is Test {
     function _fundAndApprove(
         address user,
         address approved,
-        ERC20Mintable token,
-        uint256 amount
+        address token,
+        uint256 amount,
+        DeploymentInfo memory dInfo
     ) internal {
-        vm.startPrank(poolOwner);
-        token.mint(user, amount);
-        vm.stopPrank();
-        vm.startPrank(user);
-        token.approve(approved, type(uint256).max);
-        vm.stopPrank();
-    }
-
-    /**
-     * @notice Performs swap.
-     */
-    function _swap(address swapper, ERC20Mintable tokenIn, uint256 amountIn, uint256 amountOut, bool mintTokens, ExpectedRevert memory revertParams) internal {
-        ERC20Mintable tokenOut = tokenIn == token0 ? token1 : token0; 
-        
-        if(mintTokens) {
-            // mint swapper tokens 
-            _fundAndApprove(swapper, address(swapRouter), tokenIn, amountIn);
-        }
-
-        ISwapRouterModified.ExactInputSingleParams memory swapParams; 
-        swapParams = ISwapRouterModified
-        .ExactInputSingleParams({
-                tokenIn: address(tokenIn),
-                tokenOut: address(tokenOut),
-                fee: POOL_FEE,
-                recipient: swapper,
-                deadline: block.timestamp + 10,
-                amountIn: amountIn,
-                amountOutMinimum: amountOut,
-                sqrtPriceLimitX96: 0
-        });
-
-        if(revertParams.shouldRevert) vm.expectRevert(revertParams.errorSelector);
-        swapRouter.exactInputSingle(swapParams);
+        vm.prank(dInfo.admin);
+        ERC20Mintable(token).mint(user, amount);
+        vm.prank(user);
+        ERC20Mintable(token).approve(approved, type(uint256).max);
     }
 
     /**
      * @notice Adds liquidity.
      */
-    function _addLiquidity(address liquidityProvider, uint256 token0Amount, uint256 token1Amount, bool mintTokens) internal returns (uint256, uint256) {
-        if(mintTokens) {
+    function _addLiquidityInternal(
+        address liquidityProvider,
+        uint256 token0Amount,
+        uint256 token1Amount,
+        bool mintTokens,
+        DeploymentInfo memory dInfo
+    ) internal returns (uint256, uint256) {
+        if (mintTokens) {
             // mint liquidity provider tokens
-            _fundAndApprove(liquidityProvider, address(positionManager), token0, token0Amount);
-            _fundAndApprove(liquidityProvider, address(positionManager), token1, token1Amount);
+            _fundAndApprove(
+                liquidityProvider,
+                dInfo.nftPositionManager,
+                dInfo.token0,
+                token0Amount,
+                dInfo
+            );
+            _fundAndApprove(
+                liquidityProvider,
+                dInfo.nftPositionManager,
+                dInfo.token1,
+                token1Amount,
+                dInfo
+            );
         }
+        // vm.startBroadcast(liquidtyProviderPrivateKey);
         vm.startPrank(liquidityProvider);
 
         // supply liquidty across whole range, adjusted for tick spacing needs
-        int24 tickSpacing = pool.tickSpacing();
+        int24 tickSpacing = IUniswapV3PoolAuctionedFirstSwap(dInfo.pool)
+            .tickSpacing();
         int24 tickLower = -887272;
         int24 tickUpper = -tickLower;
         tickLower = tickLower < 0
@@ -198,9 +271,9 @@ contract UniV3GenericTestSetup is Test {
 
         INonfungiblePositionManagerModified.MintParams
             memory mintParams = INonfungiblePositionManagerModified.MintParams({
-                token0: address(token0),
-                token1: address(token1),
-                fee: POOL_FEE,
+                token0: address(dInfo.token0),
+                token1: address(dInfo.token1),
+                fee: dInfo.poolFee,
                 tickLower: tickLower,
                 tickUpper: tickUpper,
                 amount0Desired: token0Amount,
@@ -208,8 +281,8 @@ contract UniV3GenericTestSetup is Test {
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: liquidityProvider,
-                deadline: block.timestamp + 10,
-                pool: address(pool)
+                deadline: 1740161987,
+                pool: address(dInfo.pool)
             });
 
         (
@@ -218,39 +291,16 @@ contract UniV3GenericTestSetup is Test {
             uint128 liquidity,
             uint256 amount0,
             uint256 amount1
-        ) = positionManager.mint(mintParams);
+        ) = INonfungiblePositionManagerModified(dInfo.nftPositionManager).mint(
+                mintParams
+            );
+
+        console.log("Liquidity added: %d", liquidity);
+        console.log("amount0: %d", amount0);
+        console.log("amount1: %d", amount1);
+
         vm.stopPrank();
 
-        // console.log("Liquidity added: %d", liquidity);
-        // console.log("amount0: %d", amount0);
-        // console.log("amount1: %d", amount1);
-
         return (amount0, amount1);
-    }
-
-    /**
-     * @notice Displays the user's balance for both tokens in the pool.
-     */
-    function printUserBalances(address user) public view {
-        console.log("user balance of 0: %d", token0.balanceOf(user));
-        console.log("user balance of 1: %d", token1.balanceOf(user));
-    }
-
-    /**
-    * @notice Prints the current price.
-    */
-    function printPrice() public view {
-        (uint160 sqrt, int24 curTick, , , , , ) = pool.slot0();
-        uint128 baseAmount = 10000;
-        uint amount = OracleLibrary.getQuoteAtTick(
-            curTick,
-            baseAmount, // base amount
-            address(token0), // base
-            address(token1) // quote
-        );
-        console.log("Price 0<>1: %d<>%d", uint(baseAmount), uint(amount));
-        //console.log("slot0.tick:");
-        //console.logInt(curTick);
-        //console.log("slot0.sqrtX96:", sqrt);
     }
 }

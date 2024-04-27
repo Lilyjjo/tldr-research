@@ -1,27 +1,9 @@
-use std::{
-    collections::HashMap,
-    process::ExitCode,
-    str::FromStr,
-};
+use std::{collections::HashMap, process::ExitCode, str::FromStr};
 
-use alloy_primitives::{
-    Address,
-    Bytes,
-    FixedBytes,
-    B256,
-    U16,
-    U160,
-    U256,
-};
+use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256};
 use auction_block_server::BlockServer;
-use color_eyre::{
-    eyre,
-    eyre::Context,
-};
-use suave_rust::amm_auction_suapp::{
-    self,
-    AmmAuctionSuapp,
-};
+use color_eyre::{eyre, eyre::Context};
+use suave_rust::amm_auction_suapp::{self, AmmAuctionSuapp};
 
 #[tokio::main]
 async fn main() {
@@ -94,7 +76,7 @@ async fn main() {
         &eoas,
     )
     .await
-    .expect("failed to build amm auction wrapper"); // todo port amm to eyre instead of anyhow
+    .expect("failed to build amm auction wrapper");
 
     let rpc_url: String = std::env::var("WSS_SEPOLIA").expect("WSS_SEPOLIA env var not set");
 

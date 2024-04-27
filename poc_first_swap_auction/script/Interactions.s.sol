@@ -154,7 +154,7 @@ contract Interactions is TestingBase, BlockBuilding, UniswapBase {
         AMMAuctionSuapp.Bid memory bid;
         bid.bidder = bidder;
         bid.blockNumber = blockNumber;
-        bid.payment = bidAmount;
+        bid.amount = bidAmount;
         bid.swapTxn = swapTxn;
         bid.v = v;
         bid.r = r;

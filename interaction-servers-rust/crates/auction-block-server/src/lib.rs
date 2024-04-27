@@ -1,40 +1,16 @@
 use std::collections::HashMap;
 
-use alloy_primitives::{
-    Address,
-    Bytes,
-    FixedBytes,
-    B256,
-    U16,
-    U160,
-    U256,
-};
-use color_eyre::eyre::{
-    self,
-    Context,
-    Error,
-};
-use futures_util::{
-    stream::StreamExt,
-    SinkExt,
-};
+use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256};
+use color_eyre::eyre::{self, Context, Error};
+use futures_util::{stream::StreamExt, SinkExt};
 use serde_json::Value;
-use suave_rust::amm_auction_suapp::{
-    self,
-    AmmAuctionSuapp,
-};
+use suave_rust::amm_auction_suapp::{self, AmmAuctionSuapp};
 use tokio::{
     process::Command,
     task::JoinHandle,
-    time::{
-        sleep,
-        Duration,
-    },
+    time::{sleep, Duration},
 };
-use tokio_tungstenite::{
-    connect_async,
-    tungstenite::protocol::Message,
-};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
 
 /// `BlockServer` is a service responsible for listening for new block produced on the given RCP
@@ -95,7 +71,14 @@ impl BlockServer {
     }
 }
 
-async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp) {
+async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp, block_number: u128) {
+    if let Err(e) = amm_auction_suapp
+        .new_bid(&"bob".to_string(), block_number + 1, 100, 10, true)
+        .await
+    {
+        print!("{}", e);
+    }
+
     // sleep a few seconds to let auction time pass
     sleep(Duration::from_secs(2)).await;
 
@@ -129,6 +112,6 @@ async fn process_header(amm_auction_suapp: &mut AmmAuctionSuapp, text: String) {
 
     if timestamp != 0 {
         // don't run on first message
-        trigger_auction(amm_auction_suapp).await;
+        trigger_auction(amm_auction_suapp, block_number).await;
     }
 }

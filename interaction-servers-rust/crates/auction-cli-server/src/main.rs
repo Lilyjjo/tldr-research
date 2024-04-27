@@ -1,26 +1,8 @@
-use std::{
-    collections::HashMap,
-    process::ExitCode,
-    str::FromStr,
-};
+use std::{collections::HashMap, process::ExitCode, str::FromStr};
 
-use alloy_primitives::{
-    Address,
-    Bytes,
-    FixedBytes,
-    B256,
-    U16,
-    U160,
-    U256,
-};
-use auction_cli_server::{
-    cli::Cli,
-    commands,
-};
-use color_eyre::{
-    eyre,
-    eyre::Context,
-};
+use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256};
+use auction_cli_server::{cli::Cli, commands};
+use color_eyre::{eyre, eyre::Context};
 use suave_rust::amm_auction_suapp::AmmAuctionSuapp;
 
 fn main() -> ExitCode {
@@ -97,8 +79,6 @@ async fn async_main() -> eyre::Result<()> {
         ),
     );
 
-    // build AmmAuction App logic
-
     let amm_auction_wrapper = AmmAuctionSuapp::new(
         std::env::var("SUAPP_AMM").wrap_err("SUAPP_AMM env var not set")?,
         std::env::var("AUCTION_DEPOSITS").wrap_err("AUCTION_DEPOSITS env var not set")?,
@@ -112,7 +92,7 @@ async fn async_main() -> eyre::Result<()> {
         &eoas,
     )
     .await
-    .expect("failed to build amm auction wrapper"); // todo port amm to eyre instead of anyhow
+    .expect("failed to build amm auction wrapper");
 
     let args = Cli::get_args()?;
     commands::run(args, amm_auction_wrapper).await

@@ -6,6 +6,7 @@ import {Bundle} from "./utils/Bundle.sol";
 import {LibString} from "../lib/suave-std/lib/solady/src/utils/LibString.sol";
 import {JSONParserLib} from "../lib/suave-std/lib/solady/src/utils/JSONParserLib.sol";
 import {IAMMAuctionSuapp} from "./interfaces/IAMMAuctionSuapp.sol";
+import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title AMMAuctionSuapp
@@ -22,7 +23,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     uint256 private _notLandedButSent; //
     uint256 private _landed; //
     bool public bundleSuccess;
-    uint256 public filler;
+    uint256 public winningBidAmount;
 
     // Addresses
     address public targetAMM;
@@ -56,7 +57,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     /// @dev bids for a block number
     /// @dev blockNumber => bids
     mapping(uint256 => Suave.DataId[]) private _blockBids;
-
     /// @dev normal transactions
     Suave.DataId[] private _nonBidTxns;
 
@@ -68,7 +68,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     struct Bid {
         address bidder;
         uint256 blockNumber;
-        uint256 payment;
+        uint256 amount;
         bytes swapTxn;
         uint8 v;
         bytes32 r;
@@ -261,8 +261,10 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         (Bid memory winningBid, uint256 secondPrice) = _findAuctionWinner(
             currentBlock,
             lastL1Block,
-            nonce
+            nonce,
+            httpURL
         );
+        uint256 auctionTxnCount = secondPrice == 0 ? 1 : 2;
 
         // construct bundle
         Bundle.BundleObj memory bundle;
@@ -270,8 +272,14 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         bundle.minTimestamp = 0;
         bundle.maxTimestamp = 0;
         uint256 nonBidTxnsCount = _nonBidTxns.length - txsToSendIndex;
-        bundle.txns = new bytes[](1 + nonBidTxnsCount);
         bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
+        bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
+        bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
+
+        if (auctionTxnCount == 2) {
+            // include space for bid's swap txn
+            bundle.txns[1] = winningBid.swapTxn;
+        }
 
         // construct payment transaction
         bytes memory signedPaymentTxn = _createPostAuctionTransaction(
@@ -283,7 +291,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
 
         // add payment and bid transactions to bundle
         bundle.txns[0] = signedPaymentTxn;
-        //bundle.txns[1] = winningBid.swapTxn;
 
         // add non-bid transactions
         uint256 includedTransactionCount = 0;
@@ -292,18 +299,21 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 _nonBidTxns[i],
                 nonBidTxnNamespace
             );
-            bundle.txns[1 + includedTransactionCount] = nonBidTxn;
+            bundle.txns[auctionTxnCount + includedTransactionCount] = nonBidTxn;
             bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
                 nonBidTxn
             );
             includedTransactionCount++;
         }
 
-        // send bundle
+        // send bundle to flashbots
         bytes memory bundleRes = Bundle.sendBundle(
-            "https://relay-sepolia.flashbots.net",
+            "https://relay-holesky.flashbots.net",
             bundle
         );
+        // send to titan too
+        Bundle.sendBundle("http://holesky-rpc.titanbuilder.xyz/", bundle);
+
         // TODO figure out how to debug failing bundles
         //require(
         // this hex is '{"id":1,"result"'
@@ -317,9 +327,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             _lastBlockProcessedRecord,
             KEY_LAST_BLOCK_PROCESSED,
             abi.encodePacked(currentBlock)
-        ); // todo might need packed
+        );
 
-        // update consumed user transactions
+        // send info to callback
         return
             abi.encodeWithSelector(
                 this.callbackRunAuction.selector,
@@ -328,6 +338,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 nonce,
                 currentBlock,
                 nonBidTxnsCount,
+                secondPrice,
                 bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422
             );
     }
@@ -338,6 +349,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         uint256 nonceUsed_,
         uint256 auctioned_block,
         uint256 nonBidTxnsCount_,
+        uint256 secondPrice_,
         bool bundleSuccess_
     ) external {
         // funcitonal
@@ -348,13 +360,15 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         includedTxns = nonBidTxnsCount_;
         nonceUsed = nonceUsed_;
         lastAuctionProcessedL1Block = auctioned_block;
+        winningBidAmount = secondPrice_;
         bundleSuccess = bundleSuccess_;
     }
 
     function _findAuctionWinner(
         uint256 blockNum,
         Block memory blockData,
-        uint256 signingKeyNonce
+        uint256 signingKeyNonce,
+        string memory httpURL
     ) internal returns (Bid memory, uint256) {
         // filter through bids for last auction
         Suave.DataId[] storage bids = _blockBids[blockNum];
@@ -369,14 +383,19 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 (Bid)
             );
             // check if bid passes simulation checks, if so, consider as valid bid
-            bool passed = _simulateBid(bid, blockData, signingKeyNonce);
+            bool passed = _simulateBid(
+                bid,
+                blockData,
+                signingKeyNonce,
+                httpURL
+            );
             if (passed) {
-                if (bid.payment > bestPrice) {
+                if (bid.amount > bestPrice) {
                     secondPrice = bestPrice;
-                    bestPrice = bid.payment;
+                    bestPrice = bid.amount;
                     bestBid = bid;
-                } else if (bid.payment > secondPrice) {
-                    secondPrice = bid.payment;
+                } else if (bid.amount > secondPrice) {
+                    secondPrice = bid.amount;
                 }
             }
         }
@@ -391,21 +410,20 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     function _simulateBid(
         Bid memory bid,
         Block memory blockData,
-        uint256 signingKeyNonce
+        uint256 signingKeyNonce,
+        string memory httpURL
     ) internal returns (bool) {
         // check that bidder has enough funds to cover
-        bytes memory depositResult = Suave.ethcall(
+        uint256 deposit = _ethCallUint(
+            httpURL,
             targetDepositContract,
-            abi.encodeWithSignature(
-                "balanceOf(address)",
-                abi.encode(bid.bidder)
-            )
+            abi.encodeWithSignature("balanceOf(address)", bid.bidder)
         );
-        uint256 deposit = abi.decode(depositResult, (uint256));
-        if (deposit < bid.payment) return false;
+
+        if (deposit < bid.amount) return false;
 
         // check that the withdraw and swap txns succeed
-        string memory sessionId = string(bid.swapTxn);
+        // string memory id = Suave.newBuilder();
 
         // (1) simulate pulling payments
         bytes memory paymentTxn = _createPostAuctionTransaction(
@@ -414,9 +432,18 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             true,
             signingKeyNonce
         );
-        Suave.SimulateTransactionResult memory simRes = Suave
-            .simulateTransaction(sessionId, paymentTxn);
-        if (simRes.success = false) return false; // payment txn reverted
+
+        // TODO: wait for ferran to help debug Builder/Simulation API
+        // If doesn't work, will need to write additional bid checking code
+
+        return true;
+
+        //Suave.SimulateTransactionResult memory simRes = Suave
+        //    .simulateTransaction(id, paymentTxn);
+        //require(simRes.success == true);
+        //require(simRes.logs.length == 1);
+
+        /*
 
         // check for success log
         bool foundPaymentSuccessLog;
@@ -461,6 +488,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
 
         // bid's execution is valid
         return true;
+        */
     }
 
     function _createPostAuctionTransaction(
@@ -474,7 +502,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
             "postAuctionResults(address,uint256,uint256,bool,uint8,bytes32,bytes32)",
             bid.bidder,
             bid.blockNumber,
-            bid.payment,
+            bid.amount,
             auctionHasWinner,
             bid.v,
             bid.r,
@@ -484,8 +512,8 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         // create transaction
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
             to: targetAuctionGuard,
-            gas: gasNeededPostAuctionResults, //1_318_583_686
-            gasPrice: blockData.baseFeePerGas + 4_000_000_000, // TODO figure out what to set this to
+            gas: gasNeededPostAuctionResults,
+            gasPrice: blockData.baseFeePerGas + 800_000_000_000, // TODO figure out what to set this to
             value: 0,
             nonce: signingKeyNonce,
             data: targetCall,
@@ -618,6 +646,33 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         );
 
         return JSONParserLib.parseUintFromHex(stringResult);
+    }
+
+    function _ethCallUint(
+        string memory httpURL,
+        address targetContract,
+        bytes memory data
+    ) internal returns (uint256) {
+        bytes memory body = abi.encodePacked(
+            '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"',
+            LibString.toHexStringChecksummed(targetContract),
+            '","data":"',
+            LibString.toHexString(data),
+            '"},"latest"],"id":1}'
+        );
+
+        Suave.HttpRequest memory request;
+        request.method = "POST";
+        request.body = body;
+        request.headers = new string[](1);
+        request.headers[0] = "Content-Type: application/json";
+        request.withFlashbotsSignature = false;
+        request.url = httpURL;
+
+        bytes memory result = Suave.doHTTPRequest(request);
+        JSONParserLib.Item memory outerItem = string(result).parse();
+        JSONParserLib.Item memory item = outerItem.at('"result"');
+        return JSONParserLib.parseUintFromHex(trimQuotes(string(item.value())));
     }
 
     function trimQuotes(

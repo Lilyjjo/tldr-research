@@ -36,7 +36,7 @@ sol! {
         struct Bid {
             address bidder;
             uint256 blockNumber;
-            uint256 payment;
+            uint256 amount;
             bytes swapTxn;
             uint8 v;
             bytes32 r;
@@ -44,7 +44,7 @@ sol! {
         }
     }
 
-    struct withdrawBid{
+    struct WithdrawBid{
         address bidder;
         uint256 blockNumber;
         uint256 amount;
@@ -91,8 +91,6 @@ pub struct AmmAuctionSuapp {
     salt: u128,
 }
 
-// send(to contract (on network), from entity)
-// contracts (with networks), sent to functions from entities
 impl AmmAuctionSuapp {
     pub async fn new(
         auction_suapp_address: String,
@@ -156,11 +154,6 @@ impl AmmAuctionSuapp {
                  .1
                 .parse()
                 .wrap_err("failed to parse pk for sepolia wallet")?;
-            // maybe idk
-            // let signer_provider = ProviderBuilder::<_, SuaveNetwork>::default()
-            // .signer(SuaveSigner::from(wallet))
-            // .on_reqwest_http(suave_rpc_url.clone())
-            // .context("failed to build signer wallet")?;
             sepolia_wallets.insert(sepolia_eoa.0.to_string(), wallet);
         }
         Ok(AmmAuctionSuapp {
@@ -198,7 +191,6 @@ impl AmmAuctionSuapp {
             .get_transaction_by_hash(tx_hash)
             .await
             .unwrap();
-        // println!("{:#?}", tx_response);
         Ok(())
     }
 
@@ -279,7 +271,6 @@ impl AmmAuctionSuapp {
             .with_gas_price(gas_price)
             .with_chain_id(chain_id.to::<u64>())
             .with_nonce(nonce.to::<u64>());
-        println!("tx: {:#?}", tx);
         Ok(tx)
     }
 
@@ -389,14 +380,14 @@ impl AmmAuctionSuapp {
             .wrap_err("failed when building bid's inner swap transaction")?;
 
         // create and sign over withdraw 712 request
-        let my_domain = alloy_sol_types::eip712_domain!(
+        let my_domain: alloy_sol_types::Eip712Domain = alloy_sol_types::eip712_domain!(
             name: "AuctionDeposits",
-            version: "1",
-            chain_id: 11155111u64,
+            version: "v1",
+            chain_id: 17000u64, // holesky
             verifying_contract: self.deposit_contract_address,
         );
 
-        let bid_request = withdrawBid {
+        let bid_request = WithdrawBid {
             bidder: bidder.address(),
             blockNumber: U256::from(block_number),
             amount: U256::from(bid_amount),
@@ -412,11 +403,11 @@ impl AmmAuctionSuapp {
         let bid = IAMMAuctionSuapp::Bid {
             bidder: bidder.address(),
             blockNumber: U256::from(block_number),
-            payment: U256::from(bid_amount),
+            amount: U256::from(bid_amount),
             swapTxn: signed_swap_txn.into(),
-            v: bid_signature.v().y_parity_byte(),
+            v: bid_signature.v().y_parity_byte() + 27,
             r: bid_signature.r().into(),
-            s: bid_signature.r().into(),
+            s: bid_signature.s().into(),
         }
         .abi_encode();
 
@@ -613,12 +604,7 @@ impl AmmAuctionSuapp {
         println!("  notLandedButSent     : {}", slot_4);
         println!("  landed               : {}", slot_5);
         println!("  bundle success       : {}", slot_6);
-        // println!("  bundle accepted         : {}", slot_5);
-        // println!(
-        //    "  lastStoredAuctionedBlock: {}",
-        //    slot_6
-        //);
-        // println!("  bundle_sent_for:          {}", slot_7);
+        println!("  winning bid $        : {}", slot_7);
 
         Ok(())
     }
