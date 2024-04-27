@@ -36,18 +36,20 @@ Setting up the L1 contract takes about ~10 minutes to run. It deploys and initia
 cd poc_first_swap_auction
 forge script script/Deployments.s.sol:Deployments --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool)" true true
 ```
-5. Deploy the Suave Auction contract
+5. Put the outputted deployed addresses into `poc_first_swap_auction/.env`. Those addresses are used for deploying the Suave contracts and by the rust servers.
+6. Deploy the Suave Auction contract
 ```
 cd poc_first_swap_auction
 forge script script/Deployments.s.sol:Deployments --sig "deploySuaveAMMAuction()" --broadcast --legacy -vv
 ```
-6. Initalize the suapp's inital state
+7. Put the outputted deployed address into `poc_first_swap_auction/.env`.
+8. Initalize the suapp's inital state
 This command is flakey, run until all 3 CCRs are sent.
 ```
 cd interaction-servers-rust
 ./target/debug/auction-cli-server amm-auction initialize-suapp
 ```
-7. Run the block server and watch as `bidder_0` and `swapper_0`'s transactions are eventually included. You can tell successful bundle lands when the used nonce goes up.
+9. Run the block server and watch as `bidder_0` and `swapper_0`'s transactions are eventually included. You can tell successful bundle lands when the used nonce goes up.
 ```
 cd interaction-servers-rust
 ./target/debug/auction-block-server
