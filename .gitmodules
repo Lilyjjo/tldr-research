@@ -25,3 +25,6 @@
 [submodule "poc_first_swap_auction/lib/openzeppelin-contracts"]
 	path = poc_first_swap_auction/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "poc_first_swap_auction/lib/forge-std"]
+	path = poc_first_swap_auction/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
