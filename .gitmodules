@@ -1,18 +1,3 @@
-[submodule "uni_v3_pool_setup/lib/v3-core"]
-	path = uni_v3_pool_setup/lib/v3-core
-	url = https://github.com/uniswap/v3-core
-[submodule "uni_v3_pool_setup/lib/v3-periphery"]
-	path = uni_v3_pool_setup/lib/v3-periphery
-	url = https://github.com/uniswap/v3-periphery
-[submodule "uni_v3_pool_setup/lib/openzeppelin-contracts"]
-	path = uni_v3_pool_setup/lib/openzeppelin-contracts
-	url = https://github.com/Openzeppelin/openzeppelin-contracts
-[submodule "poc_only_sequenceable_by_suave/lib/suave-std"]
-	path = poc_only_sequenceable_by_suave/lib/suave-std
-	url = https://github.com/flashbots/suave-std
-[submodule "poc_only_sequenceable_by_suave/lib/openzeppelin-contracts"]
-	path = poc_only_sequenceable_by_suave/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "poc_first_swap_auction/lib/suave-std"]
 	path = poc_first_swap_auction/lib/suave-std
 	url = https://github.com/flashbots/suave-std

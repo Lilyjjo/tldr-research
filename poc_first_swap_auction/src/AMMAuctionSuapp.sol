@@ -272,7 +272,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         bundle.minTimestamp = 0;
         bundle.maxTimestamp = 0;
         uint256 nonBidTxnsCount = _nonBidTxns.length - txsToSendIndex;
-        bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
+        //bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
         bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
         bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
 
@@ -300,9 +300,9 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 nonBidTxnNamespace
             );
             bundle.txns[auctionTxnCount + includedTransactionCount] = nonBidTxn;
-            bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
-                nonBidTxn
-            );
+            //bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
+            //    nonBidTxn
+            //);
             includedTransactionCount++;
         }
 
