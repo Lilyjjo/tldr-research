@@ -31,7 +31,8 @@ git submodule update --init --recursive
 ```
 
 4. Setup the L1 contracts
-Setting up the L1 contract takes about ~10 minutes to run. It deploys and initializes all of the uniswap code, the L1 auction code, and sets up the swapper and bidders with the needed funds and state to be able to swap the pool's tokens and place bids on the auction contract. All of the bidder/swapper keys in the .env need funds on the tar for this to complete. 
+   
+Setting up the L1 contract takes about ~10 minutes to run. It deploys and initializes all of the uniswap code, the L1 auction code, and sets up the swapper and bidders with the needed funds and state to be able to swap the pool's tokens and place bids on the auction contract. All of the bidder/swapper keys in the .env need funds on the target L1 for this to complete. 
 ```
 cd poc_first_swap_auction
 forge script script/Deployments.s.sol:Deployments --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool)" true true
