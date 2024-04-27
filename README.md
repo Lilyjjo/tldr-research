@@ -1,12 +1,14 @@
 # [TLDR](https://www.tldresear.ch/) Fellowship Project Repo
 
-This repo is exploring how solidity smart contracts are able to take control of their own sequencing via Flashbot's block programming platform [SUAVE](https://suave.flashbots.net/what-is-suave). The PoCs in this repo are building up to a Uniswap v3 AMM which aims to elimintate sandwhich attacks and lessen LVR through verified sequencing rules. 
+This repo explores how on-chain solidity smart contracts are able to take control of their own sequencing via Flashbot's block programming platform [SUAVE](https://suave.flashbots.net/what-is-suave) for the sake of capturing their own MEV. This repo contains a proof of concept uniswap v3 pool that auctions off the first swap in the pool per block, enabling the pool to capture some of the LVR arbitrage opportunity which it creates. The auction is written in solidity as a smart contract on Suave and takes advantage of Suave's TEE enabled trusted execution and privacy to make the auction secure. 
 
-Each PoC will consist of normal solidity smart contracts, to be launched on Sepolia testnet, and a SUAVE app (suapp) which will control portions of the sequencing for the smart contracts.
+The goal of this repo are:
+1. Show that smart contract applications are able to sequence themselves for their own benefit.
+2. Provide proof-of-concept Suave auction code that is reusable.
+3. Start the conversation on why block builders shouldn't exist and why decentralized applications should be able to control their own sequencing. If you find this interesting and want to chat, DM me on [twitter](https://twitter.com/lobstermindset) :).
 
+## System Components
 
-SUAVE PoCs in progress of being written:
-- Basic smart contract whose main functionality is only sequence-able by a SUAVE app (“suapp”) [⚠️ needs to be rewritten to reflect Suave's [non-consistent and non-synchronous](https://github.com/flashbots/suave-geth/issues/190) off-chain programming model]
-- First swap (‘top of block’) auction for AMM for uniswap v3 [currently being written]
-- AMM which is sequenced with Matheus’s [Greedy Algorithm](https://arxiv.org/pdf/2209.15569.pdf) AMM sequencing rules [not started]
+![System Diagram](./poc_first_swap_auction/assets/system_diagram.png?raw=true "System Diagram")
 
+WIP 🚧👷🏼‍♀️🔨
