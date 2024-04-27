@@ -2,10 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
-import {CCRForgeUtil} from "./utils/CCRForgeUtil.sol";
 
 contract TestingBase is Script {
-    CCRForgeUtil ccrUtil;
     address addressUserSepolia;
     uint256 privateKeyUserSepolia;
     address addressUserSepolia2;
@@ -139,9 +137,5 @@ contract TestingBase is Script {
         // create forkURLs to toggle between chains
         forkIdSuave = vm.createFork(rpcUrlSuave);
         forkIdSepolia = vm.createFork(rpcUrlSepolia);
-
-        // setup confidential compute request util for use on suave fork (note is local)
-        vm.selectFork(forkIdSuave);
-        ccrUtil = new CCRForgeUtil();
     }
 }
