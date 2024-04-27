@@ -12,9 +12,9 @@ import {ERC20Mintable} from "../src/utils/ERC20Mintable.sol";
 import {TickMath} from "v3-core/libraries/TickMath.sol";
 
 /**
- * @title
+ * @title UniswapBase
  * @author lilyjjo
- * @dev
+ * @notice Code for setting up modified uniswap v3 pool
  */
 contract UniswapBase is Script {
     // (uniswap): code realted to uniV3 initialization and use

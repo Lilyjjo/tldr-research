@@ -21,7 +21,7 @@ fn run() -> eyre::Result<()> {
 }
 
 async fn async_main() -> eyre::Result<()> {
-    let config = AmmAuctionConfig::new("../.env")
+    let config = AmmAuctionConfig::new("../poc_first_swap_auction/.env")
         .await
         .expect("failed to build auction amm config");
 

@@ -1,0 +1,52 @@
+# Toggle to use local or suave chanis
+USE_LOCAL=true 
+
+# Also known as the 'kettle' address
+EXECUTION_NODE_LOCAL=0xb5feafbdd752ad52afb7e1bd2e40432a485bbb7f
+EXECUTION_NODE_SUAVE=0x03493869959C866713C33669cA118E774A30A0E5
+
+# Addresses that have funds on local Suave
+SUAVE_SIGNER_LOCAL=0xBE69d72ca5f88aCba033a063dF5DBe43a4148De0
+SUAVE_SIGNER_LOCAL_PK=91ab9a7e53c220e6210460b65a7a3bb2ca181412a8a7b43ff336b3df1737ce12
+
+# Addresses that need funds on Suave-Rigil
+SUAVE_SIGNER=
+SUAVE_SIGNER_PK=
+
+# Addresses that need funds on the target L1
+SUAPP_SIGNER=
+SUAPP_SINGER_PK=
+
+BIDDER_0=
+BIDDER_0_PK=
+BIDDER_1=
+BIDDER_1_PK=
+BIDDER_2=
+BIDDER_2_PK=
+
+SWAPPER_0=
+SWAPPER_0_PK=
+SWAPPER_1=
+SWAPPER_1_PK=
+SWAPPER_2=
+SWAPPER_2_PK=
+
+# Chain Ids for transaction building
+CHAIN_ID_L1=17000
+CHAIN_ID_SUAVE=16813125
+
+# Needed RPCs
+RPC_URL_L1=https://ethereum-holesky-rpc.publicnode.com
+WSS_L1=wss://ethereum-holesky-rpc.publicnode.com
+RPC_URL_SUAVE_LOCAL=http://127.0.0.1:8545
+RPC_URL_SUAVE=https://rpc.rigil.suave.flashbots.net
+RPC_URL_SUAVE_EXECUTION_ENDPOINT= # Ask suave team for this, it's to enable simulations. If you don't have this, comment out the Builder/Simulate part of the bid verification
+
+# Deployed contract addresses
+SUAPP_AMM=
+AUCTION_DEPOSITS=
+AUCTION_GUARD=
+SWAP_ROUTER=
+POOL=
+TOKEN_0=
+TOKEN_1=

@@ -4,100 +4,89 @@ pragma solidity ^0.8.13;
 import {Script} from "forge-std/Script.sol";
 
 contract TestingBase is Script {
-    address addressUserSepolia;
-    uint256 privateKeyUserSepolia;
-    address addressUserSepolia2;
-    uint256 privateKeyUserSepolia2;
-    address addressUserSepolia3;
-    uint256 privateKeyUserSepolia3;
+    address public suave_signer;
+    uint256 public suave_signer_pk;
+    address public suapp_signer;
+    uint256 public suapp_signer_pk;
 
-    address addressUserSuave;
-    uint256 privateKeyUserSuave;
+    address public bidder_0;
+    uint256 public bidder_0_pk;
+    address public bidder_1;
+    uint256 public bidder_1_pk;
+    address public bidder_2;
+    uint256 public bidder_2_pk;
+    address public swapper_0;
+    uint256 public swapper_0_pk;
+    address public swapper_1;
+    uint256 public swapper_1_pk;
+    address public swapper_2;
+    uint256 public swapper_2_pk;
 
-    address addressStoredSuapp;
-    uint256 privateKeyStoredSuapp;
+    address public execution_node;
+    uint public gasNeeded;
 
-    address addressPoking;
-    uint256 privateKeyPoking;
+    uint public chainIdL1;
+    uint public chainIdSuave;
+    string public rpcUrlL1;
+    string public rpcUrlSuave;
+    uint public forkIdL1;
+    uint public forkIdSuave;
 
-    address addressKettle;
+    address public suapp_amm;
+    address public auction_deposits;
+    address public auction_guard;
+    address public swap_router;
+    address public pool;
+    address public token_0;
+    address public token_1;
 
-    uint gasNeededSepoliaPoke;
-
-    uint chainIdSepolia;
-    uint chainIdSuave;
-    string rpcUrlSepolia;
-    string rpcUrlSuave;
-    uint forkIdSuave;
-    uint forkIdSepolia;
-
-    // Needed vars for deploying AuctionAMM
-    address constant AUCTION_DEPOSITS =
-        0x08428691D343Aa2EF699b0BCef8dB809D9085ebD;
-    address constant AUCTION_GUARD = 0x46e42509A8c3127d466f26EBf6A9646D89DEaB39;
-    address constant POOL_DEPLOYED = 0x5DC6F55f1B524Ae19006b92d77678f89050bD98F;
-    address constant ROUTER_DEPLOYED =
-        0x862DE3391fD6cE8ab668DD316bc3d9655Eda68E5;
+    // Uniswap Pool vars
+    uint16 public constant POOL_FEE = 3000;
 
     /**
      * @notice Pulls environment variables and sets up fork urls.
-     * @dev Toggle between Rigil and local devnet with 'USE_RIGIL'
+     * @dev Toggle between Rigil and local devnet with 'USE_LOCAL'
      */
     function TestingBaseSetUp() public {
-        // setup sepolia variables
-        chainIdSepolia = vm.envUint("CHAIN_ID_SEPOLIA");
-        rpcUrlSepolia = vm.envString("RPC_URL_SEPOLIA");
-        addressUserSepolia = vm.envAddress("FUNDED_ADDRESS_SEPOLIA");
-        privateKeyUserSepolia = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA")
-        );
+        // setup common variables
+        chainIdL1 = vm.envUint("CHAIN_ID_L1");
+        chainIdSuave = vm.envUint("CHAIN_ID_SUAVE");
+        rpcUrlL1 = vm.envString("RPC_URL_L1");
 
-        addressUserSepolia2 = vm.envAddress("FUNDED_ADDRESS_SEPOLIA_I");
-        privateKeyUserSepolia2 = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA_I")
-        );
+        suapp_signer = vm.envAddress("SUAPP_SIGNER");
+        suapp_signer_pk = uint256(vm.envBytes32("SUAPP_SIGNER_PK"));
 
-        addressUserSepolia3 = vm.envAddress("FUNDED_ADDRESS_SEPOLIA_II");
-        privateKeyUserSepolia3 = uint256(
-            vm.envBytes32("FUNDED_PRIVATE_KEY_SEPOLIA_II")
-        );
+        bidder_0 = vm.envAddress("BIDDER_0");
+        bidder_0_pk = uint256(vm.envBytes32("BIDDER_0_PK"));
+        bidder_1 = vm.envAddress("BIDDER_1");
+        bidder_1_pk = uint256(vm.envBytes32("BIDDER_1_PK"));
+        bidder_2 = vm.envAddress("BIDDER_2");
+        bidder_2_pk = uint256(vm.envBytes32("BIDDER_2_PK"));
 
-        // Poking related values
-        addressPoking = vm.envAddress("ADDRESS_SIGNING_POKE");
-        privateKeyPoking = uint256(vm.envBytes32("PRIVATE_KEY_SIGNING_POKE"));
-        gasNeededSepoliaPoke = vm.envUint("GAS_NEEDED_SEPOLIA_POKE");
+        swapper_0 = vm.envAddress("SWAPPER_0");
+        swapper_0_pk = uint256(vm.envBytes32("SWAPPER_0_PK"));
+        swapper_1 = vm.envAddress("SWAPPER_1");
+        swapper_1_pk = uint256(vm.envBytes32("SWAPPER_1_PK"));
+        swapper_2 = vm.envAddress("SWAPPER_2");
+        swapper_2_pk = uint256(vm.envBytes32("SWAPPER_2_PK"));
 
-        // private key to store in suapp
-        addressStoredSuapp = vm.envAddress(
-            "FUNDED_SEPOLIA_ADDRESS_TO_PUT_INTO_SUAPP"
-        );
-        privateKeyStoredSuapp = uint256(
-            vm.envBytes32("FUNDED_SEPOLIA_PRIVATE_KEY_TO_PUT_INTO_SUAPP")
-        );
-
-        // setup suave variable, toggle between using local devnet and rigil testnet
-        if (vm.envBool("USE_RIGIL")) {
+        // setup local/rigil specific variables, toggle between using local devnet and rigil testnet
+        if (vm.envBool("USE_LOCAL")) {
             // grab rigil variables
-            chainIdSuave = vm.envUint("CHAIN_ID_RIGIL");
-            rpcUrlSuave = vm.envString("RPC_URL_RIGIL");
-            addressUserSuave = vm.envAddress("FUNDED_ADDRESS_RIGIL");
-            privateKeyUserSuave = uint256(
-                vm.envBytes32("FUNDED_PRIVATE_KEY_RIGIL")
-            );
-            addressKettle = vm.envAddress("KETTLE_ADDRESS_RIGIL");
+            rpcUrlSuave = vm.envString("RPC_URL_SUAVE_LOCAL");
+            suave_signer = vm.envAddress("SUAVE_SIGNER_LOCAL");
+            suave_signer_pk = uint256(vm.envBytes32("SUAVE_SIGNER_LOCAL_PK"));
+            execution_node = vm.envAddress("EXECUTION_NODE_SUAVE_LOCAL");
         } else {
             // grab local variables
-            chainIdSuave = vm.envUint("CHAIN_ID_LOCAL_SUAVE");
-            rpcUrlSuave = vm.envString("RPC_URL_LOCAL_SUAVE");
-            addressUserSuave = vm.envAddress("FUNDED_ADDRESS_SUAVE_LOCAL");
-            privateKeyUserSuave = uint256(
-                vm.envBytes32("FUNDED_PRIVATE_KEY_SUAVE_LOCAL")
-            );
-            addressKettle = vm.envAddress("KETTLE_ADDRESS_SUAVE_LOCAL");
+            rpcUrlSuave = vm.envString("RPC_URL_SUAVE");
+            suave_signer = vm.envAddress("SUAVE_SIGNER");
+            suave_signer_pk = uint256(vm.envBytes32("SUAVE_SIGNER_PK"));
+            execution_node = vm.envAddress("EXECUTION_NODE_SUAVE");
         }
 
         // create forkURLs to toggle between chains
         forkIdSuave = vm.createFork(rpcUrlSuave);
-        forkIdSepolia = vm.createFork(rpcUrlSepolia);
+        forkIdL1 = vm.createFork(rpcUrlL1);
     }
 }

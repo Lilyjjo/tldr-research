@@ -4,7 +4,7 @@ use suave_rust::{amm_auction_config::AmmAuctionConfig, amm_auction_suapp::AmmAuc
 
 #[tokio::main]
 async fn main() {
-    let config = AmmAuctionConfig::new("../.env")
+    let config = AmmAuctionConfig::new("../poc_first_swap_auction/.env")
         .await
         .expect("failed to build auction amm config");
 

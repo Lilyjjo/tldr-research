@@ -39,14 +39,18 @@ contract Deployments is TestingBase, UniswapBase {
      */
     function deploySuaveAMMAuction() public {
         vm.selectFork(forkIdSuave);
-        vm.startBroadcast(privateKeyUserSuave);
+        vm.startBroadcast(suave_signer_pk);
+
+        auction_deposits = vm.envAddress("AUCTION_DEPOSITS");
+        auction_guard = vm.envAddress("AUCTION_GUARD");
+        pool = vm.envAddress("POOL");
 
         AMMAuctionSuapp ammAuctionSuapp = new AMMAuctionSuapp(
-            POOL_DEPLOYED,
-            AUCTION_DEPOSITS,
-            AUCTION_GUARD,
-            chainIdSepolia,
-            gasNeededSepoliaPoke
+            pool,
+            auction_deposits,
+            auction_guard,
+            chainIdL1,
+            2_000_000 // gas needed, idk might be wrong and/or unused
         );
         console2.log("ammAuctionSuapp addresss: ");
         console2.log(address(ammAuctionSuapp));
@@ -56,17 +60,16 @@ contract Deployments is TestingBase, UniswapBase {
      * @notice Deploys and sets up new L1 contracts for testing
      * @dev creates and submits ~30 transactions, will take ~12 minutes to complete
      * @dev note: Put these deployed addresses into the TestingBase file
-     * @dev command: forge script script/Deployments.s.sol:Deployments  --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool,bool)" true true true
+     * @dev command: forge script script/Deployments.s.sol:Deployments  --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool)" true true
      */
     function freshL1Contracts(
         bool initPoolState,
-        bool enableAuction,
         bool depositBidPaymet
     ) public {
-        address admin = addressUserSepolia;
-        uint256 adminPk = privateKeyUserSepolia;
+        address admin = bidder_0;
+        uint256 adminPk = bidder_0_pk;
 
-        vm.selectFork(forkIdSepolia);
+        vm.selectFork(forkIdL1);
         vm.startBroadcast(adminPk);
 
         // (1) Auction Deposits
@@ -77,12 +80,12 @@ contract Deployments is TestingBase, UniswapBase {
         // (2) Auction Guard
         IAuctionGuard auctionGuard = new AuctionGuard(
             address(auctionDeposits),
-            addressStoredSuapp
+            suapp_signer
         );
         console2.log("auctionGuard: ");
         console2.log(address(auctionGuard));
         console2.log("auctionGuard's suapp signing key: ");
-        console2.log(addressStoredSuapp);
+        console2.log(suapp_signer);
 
         // associate the guard in the deposit contract
         auctionDeposits.setAuction(address(auctionGuard));
@@ -96,7 +99,7 @@ contract Deployments is TestingBase, UniswapBase {
                 POOL_FEE,
                 admin,
                 adminPk,
-                forkIdSepolia
+                forkIdL1
             );
 
         if (initPoolState) {
@@ -105,36 +108,51 @@ contract Deployments is TestingBase, UniswapBase {
 
             // add liquidty to the pool
             _addLiquidity(
-                addressUserSepolia2, // liquidity provider
-                privateKeyUserSepolia2,
+                bidder_0, // liquidity provider
+                bidder_0_pk,
                 deploymentInfo
             );
             // give swappers tokens to swap with router
             _fundSwapperApproveSwapRouter(
-                addressUserSepolia, // admin
-                privateKeyUserSepolia,
+                bidder_0,
+                bidder_0_pk,
                 deploymentInfo
             );
             _fundSwapperApproveSwapRouter(
-                addressUserSepolia2, // liqudity provider / bidder
-                privateKeyUserSepolia2,
+                bidder_1,
+                bidder_1_pk,
                 deploymentInfo
             );
             _fundSwapperApproveSwapRouter(
-                addressUserSepolia3, // basic swapper
-                privateKeyUserSepolia3,
+                bidder_2, // liqudity provider / bidder
+                bidder_2_pk,
                 deploymentInfo
             );
-        }
-        if (enableAuction) {
-            // (5) if to turn auctions on for suapp
-            vm.startBroadcast(adminPk);
-            auctionGuard.enableAuction(true);
-            vm.stopBroadcast();
+            _fundSwapperApproveSwapRouter(
+                swapper_0,
+                swapper_0_pk,
+                deploymentInfo
+            );
+            _fundSwapperApproveSwapRouter(
+                swapper_1,
+                swapper_1_pk,
+                deploymentInfo
+            );
+            _fundSwapperApproveSwapRouter(
+                swapper_2,
+                swapper_2_pk,
+                deploymentInfo
+            );
         }
         if (depositBidPaymet) {
             // (6) if to have bidder place Sepolia eth into the deposit contracts
-            vm.startBroadcast(privateKeyUserSepolia2);
+            vm.startBroadcast(bidder_0_pk);
+            auctionDeposits.deposit{value: .001 ether}();
+            vm.stopBroadcast();
+            vm.startBroadcast(bidder_1_pk);
+            auctionDeposits.deposit{value: .001 ether}();
+            vm.stopBroadcast();
+            vm.startBroadcast(bidder_2_pk);
             auctionDeposits.deposit{value: .001 ether}();
             vm.stopBroadcast();
         }
