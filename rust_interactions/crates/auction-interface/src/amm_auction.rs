@@ -68,7 +68,7 @@ sol! {
         #[derive(Debug)]
         function newBid(string memory salt) external returns (bytes memory);
         #[derive(Debug)]
-        function runAuction(uint256 salt) external returns (bytes memory);
+        function runAuction() external returns (bytes memory);
         #[derive(Debug)]
         function setSigningKey(address pubKey) external returns (bytes memory);
         #[derive(Debug)]
@@ -144,7 +144,7 @@ pub struct AmmAuctionSuapp {
     eoa_wallets: HashMap<String, LocalWallet>,
     sepolia_rpc: String,
     last_used_suave_nonce: u64,
-    salt: u128,
+    count: u128,
 }
 
 impl AmmAuctionSuapp {
@@ -276,7 +276,7 @@ impl AmmAuctionSuapp {
             eoa_wallets: eoa_accounts,
             sepolia_rpc,
             last_used_suave_nonce: 0,
-            salt: 0,
+            count: 0,
         })
     }
 
@@ -422,6 +422,29 @@ impl AmmAuctionSuapp {
             .encode_2718(&mut rlp_encoded_swap_tx);
 
         Ok(rlp_encoded_swap_tx)
+    }
+
+    pub async fn trigger_auction(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .eoa_wallets
+            .get("suave_signer")
+            .expect("funded suave's wallet not initialized");
+
+        // create generic transaction request and add function specific data
+        println!("times called: {}", self.count);
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAMMAuctionSuapp::runAuction::SELECTOR).into());
+        self.count += 1;
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
+            .await
+            .wrap_err("failed to send trigger auction CCR")?;
+        Ok(())
     }
 
     pub async fn new_pending_txn(
@@ -630,37 +653,6 @@ impl AmmAuctionSuapp {
         Ok(())
     }
 
-    pub async fn trigger_auction(&mut self) -> eyre::Result<()> {
-        let suave_signer = self
-            .eoa_wallets
-            .get("suave_signer")
-            .expect("funded suave's wallet not initialized");
-
-        // create generic transaction request and add function specific data
-        println!("salt being used: {}", self.salt);
-        let tx = self
-            .build_generic_suave_transaction(suave_signer.address())
-            .await
-            .context("failed to build generic transaction")?
-            .input(
-                Bytes::from(
-                    IAMMAuctionSuapp::runAuctionCall {
-                        salt: U256::from(self.salt),
-                    }
-                    .abi_encode(),
-                )
-                .into(),
-            );
-        self.salt += 1;
-
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
-        self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
-            .await
-            .wrap_err("failed to send trigger auction CCR")?;
-        Ok(())
-    }
-
     pub async fn print_auction_stats(&mut self) -> eyre::Result<()> {
         // grab from amm's visibility storage slots
         let slot_0 = self
@@ -705,14 +697,11 @@ impl AmmAuctionSuapp {
             .context("failed grabbing amm's storage slot")?;
 
         println!("Auction Stats");
-        // println!("  test    : {}", slot_0);
-        println!("  auctioned block      : {}", slot_1);
-        println!("  last nonce used      : {}", slot_2);
-        println!("  included_txns        : {}", slot_3);
-        println!("  notLandedButSent     : {}", slot_4);
-        println!("  landed               : {}", slot_5);
-        println!("  bundle success       : {}", slot_6);
-        println!("  winning bid $        : {}", slot_7);
+        println!("  auctioned block      : {}", slot_0);
+        println!("  last nonce used      : {}", slot_1);
+        println!("  included swap txns   : {}", slot_2);
+        println!("  total landed         : {}", slot_4);
+        println!("  winning bid $        : {}", slot_5);
 
         Ok(())
     }

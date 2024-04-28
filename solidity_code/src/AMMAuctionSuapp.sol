@@ -16,13 +16,11 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     using JSONParserLib for *;
 
     // Auction Visibility/Functional Stats
-    uint256 public ssalt; // for telling which CCR callback we're reading from
-    uint256 public lastAuctionProcessedL1Block; //
-    uint256 public nonceUsed;
+    uint256 public lastAuctionProcessedL1Block;
+    uint256 public nonceUsed; // functional
     uint256 public includedTxns;
-    uint256 private _notLandedButSent; //
-    uint256 private _landed; //
-    bool public bundleSuccess;
+    uint256 private _notLandedButSent; // functional
+    uint256 private _landed; // functional
     uint256 public winningBidAmount;
 
     // Addresses
@@ -31,8 +29,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     address public targetAuctionGuard;
     address public owner;
     address public signingPubKey;
-
-    uint256 public borderVar;
 
     /// @dev DataId for the signing key in Suave's confidential storage
     Suave.DataId private _signingKeyRecord;
@@ -212,7 +208,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         emit NewBid(saltedReturn, bidId);
     }
 
-    function runAuction(uint256 salt) external returns (bytes memory) {
+    function runAuction() external returns (bytes memory) {
         // grab stored URL
         string memory httpURL = string(
             Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
@@ -314,14 +310,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         // send to titan too
         Bundle.sendBundle("http://holesky-rpc.titanbuilder.xyz/", bundle);
 
-        // TODO figure out how to debug failing bundles
-        //require(
-        // this hex is '{"id":1,"result"'
-        // close-enough way to check for successful sendBundle call
-        //    bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422,
-        //    "bundle failed"
-        //);
-
         // update confidential store's last ran block
         Suave.confidentialStore(
             _lastBlockProcessedRecord,
@@ -338,8 +326,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
                 nonce,
                 currentBlock,
                 nonBidTxnsCount,
-                secondPrice,
-                bytes16(bundleRes) == 0x7b226964223a312c22726573756c7422
+                secondPrice
             );
     }
 
@@ -349,8 +336,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         uint256 nonceUsed_,
         uint256 auctioned_block,
         uint256 nonBidTxnsCount_,
-        uint256 secondPrice_,
-        bool bundleSuccess_
+        uint256 secondPrice_
     ) external {
         // funcitonal
         _notLandedButSent = notLandedButSent;
@@ -361,7 +347,6 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         nonceUsed = nonceUsed_;
         lastAuctionProcessedL1Block = auctioned_block;
         winningBidAmount = secondPrice_;
-        bundleSuccess = bundleSuccess_;
     }
 
     function _findAuctionWinner(
