@@ -1,8 +1,5 @@
-use auction_block_server::BlockServer;
-use auction_interface::{
-    amm_auction::AmmAuctionSuapp,
-    amm_auction_config::AmmAuctionConfig,
-};
+use auction_block_listener::BlockServer;
+use auction_interface::{amm_auction::AmmAuctionSuapp, amm_auction_config::AmmAuctionConfig};
 use color_eyre::eyre::Context;
 
 #[tokio::main]

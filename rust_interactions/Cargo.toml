@@ -1,7 +1,7 @@
 [workspace]
 members = [
-  "crates/auction-block-server",
-  "crates/auction-cli-server",
+  "crates/auction-block-listener",
+  "crates/auction-cli",
   "crates/auction-interface",
 ]
 resolver = "2"

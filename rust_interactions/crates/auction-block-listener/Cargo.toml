@@ -1,5 +1,5 @@
 [package]
-name = "auction-block-server"
+name = "auction-block-listener"
 version = "0.0.1"
 edition = "2021"
 

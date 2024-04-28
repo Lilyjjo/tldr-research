@@ -47,11 +47,11 @@ forge script script/Deployments.s.sol:Deployments --sig "deploySuaveAMMAuction()
 8. Initalize the suapp's inital state
 This command is flakey, run until all 3 CCRs are sent.
 ```
-cd interaction-servers-rust
-./target/debug/auction-cli-server amm-auction initialize-suapp
+cd rust_interactions
+./target/debug/auction-cli amm-auction initialize-suapp
 ```
 9. Run the block server and watch as `bidder_0` and `swapper_0`'s transactions are eventually included. You can tell successful bundle lands when the used nonce goes up.
 ```
-cd interaction-servers-rust
-./target/debug/auction-block-server
+cd rust_interactions
+./target/debug/auction-block-listener
 ```
