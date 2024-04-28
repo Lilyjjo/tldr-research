@@ -1,61 +1,23 @@
 use std::collections::HashMap;
 
 use alloy::{
-    eips::{
-        eip2718::Encodable2718,
-        BlockId,
-    },
-    network::{
-        EthereumSigner,
-        TransactionBuilder,
-    },
-    providers::{
-        fillers::FillProvider,
-        Provider,
-        ProviderBuilder,
-        RootProvider,
-        WalletProvider,
-    },
-    rpc::types::eth::{
-        TransactionInput,
-        TransactionRequest,
-    },
-    signers::{
-        wallet::LocalWallet,
-        Signer,
-    },
+    eips::{eip2718::Encodable2718, BlockId},
+    network::{EthereumSigner, TransactionBuilder},
+    providers::{fillers::FillProvider, Provider, ProviderBuilder, RootProvider, WalletProvider},
+    rpc::types::eth::{TransactionInput, TransactionRequest},
+    signers::{wallet::LocalWallet, Signer},
     sol,
     transports::http::Http,
 };
-use alloy_primitives::{
-    Address,
-    Bytes,
-    B256,
-    U256,
-};
-use alloy_sol_types::{
-    SolCall,
-    SolStruct,
-    SolValue,
-};
-use color_eyre::{
-    eyre,
-    eyre::Context,
-};
+use alloy_primitives::{Address, Bytes, B256, U256};
+use alloy_sol_types::{SolCall, SolStruct, SolValue};
+use color_eyre::{eyre, eyre::Context};
 use eyre::ContextCompat;
 use reqwest::Client as ReqwestClient;
 use suave_alloy::{
     self,
-    network::{
-        KettleFiller,
-        SuaveNetwork,
-        SuaveProvider,
-        SuaveSigner,
-    },
-    types::{
-        ConfidentialComputeRecord,
-        ConfidentialComputeRequest,
-    },
+    network::{KettleFiller, SuaveNetwork, SuaveProvider, SuaveSigner},
+    types::{ConfidentialComputeRecord, ConfidentialComputeRequest},
 };
 
 use crate::amm_auction_config::AmmAuctionConfig;
@@ -436,7 +398,7 @@ impl AmmAuctionSuapp {
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::runAuction::SELECTOR).into());
+            .input(Bytes::from(IAMMAuctionSuapp::runAuctionCall::SELECTOR).into());
         self.count += 1;
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
