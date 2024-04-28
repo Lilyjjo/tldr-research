@@ -4,7 +4,7 @@ use color_eyre::eyre::Context;
 
 #[tokio::main]
 async fn main() {
-    let config = AmmAuctionConfig::new("../poc_first_swap_auction/.env")
+    let config = AmmAuctionConfig::new("../solidity_code/.env")
         .await
         .expect("failed to build auction amm config");
 

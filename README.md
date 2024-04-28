@@ -9,7 +9,7 @@ The goal of this repo are:
 
 ## System Components
 
-![System Diagram](./poc_first_swap_auction/assets/system_diagram.png?raw=true "System Diagram")
+![System Diagram](./solidity_code/assets/system_diagram.png?raw=true "System Diagram")
 
 WIP 🚧👷🏼‍♀️🔨
 
@@ -21,7 +21,7 @@ git clone https://github.com/Lilyjjo/tldr-research.git
 git submodule update --init --recursive
 ```
 
-2. Setup the needed environment variables in `/poc_first_swap_auction/.env` from the template `/poc_first_swap_auction/.sample_env`. 
+2. Setup the needed environment variables in `/solidity_code/.env` from the template `/solidity_code/.sample_env`. 
 - Note: these variables are used by both the rust servers and the Foundry solidity code. Foundry doesn't allow the .env file location to be configured which is why it is in the subdirectory.
 - Note: the inputted address/pk pairs need funds on the target L1! 
 
@@ -34,16 +34,16 @@ git submodule update --init --recursive
    
 Setting up the L1 contract takes about ~10 minutes to run. It deploys and initializes all of the uniswap code, the L1 auction code, and sets up the swapper and bidders with the needed funds and state to be able to swap the pool's tokens and place bids on the auction contract. All of the bidder/swapper keys in the .env need funds on the target L1 for this to complete. 
 ```
-cd poc_first_swap_auction
+cd solidity_code
 forge script script/Deployments.s.sol:Deployments --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool)" true true
 ```
-5. Put the outputted deployed addresses into `poc_first_swap_auction/.env`. Those addresses are used for deploying the Suave contracts and by the rust servers.
+5. Put the outputted deployed addresses into `solidity_code/.env`. Those addresses are used for deploying the Suave contracts and by the rust servers.
 6. Deploy the Suave Auction contract
 ```
-cd poc_first_swap_auction
+cd solidity_code
 forge script script/Deployments.s.sol:Deployments --sig "deploySuaveAMMAuction()" --broadcast --legacy -vv
 ```
-7. Put the outputted deployed address into `poc_first_swap_auction/.env`.
+7. Put the outputted deployed address into `solidity_code/.env`.
 8. Initalize the suapp's inital state
 This command is flakey, run until all 3 CCRs are sent.
 ```

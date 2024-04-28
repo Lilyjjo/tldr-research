@@ -1,18 +1,18 @@
-[submodule "poc_first_swap_auction/lib/suave-std"]
-	path = poc_first_swap_auction/lib/suave-std
+[submodule "solidity_code/lib/suave-std"]
+	path = solidity_code/lib/suave-std
 	url = https://github.com/flashbots/suave-std
-[submodule "poc_first_swap_auction/lib/v3-core"]
-	path = poc_first_swap_auction/lib/v3-core
+[submodule "solidity_code/lib/v3-core"]
+	path = solidity_code/lib/v3-core
 	url = https://github.com/uniswap/v3-core
-[submodule "poc_first_swap_auction/lib/v3-periphery"]
-	path = poc_first_swap_auction/lib/v3-periphery
+[submodule "solidity_code/lib/v3-periphery"]
+	path = solidity_code/lib/v3-periphery
 	url = https://github.com/uniswap/v3-periphery
-[submodule "poc_first_swap_auction/lib/openzeppelin-contracts"]
-	path = poc_first_swap_auction/lib/openzeppelin-contracts
+[submodule "solidity_code/lib/openzeppelin-contracts"]
+	path = solidity_code/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "poc_first_swap_auction/lib/forge-std"]
-	path = poc_first_swap_auction/lib/forge-std
+[submodule "solidity_code/lib/forge-std"]
+	path = solidity_code/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "poc_first_swap_auction/lib/solady"]
-	path = poc_first_swap_auction/lib/solady
+[submodule "solidity_code/lib/solady"]
+	path = solidity_code/lib/solady
 	url = https://github.com/vectorized/solady
