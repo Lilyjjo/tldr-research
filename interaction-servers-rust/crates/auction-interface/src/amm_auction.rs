@@ -1,39 +1,79 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use alloy::{
-    consensus::TxEnvelope,
-    eips::eip2718::Encodable2718,
-    network::{Ethereum, EthereumSigner, NetworkSigner, TransactionBuilder},
-    providers::{layers::SignerProvider, Provider, ProviderBuilder, RootProvider},
-    rpc::types::eth::{BlockId, BlockNumberOrTag, TransactionInput, TransactionRequest},
-    signers::{k256::elliptic_curve::consts::U24, wallet::LocalWallet, Signer},
+    eips::{
+        eip2718::Encodable2718,
+        BlockId,
+    },
+    network::{
+        EthereumSigner,
+        TransactionBuilder,
+    },
+    providers::{
+        fillers::FillProvider,
+        Provider,
+        ProviderBuilder,
+        RootProvider,
+        WalletProvider,
+    },
+    rpc::types::eth::{
+        TransactionInput,
+        TransactionRequest,
+    },
+    signers::{
+        wallet::LocalWallet,
+        Signer,
+    },
+    sol,
     transports::http::Http,
 };
-use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256, U64};
-use alloy_rlp::{BufMut, Encodable};
-use alloy_sol_types::{sol, SolCall, SolStruct, SolValue};
+use alloy_primitives::{
+    Address,
+    Bytes,
+    B256,
+    U256,
+};
+use alloy_sol_types::{
+    SolCall,
+    SolStruct,
+    SolValue,
+};
 use color_eyre::{
     eyre,
-    eyre::{ensure, eyre, Context},
+    eyre::Context,
 };
 use eyre::ContextCompat;
-use reqwest;
-
-use crate::{
-    amm_auction_config::AmmAuctionConfig,
-    suave_network::{
-        ConfidentialComputeRecord, ConfidentialComputeRequest, SuaveNetwork, SuaveSigner,
+use reqwest::Client as ReqwestClient;
+use suave_alloy::{
+    self,
+    network::{
+        KettleFiller,
+        SuaveNetwork,
+        SuaveProvider,
+        SuaveSigner,
+    },
+    types::{
+        ConfidentialComputeRecord,
+        ConfidentialComputeRequest,
     },
 };
 
+use crate::amm_auction_config::AmmAuctionConfig;
+
 sol! {
-    #[derive(Debug, PartialEq)]
+    #[sol(rpc)]
     interface IAMMAuctionSuapp {
+        #[derive(Debug)]
         function newPendingTxn() external returns (bytes memory);
+        #[derive(Debug)]
         function newBid(string memory salt) external returns (bytes memory);
+        #[derive(Debug)]
         function runAuction(uint256 salt) external returns (bytes memory);
+        #[derive(Debug)]
         function setSigningKey(address pubKey) external returns (bytes memory);
+        #[derive(Debug)]
         function setSepoliaUrl() external returns (bytes memory);
+        #[derive(Debug)]
         function initLastL1Block() external returns (bytes memory);
 
         struct Bid {
@@ -79,17 +119,31 @@ pub struct AmmAuctionSuapp {
     token_1: Address,
     swap_router: Address,
     execution_node: Address,
-    suave_provider: RootProvider<Http<reqwest::Client>>,
-    sepolia_provider: RootProvider<Http<reqwest::Client>>,
-    suave_signer: SignerProvider<
-        Http<reqwest::Client>,
-        RootProvider<Http<reqwest::Client>, SuaveNetwork>,
-        SuaveSigner,
+    sepolia_provider: RootProvider<Http<ReqwestClient>>,
+    suave_provider: FillProvider<
+        alloy::providers::fillers::JoinFill<
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::fillers::JoinFill<
+                    alloy::providers::fillers::JoinFill<
+                        alloy::providers::fillers::JoinFill<
+                            alloy::providers::Identity,
+                            alloy::providers::fillers::GasFiller,
+                        >,
+                        alloy::providers::fillers::NonceFiller,
+                    >,
+                    alloy::providers::fillers::ChainIdFiller,
+                >,
+                KettleFiller,
+            >,
+            alloy::providers::fillers::SignerFiller<SuaveSigner>,
+        >,
+        SuaveProvider<Http<ReqwestClient>>,
+        Http<ReqwestClient>,
         SuaveNetwork,
     >,
-    sepolia_wallets: HashMap<String, LocalWallet>,
+    eoa_wallets: HashMap<String, LocalWallet>,
     sepolia_rpc: String,
-    last_used_suave_nonce: u128,
+    last_used_suave_nonce: u64,
     salt: u128,
 }
 
@@ -197,24 +251,18 @@ impl AmmAuctionSuapp {
         let sepolia_rpc_url =
             url::Url::parse(&sepolia_rpc).wrap_err("failed to build url from suave rpc string")?;
         let sepolia_provider = ProviderBuilder::new()
-            .on_reqwest_http(sepolia_rpc_url.clone())
+            .on_http(sepolia_rpc_url.clone())
             .wrap_err("failed to build provider from given rpc url")?;
 
-        // build suave eth provider (doesn't do CCRs but can do non CCR queries, todo if this is
-        // needed)
+        // build suave provider
+        let suave_signer_wallet = eoa_accounts.get("suave_signer").unwrap().clone();
         let suave_rpc_url =
             url::Url::parse(&suave_rpc).wrap_err("failed to build url from suave rpc string")?;
-        let suave_provider = ProviderBuilder::new()
-            .on_reqwest_http(suave_rpc_url.clone())
-            .wrap_err("failed to build provider from given rpc url")?;
-
-        // build suave signer provider
-        let suave_signer = ProviderBuilder::<_, SuaveNetwork>::default()
-            .signer(SuaveSigner::from(
-                eoa_accounts.get("suave_signer").unwrap().clone(),
-            ))
-            .on_reqwest_http(suave_rpc_url.clone())
-            .wrap_err("failed to build suave_signer provider")?;
+        let suave_provider = ProviderBuilder::<_, _, SuaveNetwork>::default()
+            .with_recommended_fillers()
+            .filler(KettleFiller::default())
+            .signer(SuaveSigner::new(suave_signer_wallet))
+            .on_provider(SuaveProvider::from_http(suave_rpc_url));
 
         Ok(AmmAuctionSuapp {
             auction_suapp,
@@ -223,10 +271,9 @@ impl AmmAuctionSuapp {
             token_1,
             swap_router,
             execution_node,
-            suave_provider,
             sepolia_provider,
-            suave_signer,
-            sepolia_wallets: eoa_accounts,
+            suave_provider,
+            eoa_wallets: eoa_accounts,
             sepolia_rpc,
             last_used_suave_nonce: 0,
             salt: 0,
@@ -240,16 +287,16 @@ impl AmmAuctionSuapp {
         // TODO add better error handling, maybe even skipping getting response?
         println!("sending ccr");
         let result = self
-            .suave_signer
+            .suave_provider
             .send_transaction(confidential_compute_request)
             .await
             .context("failed to send ccr")?;
         let tx_hash = B256::from_slice(&result.tx_hash().to_vec());
-        let tx_response = self
-            .suave_signer
+        let _ = self
+            .suave_provider
             .get_transaction_by_hash(tx_hash)
             .await
-            .unwrap();
+            .wrap_err("failed to get transaction hash receipt");
         Ok(())
     }
 
@@ -260,22 +307,22 @@ impl AmmAuctionSuapp {
         // gather network dependent variables
         let mut nonce = self
             .suave_provider
-            .get_transaction_count(signer, None)
+            .get_transaction_count(signer, BlockId::default())
             .await
             .context("failed to get transaction count for address")?;
 
         // nonce management for sending CCRs without waiting for others to complete
-        if self.last_used_suave_nonce >= nonce.to::<u128>() {
-            nonce = U64::from(self.last_used_suave_nonce + 1);
+        if self.last_used_suave_nonce >= nonce {
+            nonce = self.last_used_suave_nonce + 1;
         }
-        self.last_used_suave_nonce = nonce.to::<u128>();
+        self.last_used_suave_nonce = nonce;
 
         let gas_price = self
             .suave_provider
             .get_gas_price()
             .await
             .context("failed to get gas price")?
-            .wrapping_add(U256::from(10));
+            .wrapping_add(10);
 
         let gas = 0x2f4240; // TODO: figure out what is reasonable, probably should be per function
 
@@ -286,11 +333,11 @@ impl AmmAuctionSuapp {
             .context("failed to get chain id")?;
 
         let tx = TransactionRequest::default()
-            .to(Some(self.auction_suapp))
-            .gas_limit(U256::from(gas))
-            .with_gas_price(U256::from(1000100000))
-            .with_chain_id(chain_id.to::<u64>())
-            .with_nonce(nonce.to::<u64>());
+            .to(self.auction_suapp)
+            .gas_limit(gas)
+            .with_gas_price(1000100000)
+            .with_chain_id(chain_id)
+            .with_nonce(nonce);
         Ok(tx)
     }
 
@@ -305,7 +352,7 @@ impl AmmAuctionSuapp {
         // gather network dependent variables
         let nonce = self
             .sepolia_provider
-            .get_transaction_count(signer, None)
+            .get_transaction_count(signer, BlockId::default())
             .await
             .context("failed to get transaction count for address")?;
 
@@ -314,7 +361,7 @@ impl AmmAuctionSuapp {
             .get_gas_price()
             .await
             .context("failed to get gas price")?
-            .wrapping_add(U256::from(1_000_000_000)); // to account for gas fluction between creation and sending
+            .wrapping_add(1_000_000_000); // to account for gas fluction between creation and sending
 
         let gas = 0x0f4240; // TODO: figure out what is reasonable, probably should be per function
 
@@ -325,11 +372,11 @@ impl AmmAuctionSuapp {
             .context("failed to get chain id")?;
 
         let tx = TransactionRequest::default()
-            .to(Some(target_contract))
-            .gas_limit(U256::from(gas))
+            .to(target_contract)
+            .gas_limit(gas)
             .with_gas_price(gas_price)
-            .with_chain_id(chain_id.to::<u64>())
-            .with_nonce(nonce.to::<u64>());
+            .with_chain_id(chain_id)
+            .with_nonce(nonce);
         Ok(tx)
     }
 
@@ -384,7 +431,7 @@ impl AmmAuctionSuapp {
         token_0_in: bool,
     ) -> eyre::Result<()> {
         let swapper = self
-            .sepolia_wallets
+            .eoa_wallets
             .get(swapper)
             .expect("swapper's wallet not initialized");
 
@@ -393,21 +440,18 @@ impl AmmAuctionSuapp {
             .await
             .wrap_err("failed to create swap transaction for new pending tx")?;
 
-        let suave_signer = self
-            .sepolia_wallets
-            .get("suave_signer")
-            .expect("funded suave's wallet not initialized");
         // create generic transaction request and add function specific data
         let tx = self
-            .build_generic_suave_transaction(suave_signer.address())
+            .build_generic_suave_transaction(self.suave_provider.default_signer_address())
             .await
             .context("failed to build generic transaction")?
             .input(Bytes::from(IAMMAuctionSuapp::newPendingTxnCall::SELECTOR).into());
 
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
-            signed_swap_transaction.into(),
+            Some(signed_swap_transaction.into()),
         ))
         .await
         .wrap_err("failed to send swap CCR")?;
@@ -424,11 +468,11 @@ impl AmmAuctionSuapp {
     ) -> eyre::Result<()> {
         // grab bidder and suave signer
         let bidder = self
-            .sepolia_wallets
+            .eoa_wallets
             .get(bidder)
             .expect("bidders's wallet not initialized");
         let suave_signer = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
@@ -485,8 +529,9 @@ impl AmmAuctionSuapp {
                 .into(),
             );
 
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
-        self.send_ccr(ConfidentialComputeRequest::new(cc_record, bid.into()))
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, Some(bid.into())))
             .await
             .wrap_err("failed to send bid CCR")?;
         Ok(())
@@ -494,7 +539,7 @@ impl AmmAuctionSuapp {
 
     pub async fn initialize_l1_block(&mut self) -> eyre::Result<()> {
         let suave_signer = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
@@ -505,8 +550,9 @@ impl AmmAuctionSuapp {
             .context("failed to build generic transaction")?
             .input(Bytes::from(IAMMAuctionSuapp::initLastL1BlockCall::SELECTOR).into());
 
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
-        self.send_ccr(ConfidentialComputeRequest::new(cc_record, Bytes::new()))
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
             .await
             .wrap_err("failed to send L1 block init CCR")?;
         Ok(())
@@ -514,7 +560,7 @@ impl AmmAuctionSuapp {
 
     pub async fn set_sepolia_url(&mut self) -> eyre::Result<()> {
         let suave_signer = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
@@ -527,10 +573,11 @@ impl AmmAuctionSuapp {
             .context("failed to build generic transaction")?
             .input(Bytes::from(IAMMAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
 
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
-            confidential_inputs.into(),
+            Some(confidential_inputs.into()),
         ))
         .await
         .wrap_err("failed to send sepolia init CCR")?;
@@ -539,12 +586,12 @@ impl AmmAuctionSuapp {
 
     pub async fn set_signing_key(&mut self) -> eyre::Result<()> {
         let suave_signer = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
         let suave_stored_wallet_pk = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suapp_signer")
             .expect("suapp's signing wallet not initialized")
             .signer()
@@ -552,7 +599,7 @@ impl AmmAuctionSuapp {
             .abi_encode_packed();
 
         let suave_stored_wallet_address = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suapp_signer")
             .expect("suapp's signing wallet not initialized")
             .address();
@@ -572,10 +619,11 @@ impl AmmAuctionSuapp {
                 .into(),
             );
 
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
-            suave_stored_wallet_pk.into(),
+            Some(suave_stored_wallet_pk.into()),
         ))
         .await
         .wrap_err("failed to send init signing key CCR")?;
@@ -584,7 +632,7 @@ impl AmmAuctionSuapp {
 
     pub async fn trigger_auction(&mut self) -> eyre::Result<()> {
         let suave_signer = self
-            .sepolia_wallets
+            .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
@@ -605,8 +653,9 @@ impl AmmAuctionSuapp {
             );
         self.salt += 1;
 
-        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node);
-        self.send_ccr(ConfidentialComputeRequest::new(cc_record, Bytes::new()))
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .wrap_err("failed to create ccr")?;
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
             .await
             .wrap_err("failed to send trigger auction CCR")?;
         Ok(())
@@ -616,42 +665,42 @@ impl AmmAuctionSuapp {
         // grab from amm's visibility storage slots
         let slot_0 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(0), None)
+            .get_storage_at(self.auction_suapp, U256::from(0), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_1 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(1), None)
+            .get_storage_at(self.auction_suapp, U256::from(1), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_2 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(2), None)
+            .get_storage_at(self.auction_suapp, U256::from(2), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_3 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(3), None)
+            .get_storage_at(self.auction_suapp, U256::from(3), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_4 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(4), None)
+            .get_storage_at(self.auction_suapp, U256::from(4), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_5 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(5), None)
+            .get_storage_at(self.auction_suapp, U256::from(5), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_6 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(6), None)
+            .get_storage_at(self.auction_suapp, U256::from(6), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_7 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(7), None)
+            .get_storage_at(self.auction_suapp, U256::from(7), BlockId::default())
             .await
             .context("failed grabbing amm's storage slot")?;
 

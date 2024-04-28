@@ -1,8 +1,17 @@
 use std::process::ExitCode;
 
-use auction_cli_server::{cli::Cli, commands};
-use color_eyre::eyre::{self, Context};
-use suave_rust::{amm_auction_config::AmmAuctionConfig, amm_auction_suapp::AmmAuctionSuapp};
+use auction_cli_server::{
+    cli::Cli,
+    commands,
+};
+use auction_interface::{
+    amm_auction::AmmAuctionSuapp,
+    amm_auction_config::AmmAuctionConfig,
+};
+use color_eyre::eyre::{
+    self,
+    Context,
+};
 
 fn main() -> ExitCode {
     if let Err(err) = run() {

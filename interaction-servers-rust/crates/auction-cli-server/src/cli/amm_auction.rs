@@ -1,11 +1,7 @@
-use std::str::FromStr;
-
 use clap::{
     Args,
     Subcommand,
 };
-use color_eyre::eyre;
-use serde::Serialize;
 
 #[derive(Debug, Subcommand)]
 pub enum Command {

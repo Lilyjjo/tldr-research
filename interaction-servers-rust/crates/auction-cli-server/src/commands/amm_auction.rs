@@ -1,12 +1,15 @@
-use std::io::Bytes;
-
+use auction_interface::amm_auction::AmmAuctionSuapp;
 use color_eyre::{
     eyre,
-    eyre::{ensure, eyre, Context},
+    eyre::Context,
 };
-use suave_rust::amm_auction_suapp::AmmAuctionSuapp;
 
-use crate::cli::amm_auction::{AuctionArgs, BidArgs, InitializeSuappArgs, SwapArgs};
+use crate::cli::amm_auction::{
+    AuctionArgs,
+    BidArgs,
+    InitializeSuappArgs,
+    SwapArgs,
+};
 
 pub(crate) async fn trigger_auction(
     _args: &AuctionArgs,

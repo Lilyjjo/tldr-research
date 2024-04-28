@@ -20,7 +20,7 @@ dotenv = "0.15.0"
 color-eyre = "0.6"
 clap = {features = ["derive", "env"] }
 
-suave-rust = { path = "../suave-rust" }
+auction-interface = { path = "../auction-interface" }
 
 alloy = { git = "https://github.com/alloy-rs/alloy", rev = "bfd0fda", features = [
     "contract",

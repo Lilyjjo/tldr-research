@@ -2,7 +2,7 @@
 members = [
   "crates/auction-block-server",
   "crates/auction-cli-server",
-  "crates/suave-rust",
+  "crates/auction-interface",
 ]
 resolver = "2"
 

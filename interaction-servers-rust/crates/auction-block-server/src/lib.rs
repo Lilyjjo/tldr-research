@@ -1,16 +1,24 @@
-use std::collections::HashMap;
-
-use alloy_primitives::{Address, Bytes, FixedBytes, B256, U16, U160, U256};
-use color_eyre::eyre::{self, Context, Error};
-use futures_util::{stream::StreamExt, SinkExt};
-use serde_json::Value;
-use suave_rust::amm_auction_suapp::{self, AmmAuctionSuapp};
-use tokio::{
-    process::Command,
-    task::JoinHandle,
-    time::{sleep, Duration},
+use auction_interface::amm_auction::AmmAuctionSuapp;
+use color_eyre::eyre::{
+    self,
+    Context,
 };
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use futures_util::{
+    stream::StreamExt,
+    SinkExt,
+};
+use serde_json::Value;
+use tokio::{
+    task::JoinHandle,
+    time::{
+        sleep,
+        Duration,
+    },
+};
+use tokio_tungstenite::{
+    connect_async,
+    tungstenite::protocol::Message,
+};
 use url::Url;
 
 /// `BlockServer` is a service responsible for listening for new block produced on the given RCP

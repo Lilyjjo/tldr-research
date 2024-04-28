@@ -1,10 +1,10 @@
 mod amm_auction;
 
+use auction_interface::amm_auction::AmmAuctionSuapp;
 use color_eyre::{
     eyre,
     eyre::eyre,
 };
-use suave_rust::amm_auction_suapp::AmmAuctionSuapp;
 
 use crate::cli::{
     amm_auction::Command as AmmAuctionCommand,

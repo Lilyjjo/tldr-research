@@ -1,6 +1,9 @@
 use auction_block_server::BlockServer;
+use auction_interface::{
+    amm_auction::AmmAuctionSuapp,
+    amm_auction_config::AmmAuctionConfig,
+};
 use color_eyre::eyre::Context;
-use suave_rust::{amm_auction_config::AmmAuctionConfig, amm_auction_suapp::AmmAuctionSuapp};
 
 #[tokio::main]
 async fn main() {

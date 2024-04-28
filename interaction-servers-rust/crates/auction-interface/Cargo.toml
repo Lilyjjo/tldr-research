@@ -1,45 +1,37 @@
 [package]
-name = "suave-rust"
+name = "auction-interface"
 version = "0.0.1"
 edition = "2021"
 
 [dependencies]
 color-eyre = "0.6"
-alloy = { git = "https://github.com/alloy-rs/alloy", rev = "bfd0fda", features = [
+alloy = { git = "https://github.com/alloy-rs/alloy", rev = "e8a2df1", features = [
     "contract",
     "network",
-    "node-bindings",
     "providers",
     "provider-http",
-    "provider-ipc",
-    "provider-ws",
     "rpc-client",
-    "rpc-client-ipc",
-    "rpc-client-ws",
     "rpc-types-eth",
     "rpc-types-trace",
     "signers",
-    "signer-keystore",
-    "signer-ledger",
-    "signer-mnemonic",
-    "signer-trezor",
     "signer-wallet",
-    "signer-yubihsm",
-    "transports",
-    "transport-http",
-    "reqwest",
     "consensus",
-    "eips"
+    "eips",
+    "serde",
+    "signer-wallet",
 ] }
 alloy-rlp = { version = "0.3.4", features = ["derive"] }
 alloy-primitives = { version = "0.7.0", default-features = false }
 alloy-sol-types = { version = "0.7.0", default-features = false }
+reqwest = "0.12.3"
 async-trait = "0.1.79"
 eyre = "0.6.12"
 serde = { version = "1.0.197", features = ["serde_derive", "derive"] }
 tokio = { version = "1.37.0", features = ["full"] }
 url = "2.5.0"
-reqwest = { version = "0.12.2"}
 hex-literal = "0.4"
 dotenv = "0.15.0"
 envy = "0.4.2"
+
+suave-alloy = { git = "https://github.com/halo3mic/suave-alloy", commit = "8deba3d" }
+
