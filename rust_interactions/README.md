@@ -18,6 +18,13 @@ This crate is setup to subscribe to new blocks being produced on the target L1 a
     ```
 This server is mostly for simulating auctions but can be used in the future just to trigger auctions as needed.
 
+Example invocation:
+```
+cd rust_interactions
+cargo build
+./target/debug/auction-block-listener
+```
+
 ### `auction-cli`
 This crate contains commands to initialize the Suapp's confidential store information as well as send auction CCRs.
 Commands:
@@ -29,5 +36,11 @@ Commands:
       initialize-suapp  // initialize auction suapp's confidential store
   ```
 
-### auction-interface
+Example invocation:
+```
+cd rust_interactions
+cargo build
+./target/debug/auction-cli amm-auction initialize-suapp
+```
+### `auction-interface`
 This create uses @halo3mic's [suave-alloy](https://github.com/halo3mic/suave-alloy/tree/master/crates/suave-alloy) repo to build and send CCRs to the configured suave http endpoint. 
