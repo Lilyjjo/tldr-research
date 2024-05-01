@@ -2,8 +2,8 @@
 pragma solidity ^0.8;
 
 import {UniV3GenericTestSetup} from "./utils/UniV3GenericTestSetup.t.sol";
-import {IUniswapV3PoolAuctionedFirstSwap} from "../src/uniswap_modifications/IUniswapV3PoolAuctionedFirstSwap.sol";
-import {ISwapRouterModified} from "../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
+import {IUniswapV3PoolAuctioned} from "../src/interfaces/IUniswapV3PoolAuctioned.sol";
+import {ISwapRouter} from "v3-periphery-fixed/interfaces/ISwapRouter.sol";
 import {IAuctionGuard} from "../src/interfaces/IAuctionGuard.sol";
 import {IAuctionDeposits} from "../src/interfaces/IAuctionDeposits.sol";
 import {AuctionGuard} from "../src/AuctionGuard.sol";
@@ -27,7 +27,7 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
 
     IAuctionDeposits auctionDeposits;
     IAuctionGuard auctionGuard;
-    IUniswapV3PoolAuctionedFirstSwap auctionPool;
+    IUniswapV3PoolAuctioned auctionPool;
 
     UniV3GenericTestSetup.DeploymentInfo dInfo;
 
@@ -103,8 +103,8 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
     }
 
     function test_nonAuctionedFirstSwapShouldFail() public {
-        ISwapRouterModified.ExactInputSingleParams memory swapParams;
-        swapParams = ISwapRouterModified.ExactInputSingleParams({
+        ISwapRouter.ExactInputSingleParams memory swapParams;
+        swapParams = ISwapRouter.ExactInputSingleParams({
             tokenIn: dInfo.token0,
             tokenOut: dInfo.token1,
             fee: dInfo.poolFee,

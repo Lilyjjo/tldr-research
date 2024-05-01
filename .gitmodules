@@ -15,3 +15,7 @@
 [submodule "solidity_code/lib/solady"]
 	path = solidity_code/lib/solady
 	url = https://github.com/Vectorized/solady
+[submodule "solidity_code/lib/v3-periphery-fixed"]
+	path = solidity_code/lib/v3-periphery-fixed
+	url = https://github.com/Lilyjjo/univ3-0.8-periphery-codehash-fixed
+	branch = 0.8

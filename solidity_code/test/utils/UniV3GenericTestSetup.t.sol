@@ -3,10 +3,10 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {IUniswapV3FactoryModified} from "../../src/uniswap_modifications/modified_uniswap_casing/v3-core-modified/IUniswapV3FactoryModified.sol";
-import {IUniswapV3PoolAuctionedFirstSwap} from "../../src/uniswap_modifications/IUniswapV3PoolAuctionedFirstSwap.sol";
-import {INonfungiblePositionManagerModified} from "../../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/INonfungiblePositionManagerModified.sol";
-import {ISwapRouterModified} from "../../src/uniswap_modifications/modified_uniswap_casing/v3-periphery-modified/ISwapRouterModified.sol";
+import {IUniswapV3FactoryAuctioned} from "../../src/interfaces/IUniswapV3FactoryAuctioned.sol";
+import {IUniswapV3PoolAuctioned} from "../../src/interfaces/IUniswapV3PoolAuctioned.sol";
+import {INonfungiblePositionManager} from "v3-periphery-fixed/interfaces/INonfungiblePositionManager.sol";
+import {ISwapRouter} from "v3-periphery-fixed/interfaces/ISwapRouter.sol";
 import {ERC20Mintable} from "../../src/utils/ERC20Mintable.sol";
 
 import {TickMath} from "v3-core/libraries/TickMath.sol";
@@ -24,7 +24,7 @@ contract UniV3GenericTestSetup is Test {
         address pool;
         address nftPositionManager;
         address factory;
-        ISwapRouterModified swapRouter;
+        ISwapRouter swapRouter;
         address admin;
         uint16 poolFee;
     }
@@ -68,23 +68,23 @@ contract UniV3GenericTestSetup is Test {
         console.log(address(WETH));
 
         // initialize Factory
-        IUniswapV3FactoryModified uniswapV3Factory = IUniswapV3FactoryModified(
-            deployCode("UniswapV3FactoryModified.sol")
-        );
+        IUniswapV3FactoryAuctioned uniswapV3Factory = IUniswapV3FactoryAuctioned(
+                deployCode("UniswapV3FactoryAuctioned.sol")
+            );
 
         newDInfo.factory = address(uniswapV3Factory);
         console.log("uniswapV3Factory: ");
         console.log(address(uniswapV3Factory));
 
         // initialize Pool
-        IUniswapV3PoolAuctionedFirstSwap pool = IUniswapV3PoolAuctionedFirstSwap(
-                uniswapV3Factory.createPool(
-                    address(token0),
-                    address(token1),
-                    poolFee,
-                    address(auctionGuard)
-                )
-            );
+        IUniswapV3PoolAuctioned pool = IUniswapV3PoolAuctioned(
+            uniswapV3Factory.createPool(
+                address(token0),
+                address(token1),
+                poolFee,
+                address(auctionGuard)
+            )
+        );
 
         newDInfo.pool = address(pool);
         console.log("pool: ");
@@ -103,9 +103,9 @@ contract UniV3GenericTestSetup is Test {
         pool.increaseObservationCardinalityNext(10);
 
         // initialize PositionManager
-        INonfungiblePositionManagerModified positionManager = INonfungiblePositionManagerModified(
+        INonfungiblePositionManager positionManager = INonfungiblePositionManager(
                 deployCode(
-                    "NonfungiblePositionManagerModified.sol",
+                    "NonfungiblePositionManager.sol",
                     abi.encode(
                         address(uniswapV3Factory),
                         address(WETH),
@@ -120,9 +120,9 @@ contract UniV3GenericTestSetup is Test {
         console.log(address(positionManager));
 
         // initialize swapRouter
-        ISwapRouterModified swapRouter = ISwapRouterModified(
+        ISwapRouter swapRouter = ISwapRouter(
             deployCode(
-                "SwapRouterModified.sol",
+                "SwapRouter.sol",
                 abi.encode(
                     address(uniswapV3Factory),
                     address(WETH),
@@ -132,6 +132,7 @@ contract UniV3GenericTestSetup is Test {
         );
 
         newDInfo.swapRouter = swapRouter;
+        newDInfo.poolFee = poolFee;
         console.log("swapRouter: ");
         console.log(address(swapRouter));
 
@@ -170,8 +171,8 @@ contract UniV3GenericTestSetup is Test {
                 tokenIn == dInfo.token0 ? dInfo.token1 : dInfo.token0
             );
 
-            ISwapRouterModified.ExactInputSingleParams memory swapParams;
-            swapParams = ISwapRouterModified.ExactInputSingleParams({
+            ISwapRouter.ExactInputSingleParams memory swapParams;
+            swapParams = ISwapRouter.ExactInputSingleParams({
                 tokenIn: address(tokenIn),
                 tokenOut: address(tokenOut),
                 fee: dInfo.poolFee,
@@ -182,7 +183,7 @@ contract UniV3GenericTestSetup is Test {
                 sqrtPriceLimitX96: 0
             });
             targetCall = abi.encodeWithSelector(
-                ISwapRouterModified.exactInputSingle.selector,
+                ISwapRouter.exactInputSingle.selector,
                 swapParams
             );
         }
@@ -258,8 +259,7 @@ contract UniV3GenericTestSetup is Test {
         vm.startPrank(liquidityProvider);
 
         // supply liquidty across whole range, adjusted for tick spacing needs
-        int24 tickSpacing = IUniswapV3PoolAuctionedFirstSwap(dInfo.pool)
-            .tickSpacing();
+        int24 tickSpacing = IUniswapV3PoolAuctioned(dInfo.pool).tickSpacing();
         int24 tickLower = -887272;
         int24 tickUpper = -tickLower;
         tickLower = tickLower < 0
@@ -269,8 +269,8 @@ contract UniV3GenericTestSetup is Test {
             ? -((-tickUpper / tickSpacing) * tickSpacing)
             : (tickUpper / tickSpacing) * tickSpacing;
 
-        INonfungiblePositionManagerModified.MintParams
-            memory mintParams = INonfungiblePositionManagerModified.MintParams({
+        INonfungiblePositionManager.MintParams
+            memory mintParams = INonfungiblePositionManager.MintParams({
                 token0: address(dInfo.token0),
                 token1: address(dInfo.token1),
                 fee: dInfo.poolFee,
@@ -281,8 +281,7 @@ contract UniV3GenericTestSetup is Test {
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: liquidityProvider,
-                deadline: 1740161987,
-                pool: address(dInfo.pool)
+                deadline: 1740161987
             });
 
         (
@@ -291,7 +290,7 @@ contract UniV3GenericTestSetup is Test {
             uint128 liquidity,
             uint256 amount0,
             uint256 amount1
-        ) = INonfungiblePositionManagerModified(dInfo.nftPositionManager).mint(
+        ) = INonfungiblePositionManager(dInfo.nftPositionManager).mint(
                 mintParams
             );
 
