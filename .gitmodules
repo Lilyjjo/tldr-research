@@ -5,10 +5,6 @@
 	path = solidity_code/lib/v3-core
 	url = https://github.com/Uniswap/v3-core
 	branch = 0.8
-[submodule "solidity_code/lib/v3-periphery"]
-	path = solidity_code/lib/v3-periphery
-	url = https://github.com/Uniswap/v3-periphery
-	branch = 0.8
 [submodule "solidity_code/lib/openzeppelin-contracts"]
 	path = solidity_code/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
