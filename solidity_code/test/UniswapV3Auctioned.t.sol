@@ -115,19 +115,13 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
             sqrtPriceLimitX96: 0
         });
 
+        // see fine on block that auctions were enabled on (makes ok to swap)
         vm.prank(addressUserSepolia3);
         dInfo.swapRouter.exactInputSingle(swapParams);
-    }
 
-    function test_debugAuctionDeposits() public {
-        console.log("aD addy:");
-        console.log(address(auctionDeposits));
-        address bidder = addressUserSepolia2;
-        uint256 blockNumber = 10;
-        uint256 amount = 10;
-        uint8 v = 27;
-        bytes32 r = 0xe2ab6d24ee13759f3b9058b3ce4ad144575464679dc05345b03caed45a2728fc;
-        bytes32 s = 0x5a01b97e514eb644537009d61c24a05636e593fc911dd83ed6a175e59b495f59;
-        auctionDeposits.withdrawBid(bidder, blockNumber, amount, v, r, s);
+        // see not fine on next block
+        vm.roll(block.number + 1);
+        vm.expectRevert();
+        dInfo.swapRouter.exactInputSingle(swapParams);
     }
 }
