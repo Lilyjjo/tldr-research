@@ -11,8 +11,24 @@ The goal of this repo are:
 
 ![System Diagram](./solidity_code/assets/system_diagram.png?raw=true "System Diagram")
 
-WIP 🚧👷🏼‍♀️🔨
-
+When running an auction through the rust servers, this is what the output looks like:
+```
+[~~~~  running auction for block: 1472520 ~~~~]
+--> sent bid for bidder_0 for: 14
+--> sent bid for bidder_1 for: 6
+--> sent bid for bidder_2 for: 84
+--| triggered auction
+Auction Stats (read from suapp contract)
+  auctioned block      : 1472520
+  last nonce used      : 113
+  included swap txns   : 0
+  total landed         : 2
+  winning bid $        : 14
+[~~~~  running auction for block: 1472521 ~~~~]
+--> sent bid for bidder_0 for: 92
+--> sent bid for bidder_1 for: 16
+...
+```
 
 ## How to run
 1. Download this repo and init the submodules:
