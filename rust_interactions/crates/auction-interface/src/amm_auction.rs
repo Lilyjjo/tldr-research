@@ -106,7 +106,6 @@ pub struct AmmAuctionSuapp {
     eoa_wallets: HashMap<String, LocalWallet>,
     sepolia_rpc: String,
     last_used_suave_nonce: u64,
-    count: u128,
 }
 
 impl AmmAuctionSuapp {
@@ -238,7 +237,6 @@ impl AmmAuctionSuapp {
             eoa_wallets: eoa_accounts,
             sepolia_rpc,
             last_used_suave_nonce: 0,
-            count: 0,
         })
     }
 
@@ -247,12 +245,6 @@ impl AmmAuctionSuapp {
         confidential_compute_request: ConfidentialComputeRequest,
     ) -> eyre::Result<()> {
         // TODO add better error handling, maybe even skipping getting response?
-        println!(
-            "sending ccr with nonce: {}",
-            confidential_compute_request
-                .nonce()
-                .wrap_err("ccr missing nonce")?
-        );
         let result = self
             .suave_provider
             .send_transaction(confidential_compute_request)
@@ -313,9 +305,6 @@ impl AmmAuctionSuapp {
         signer: Address,
         target_contract: Address,
     ) -> eyre::Result<TransactionRequest> {
-        println!("building swap txn for: {}", signer);
-        println!("target contract: {}", target_contract);
-
         // gather network dependent variables
         let nonce = self
             .sepolia_provider
@@ -398,13 +387,11 @@ impl AmmAuctionSuapp {
             .expect("funded suave's wallet not initialized");
 
         // create generic transaction request and add function specific data
-        println!("times called: {}", self.count);
         let tx = self
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
             .input(Bytes::from(IAMMAuctionSuapp::runAuctionCall::SELECTOR).into());
-        self.count += 1;
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
             .wrap_err("failed to create ccr")?;

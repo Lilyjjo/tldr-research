@@ -2,6 +2,7 @@ use auction_interface::amm_auction::AmmAuctionSuapp;
 use color_eyre::eyre::{self, Context};
 use futures_util::{stream::StreamExt, SinkExt};
 use serde_json::Value;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
@@ -67,21 +68,57 @@ impl BlockServer {
     }
 }
 
+fn get_bid_amount() -> u128 {
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_micros();
+
+    (seed % 100) + 1
+}
+
 async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp, block_number: u128) {
+    println!("[~~~~  running auction for block: {} ~~~~]", block_number);
+
+    let mut bid_amount = get_bid_amount();
+    // send bids
     if let Err(e) = amm_auction_suapp
-        .new_bid(&"bidder_0".to_string(), block_number + 1, 100, 10, true)
+        .new_bid(&"bidder_0".to_string(), block_number, bid_amount, 10, true)
         .await
     {
-        println!("!! {} !!", e);
+        println!("--> !!! failed to send bid for bidder_0");
+    } else {
+        println!("--> sent bid for bidder_0 for: {}", bid_amount);
+    }
+    bid_amount = get_bid_amount();
+    if let Err(e) = amm_auction_suapp
+        .new_bid(&"bidder_1".to_string(), block_number, bid_amount, 10, true)
+        .await
+    {
+        println!("--> !!! failed to send bid for bidder_1");
+    } else {
+        println!("--> sent bid for bidder_1 for: {}", bid_amount);
+    }
+    bid_amount = get_bid_amount();
+    if let Err(e) = amm_auction_suapp
+        .new_bid(&"bidder_2".to_string(), block_number, bid_amount, 10, true)
+        .await
+    {
+        println!("--> !!! failed to send bid for bidder_2");
+    } else {
+        println!("--> sent bid for bidder_2 for: {}", bid_amount);
     }
 
     // sleep a few seconds to let auction time pass
-    sleep(Duration::from_secs(6)).await;
+    sleep(Duration::from_secs(4)).await;
 
     if let Err(e) = amm_auction_suapp.trigger_auction().await {
-        println!("!! {} !!", e);
+        println!("--> !!! failed to trigger auction");
+    } else {
+        println!("--| triggered auction");
     }
-    sleep(Duration::from_secs(3)).await;
+
+    sleep(Duration::from_secs(5)).await;
     if let Err(e) = amm_auction_suapp.print_auction_stats().await {
         println!("!! {} !!", e);
     }
@@ -103,11 +140,8 @@ async fn process_header(amm_auction_suapp: &mut AmmAuctionSuapp, text: String) {
             u128::from_str_radix(&result[2..], 16).expect("hex parsing failed for timestamp");
     }
 
-    println!("timestamp: {}", timestamp);
-    println!("block_number: {}", block_number);
-
     if timestamp != 0 {
         // don't run on first message
-        trigger_auction(amm_auction_suapp, block_number).await;
+        trigger_auction(amm_auction_suapp, block_number + 1).await;
     }
 }

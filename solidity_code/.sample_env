@@ -1,5 +1,5 @@
 # Toggle to use local or suave chanis
-USE_LOCAL=true 
+USE_LOCAL=false
 
 # Also known as the 'kettle' address
 EXECUTION_NODE_LOCAL=0xb5feafbdd752ad52afb7e1bd2e40432a485bbb7f
