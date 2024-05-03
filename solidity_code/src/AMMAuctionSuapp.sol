@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 import {Suave} from "suave-std/suavelib/Suave.sol";
 import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "./utils/Bundle.sol";
-import {LibString} from "solady/utils/LibString.sol";
-import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
+import {LibString} from "solady/src/utils/LibString.sol";
+import {JSONParserLib} from "solady/src/utils/JSONParserLib.sol";
 import {IAMMAuctionSuapp} from "./interfaces/IAMMAuctionSuapp.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 
@@ -112,7 +112,7 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         targetAuctionGuard = targetAuctionGuard_;
         chainId = chainId_;
         gasNeededPostAuctionResults = gasNeededPostAuctionResults_;
-        auctionDuration = 1;
+        auctionDuration = 4;
     }
 
     // let users (who aren't in auction) put their swaps into the system for inclusion
@@ -152,24 +152,18 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
     function newBid(string memory salt) external returns (bytes memory) {
         Bid memory bid = abi.decode(Suave.confidentialInputs(), (Bid));
 
-        uint256 lastBlockProcessed = uint256(
-            bytes32(
-                Suave.confidentialRetrieve(
-                    _lastBlockProcessedRecord,
-                    KEY_LAST_BLOCK_PROCESSED
-                )
-            )
-        );
-
+        // grab stored URL
         string memory httpURL = string(
             Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
         );
 
-        uint256 lastBlockSeen = _getLastL1BlockNumberUint(httpURL);
+        // grab last L1 block's info
+        Block memory lastL1Block = getLastL1Block(httpURL);
+        uint256 currentTime = _getCurrentTime();
 
         if (
-            bid.blockNumber <= lastBlockSeen ||
-            bid.blockNumber == lastBlockProcessed
+            bid.blockNumber <= lastL1Block.number ||
+            currentTime > lastL1Block.timestamp + auctionDuration
         ) revert StaleBid();
 
         // allowedPeekers: which contracts can read the record (only this contract)
@@ -408,15 +402,16 @@ contract AMMAuctionSuapp is IAMMAuctionSuapp {
         if (deposit < bid.amount) return false;
 
         // check that the withdraw and swap txns succeed
-        // string memory id = Suave.newBuilder();
+        //string memory id = Suave.newBuilder();
 
         // (1) simulate pulling payments
+        /*
         bytes memory paymentTxn = _createPostAuctionTransaction(
             bid,
             blockData,
             true,
             signingKeyNonce
-        );
+        ); */
 
         // TODO: wait for ferran to help debug Builder/Simulation API
         // If doesn't work, will need to write additional bid checking code

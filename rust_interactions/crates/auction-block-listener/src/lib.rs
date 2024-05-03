@@ -1,24 +1,12 @@
 use auction_interface::amm_auction::AmmAuctionSuapp;
-use color_eyre::eyre::{
-    self,
-    Context,
-};
-use futures_util::{
-    stream::StreamExt,
-    SinkExt,
-};
+use color_eyre::eyre::{self, Context};
+use futures_util::{stream::StreamExt, SinkExt};
 use serde_json::Value;
 use tokio::{
     task::JoinHandle,
-    time::{
-        sleep,
-        Duration,
-    },
+    time::{sleep, Duration},
 };
-use tokio_tungstenite::{
-    connect_async,
-    tungstenite::protocol::Message,
-};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
 
 /// `BlockServer` is a service responsible for listening for new block produced on the given RCP
@@ -84,18 +72,18 @@ async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp, block_number: 
         .new_bid(&"bidder_0".to_string(), block_number + 1, 100, 10, true)
         .await
     {
-        print!("{}", e);
+        println!("!! {} !!", e);
     }
 
     // sleep a few seconds to let auction time pass
-    sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(6)).await;
 
     if let Err(e) = amm_auction_suapp.trigger_auction().await {
-        print!("{}", e);
+        println!("!! {} !!", e);
     }
     sleep(Duration::from_secs(3)).await;
     if let Err(e) = amm_auction_suapp.print_auction_stats().await {
-        print!("{}", e);
+        println!("!! {} !!", e);
     }
 }
 

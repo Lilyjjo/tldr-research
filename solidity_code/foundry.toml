@@ -7,5 +7,6 @@ remappings = [
   '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
   '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/',
   '@uniswap/v3-core/contracts/=lib/v3-core/contracts',
-  '@uniswap/v3-periphery-fixed/contracts/=lib/v3-periphery-fixed/contracts'
+  '@uniswap/v3-periphery-fixed/contracts/=lib/v3-periphery-fixed/contracts',
+  'solady/src=lib/solady/src/'
 ]

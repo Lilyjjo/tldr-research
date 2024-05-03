@@ -247,7 +247,12 @@ impl AmmAuctionSuapp {
         confidential_compute_request: ConfidentialComputeRequest,
     ) -> eyre::Result<()> {
         // TODO add better error handling, maybe even skipping getting response?
-        println!("sending ccr");
+        println!(
+            "sending ccr with nonce: {}",
+            confidential_compute_request
+                .nonce()
+                .wrap_err("ccr missing nonce")?
+        );
         let result = self
             .suave_provider
             .send_transaction(confidential_compute_request)
@@ -284,7 +289,7 @@ impl AmmAuctionSuapp {
             .get_gas_price()
             .await
             .context("failed to get gas price")?
-            .wrapping_add(10);
+            .wrapping_add(1_000_000);
 
         let gas = 0x2f4240; // TODO: figure out what is reasonable, probably should be per function
 
@@ -297,7 +302,7 @@ impl AmmAuctionSuapp {
         let tx = TransactionRequest::default()
             .to(self.auction_suapp)
             .gas_limit(gas)
-            .with_gas_price(1000100000)
+            .with_gas_price(gas_price)
             .with_chain_id(chain_id)
             .with_nonce(nonce);
         Ok(tx)
@@ -619,42 +624,42 @@ impl AmmAuctionSuapp {
         // grab from amm's visibility storage slots
         let slot_0 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(0), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(0), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_1 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(1), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(1), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_2 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(2), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(2), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_3 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(3), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(3), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_4 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(4), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(4), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_5 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(5), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(5), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_6 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(6), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(6), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
         let slot_7 = self
             .suave_provider
-            .get_storage_at(self.auction_suapp, U256::from(7), BlockId::default())
+            .get_storage_at(self.auction_suapp, U256::from(7), BlockId::latest())
             .await
             .context("failed grabbing amm's storage slot")?;
 
