@@ -77,6 +77,7 @@ List of v3-periphery modifications:
 List of modifications made to the `UniswapV3Pool`:
 - Exposed the `AuctionGuard` contract as a passed in constructor parameter.
 - Modified the `swap()` and `burn()` functions to call into the Auction Guard.
+- Removed a few emits in other parts of the code to make room for the additional code.
 
 Diff of the logic changes in the UniswapV3 pool:
 ```diff
