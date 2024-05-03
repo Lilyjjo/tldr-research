@@ -16,42 +16,43 @@ WIP 🚧👷🏼‍♀️🔨
 
 ## How to run
 1. Download this repo and init the submodules:
-```
-git clone https://github.com/Lilyjjo/tldr-research.git
-git submodule update --init --recursive
-```
+   ```
+   git clone https://github.com/Lilyjjo/tldr-research.git
+   git submodule update --init --recursive
+   ```
 
 2. Setup the needed environment variables in `/solidity_code/.env` from the template `/solidity_code/.sample_env`. 
-- Note: these variables are used by both the rust servers and the Foundry solidity code. Foundry doesn't allow the .env file location to be configured which is why it is in the subdirectory.
-- Note: the inputted address/pk pairs need funds on the target L1! 
 
-3. Download [`suave-geth`](https://github.com/flashbots/suave-geth) and run with: 
-```
-./build/bin/geth --suave.dev --syncmode=snap --datadir YOUR_DESIRED_DATADIR_LOCATION --http --http.api eth,net,engine,admin,suavex --http.addr 127.0.0.1 --http.port 8545 --suave.eth.external-whitelist "*"
-```
+3. Decide if you want to run locally or on Suave's testnet (testnet is recommended, it's easier than running your own node)
+   
+   If you want to run locally:
+   Download [`suave-geth`](https://github.com/flashbots/suave-geth) and run with: 
+   ```
+   ./build/bin/geth --suave.dev --syncmode=snap --datadir YOUR_DESIRED_DATADIR_LOCATION --http --http.api eth,net,engine,admin,suavex --http.addr 127.0.0.1 --http.port 8545 --suave.eth.external-whitelist "*"
+   ```
 
 4. Setup the L1 contracts
    
-Setting up the L1 contract takes about ~10 minutes to run. It deploys and initializes all of the uniswap code, the L1 auction code, and sets up the swapper and bidders with the needed funds and state to be able to swap the pool's tokens and place bids on the auction contract. All of the bidder/swapper keys in the .env need funds on the target L1 for this to complete. 
-```
-cd solidity_code
-forge script script/Deployments.s.sol:Deployments --broadcast --legacy -vv --verify --sig "freshL1Contracts(bool,bool)" true true
-```
+   Setting up the L1 contract takes about ~10 minutes to run. It deploys and initializes all of the uniswap code, the L1 auction code, and sets up the swapper and bidders with the needed funds and state to be able to swap the pool's tokens and place bids on the auction contract. All of the bidder/swapper keys in the .env need funds on the target L1 for this to complete. 
+   ```
+   cd solidity_code
+   forge script script/Deployments.s.sol:Deployments --broadcast --legacy -vv --sig "freshL1Contracts(bool,bool)" true true
+   ```
 5. Put the outputted deployed addresses into `solidity_code/.env`. Those addresses are used for deploying the Suave contracts and by the rust servers.
 6. Deploy the Suave Auction contract
-```
-cd solidity_code
-forge script script/Deployments.s.sol:Deployments --sig "deploySuaveAMMAuction()" --broadcast --legacy -vv
-```
+   ```
+   cd solidity_code
+   forge script script/Deployments.s.sol:Deployments --sig "deploySuaveAMMAuction()" --broadcast --legacy -vv
+   ```
 7. Put the outputted deployed address into `solidity_code/.env`.
 8. Initalize the suapp's inital state
-This command is flakey, run until all 3 CCRs are sent.
-```
-cd rust_interactions
-./target/debug/auction-cli amm-auction initialize-suapp
-```
+   This command is flakey, run until all 3 CCRs are sent.
+   ```
+   cd rust_interactions
+   ./target/debug/auction-cli amm-auction initialize-suapp
+   ```
 9. Run the block server and watch as `bidder_0` and `swapper_0`'s transactions are eventually included. You can tell successful bundle lands when the used nonce goes up.
-```
-cd rust_interactions
-./target/debug/auction-block-listener
-```
+   ```
+   cd rust_interactions
+   ./target/debug/auction-block-listener
+   ```
