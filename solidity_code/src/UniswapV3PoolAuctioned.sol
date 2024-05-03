@@ -27,8 +27,6 @@ import {IUniswapV3FlashCallback} from "v3-core/interfaces/callback/IUniswapV3Fla
 
 import {IAuctionGuard} from "./interfaces/IAuctionGuard.sol";
 
-import "forge-std/console.sol";
-
 contract UniswapV3PoolAuctioned is IUniswapV3Pool, NoDelegateCall {
     using SafeCast for uint256;
     using SafeCast for int256;
@@ -611,6 +609,7 @@ contract UniswapV3PoolAuctioned is IUniswapV3Pool, NoDelegateCall {
         int24 tickUpper,
         uint128 amount
     ) external override lock returns (uint256 amount0, uint256 amount1) {
+        auction.auctionGuard();
         unchecked {
             (
                 Position.Info storage position,
