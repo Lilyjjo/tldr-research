@@ -87,20 +87,6 @@ contract AuctionGuard is IAuctionGuard {
         emit AuctionsEnabled(auctionsEnabled);
     }
 
-    /*
-    modifier auctionGuard() {
-        if(auctionsEnabled && lastSwapBlock < block.number){
-            // Ensure swapper is auction winner
-            if(block.number != firstSwapValidBlock) revert WrongValidSwapBlock();
-            if(tx.origin != firstSwapTxOrigin) revert WrongFirstSwapper();
-            // let rest of swaps pass
-            lastSwapBlock = block.number;
-            emit AuctionSucceeded();    
-        } 
-        _;
-    }
-    */
-
     function auctionGuard() external {
         if (auctionsEnabled && lastSwapBlock < block.number) {
             // Ensure swapper is auction winner

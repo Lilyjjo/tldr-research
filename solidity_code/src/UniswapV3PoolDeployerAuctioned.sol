@@ -5,7 +5,7 @@ import {IUniswapV3PoolDeployerAuctioned} from "./interfaces/IUniswapV3PoolDeploy
 
 import {UniswapV3PoolAuctioned} from "./UniswapV3PoolAuctioned.sol";
 
-//import "forge-std/console.sol";
+import "forge-std/console.sol";
 
 contract UniswapV3PoolDeployerAuctioned is IUniswapV3PoolDeployerAuctioned {
     struct Parameters {
@@ -49,7 +49,8 @@ contract UniswapV3PoolDeployerAuctioned is IUniswapV3PoolDeployerAuctioned {
             }()
         );
 
-        /* Code for generating POOL_INIT_CODE_HASH
+        //Code for generating POOL_INIT_CODE_HASH
+        /*
         console.logBytes32(
             keccak256(
                 abi.encodePacked(type(UniswapV3PoolAuctioned).creationCode)

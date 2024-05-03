@@ -304,11 +304,6 @@ contract UniswapV3PoolAuctioned is IUniswapV3Pool, NoDelegateCall {
             observationCardinalityNext
         );
         slot0.observationCardinalityNext = observationCardinalityNextNew;
-        if (observationCardinalityNextOld != observationCardinalityNextNew)
-            emit IncreaseObservationCardinalityNext(
-                observationCardinalityNextOld,
-                observationCardinalityNextNew
-            );
     }
 
     /// @inheritdoc IUniswapV3PoolActions
@@ -591,15 +586,6 @@ contract UniswapV3PoolAuctioned is IUniswapV3Pool, NoDelegateCall {
                 TransferHelper.safeTransfer(token1, recipient, amount1);
             }
         }
-
-        emit Collect(
-            msg.sender,
-            recipient,
-            tickLower,
-            tickUpper,
-            amount0,
-            amount1
-        );
     }
 
     /// @inheritdoc IUniswapV3PoolActions
@@ -1113,7 +1099,5 @@ contract UniswapV3PoolAuctioned is IUniswapV3Pool, NoDelegateCall {
                 TransferHelper.safeTransfer(token1, recipient, amount1);
             }
         }
-
-        emit CollectProtocol(msg.sender, recipient, amount0, amount1);
     }
 }
