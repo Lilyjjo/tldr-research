@@ -11,24 +11,7 @@ The goal of this repo are:
 
 ![System Diagram](./solidity_code/assets/system_diagram.png?raw=true "System Diagram")
 
-When running an auction through the rust servers, this is what the output looks like:
-```
-[~~~~  running auction for block: 1472520 ~~~~]
---> sent bid for bidder_0 for: 14
---> sent bid for bidder_1 for: 6
---> sent bid for bidder_2 for: 84
---| triggered auction
-Auction Stats (read from suapp contract)
-  auctioned block      : 1472520
-  last nonce used      : 113
-  included swap txns   : 0
-  total landed         : 2
-  winning bid $        : 14
-[~~~~  running auction for block: 1472521 ~~~~]
---> sent bid for bidder_0 for: 92
---> sent bid for bidder_1 for: 16
-...
-```
+
 
 ## How to run
 1. Download this repo and init the submodules:
@@ -72,3 +55,25 @@ Auction Stats (read from suapp contract)
    cd rust_interactions
    ./target/debug/auction-block-listener
    ```
+
+When running an auction through the rust servers, this is what the output looks like on the happy-path:
+```
+[~~~~  running auction for block: 1472520 ~~~~]
+--> sent bid for bidder_0 for: 14
+--> sent bid for bidder_1 for: 6
+--> sent bid for bidder_2 for: 84
+--| triggered auction
+Auction Stats
+  auctioned block      : 1472520
+  last nonce used      : 113
+  included swap txns   : 0
+  total landed         : 2
+  winning bid $        : 14
+[~~~~  running auction for block: 1472521 ~~~~]
+--> sent bid for bidder_0 for: 92
+--> sent bid for bidder_1 for: 16
+...
+```
+The auction is 2nd price, but having the bids included is flakey. The bids are currently stored in the suapp's contract storage instead of in the confidential store. The contract storage only updates when Rigil has blocks produced, so when the auction get triggered it's not guaranteed that the bids have populated the contract storage yet. Fixing this is a TODO in a future version. 
+
+For the same reason the Auction Stats are can report from older auctions. These stats are being pulled from the suapp's contract storage to show what is actually happening inside of the kettle post execution. 
