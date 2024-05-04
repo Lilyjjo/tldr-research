@@ -4,13 +4,20 @@ This repo explores how on-chain solidity smart contracts are able to take contro
 
 Normal AMMs lose money due to [loss versus rebalancing (LVR)](https://a16zcrypto.com/posts/article/lvr-quantifying-the-cost-of-providing-liquidity-to-automated-market-makers/), which can be conceptualized as the AMM's LPs being forced to take the bad half of a trade. If an entity is willing to pay for the right to be the first to take a trade, then some of the LVR loss can be recaputured as profit. For ethereum L1, block builders are performing and benefitting from this auction already in their block building process as top of block CEX-DEX arbitrague. In this repo, the AMM takes away the right of the block builder to choose who gets to trade first and instead performs the auction itself. In this way, the AMM is able to capture some of the MEV that it generates instead of leaving it on the floor for block builders to consume. 
 
-This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[2](https://ethresear.ch/t/mev-capturing-amm-mcamm/13336),[3](https://arxiv.org/abs/2210.10601)</sup> AMM auction constructs in that it leverages TEEs (trusted execution environments) to manage and run the auction instead of involving the block builder or other new manager identities. 
+This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[2](https://ethresear.ch/t/mev-capturing-amm-mcamm/13336),[3](https://arxiv.org/abs/2210.10601)</sup> proposed AMM auction constructs in that it leverages TEEs (trusted execution environments) to manage and run the auction instead of involving the block builder or other new manager identities. Flashbot's block building platform [SUAVE](https://suave-alpha.flashbots.net/what-is-suave) is used as the TEE provider. 
 
 
 ## System Components
 
 ![System Diagram](./solidity_code/assets/system_diagram.png?raw=true "System Diagram")
 
+
+This system is built out of solidity contracts on a target vanilla EVM chain and on Suave. The AMM is minimally modified to only allow swaps after the winner of the auction performs their swap. The auction contract facilitates: collecting normal swap transactions, collecting bids, and running the auction once per target EVM block. The auction contract has its own private key that it constructs and signs transactions with, the target chain's contracts know the address of this key and will only accept auction results that are signed by this key. 
+
+The auction contract sends a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
+
+
+![Bundle Diagram](./solidity_code/assets/bundle.png?raw=true "Bundle Diagram")
 
 
 ## How to run
