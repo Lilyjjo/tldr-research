@@ -16,22 +16,22 @@ This system is built out of solidity contracts on a target vanilla EVM chain and
 
 The auction contract sends a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
 
-See below a diagram of the system from the view of all actors:
+See below a diagram of the system from the view of actions between major actors:
 ```mermaid
 sequenceDiagram
     actor Bidders
     actor Swappers
-    participant Suave Auction
+    participant Suave Auction Contract
     participant BlockBuilders
-    participant Ethereum AMM Contracts
-    Bidders->>Ethereum AMM Contracts: bid deposits
-    Note over Suave Auction,Ethereum AMM Contracts : Ethereum Block N
-    Swappers->>Suave Auction: swap txns
-    Bidders->>Suave Auction: bids for block N+1
-    Suave Auction->>Suave Auction: Process Auction
-    Suave Auction->>BlockBuilders: Bundle for Block N+1
-    BlockBuilders->>Ethereum AMM Contracts: Bundle for Block N+1 
-    Note over Suave Auction,Ethereum AMM Contracts : Ethereum Block N+1
+    participant Ethereum Contracts
+    Bidders->>Ethereum Contracts: bid deposits
+    Note over Suave Auction Contract,Ethereum Contracts : Ethereum Block N
+    Swappers->>Suave Auction Contract: swap txns
+    Bidders->>Suave Auction Contract: bids for block N+1
+    Suave Auction Contract->>Suave Auction Contract: Process Auction
+    Suave Auction Contract->>BlockBuilders: Bundle for Block N+1
+    BlockBuilders->>Ethereum Contracts: Bundle for Block N+1 
+    Note over Suave Auction Contract,Ethereum Contracts : Ethereum Block N+1
 ```
 
 See below a diagram of the system from the view of the bundle's transations:
