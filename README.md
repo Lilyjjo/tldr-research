@@ -1,11 +1,11 @@
 # [TLDR](https://www.tldresear.ch/) Fellowship Project Repo
 
-This repo explores how on-chain solidity smart contracts are able to take control of their own sequencing via Flashbot's block programming platform [SUAVE](https://suave.flashbots.net/what-is-suave) for the sake of capturing their own MEV. This repo contains a proof of concept uniswap v3 pool that auctions off the first swap in the pool per block, enabling the pool to capture some of the LVR arbitrage opportunity which it creates. The auction is written in solidity as a smart contract on Suave and takes advantage of Suave's TEE enabled trusted execution and privacy to make the auction secure. 
+This repo explores how on-chain solidity smart contracts are able to take control of their own sequencing for the sake of capturing the MEV that they generate. This repo focuses on AMMs as an example protocol, as both the LPs and traders of AMMs lose money due to not being able to control the sequencing of trades that occur on-chain. The repo itself is a PoC of a system that captures and reroutes money that is normally extracted from users back to the users.
 
-The goal of this repo are:
-1. Show that smart contract applications are able to sequence themselves for their own benefit.
-2. Provide proof-of-concept Suave auction code that is reusable.
-3. Start the conversation on why block builders shouldn't exist and why decentralized applications should be able to control their own sequencing. If you find this interesting and want to chat, DM me on [twitter](https://twitter.com/lobstermindset) :).
+Normal AMMs lose money due to [loss versus rebalancing (LVR)](https://a16zcrypto.com/posts/article/lvr-quantifying-the-cost-of-providing-liquidity-to-automated-market-makers/), which can be conceptualized as the AMM's LPs being forced to take the bad half of a trade. If an entity is willing to pay for the right to be the first to take a trade, then some of the LVR loss can be recaputured as profit. For ethereum L1, block builders are performing and benefitting from this auction already in their block building process as top of block CEX-DEX arbitrague. In this repo, the AMM takes away the right of the block builder to choose who gets to trade first and instead performs the auction itself. In this way, the AMM is able to capture some of the MEV that it generates instead of leaving it on the floor for block builders to consume. 
+
+This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[2](https://ethresear.ch/t/mev-capturing-amm-mcamm/13336)</sup> AMM auction constructs in that it leverages TEEs (trusted execution environments) to manage and run the auction instead of involving the block builder or other new manager identities. 
+
 
 ## System Components
 
