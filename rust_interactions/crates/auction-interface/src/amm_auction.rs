@@ -24,7 +24,7 @@ use crate::amm_auction_config::AmmAuctionConfig;
 
 sol! {
     #[sol(rpc)]
-    interface IAMMAuctionSuapp {
+    interface IAuctionSuapp {
         #[derive(Debug)]
         function newPendingTxn() external returns (bytes memory);
         #[derive(Debug)]
@@ -74,7 +74,7 @@ sol! {
     }
 }
 
-pub struct AmmAuctionSuapp {
+pub struct AuctionSuapp {
     auction_suapp: Address,
     deposit_contract: Address,
     token_0: Address,
@@ -108,7 +108,7 @@ pub struct AmmAuctionSuapp {
     last_used_suave_nonce: u64,
 }
 
-impl AmmAuctionSuapp {
+impl AuctionSuapp {
     pub async fn new_from_config(config: AmmAuctionConfig) -> eyre::Result<Self> {
         let execution_node;
         let suave_rpc;
@@ -181,7 +181,7 @@ impl AmmAuctionSuapp {
                 .wrap_err("failed to parse swapper_2's pk")?,
         );
 
-        AmmAuctionSuapp::new(
+        AuctionSuapp::new(
             config.suapp_amm.wrap_err("auction suapp not set")?,
             config
                 .auction_deposits
@@ -225,7 +225,7 @@ impl AmmAuctionSuapp {
             .signer(SuaveSigner::new(suave_signer_wallet))
             .on_provider(SuaveProvider::from_http(suave_rpc_url));
 
-        Ok(AmmAuctionSuapp {
+        Ok(AuctionSuapp {
             auction_suapp,
             deposit_contract,
             token_0,
@@ -391,7 +391,7 @@ impl AmmAuctionSuapp {
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::runAuctionCall::SELECTOR).into());
+            .input(Bytes::from(IAuctionSuapp::runAuctionCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
             .wrap_err("failed to create ccr")?;
@@ -422,7 +422,7 @@ impl AmmAuctionSuapp {
             .build_generic_suave_transaction(self.suave_provider.default_signer_address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::newPendingTxnCall::SELECTOR).into());
+            .input(Bytes::from(IAuctionSuapp::newPendingTxnCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
             .wrap_err("failed to create ccr")?;
@@ -480,7 +480,7 @@ impl AmmAuctionSuapp {
             .wrap_err("failed to sign bid EIP712 hash")?;
 
         // create bid input
-        let bid = IAMMAuctionSuapp::Bid {
+        let bid = IAuctionSuapp::Bid {
             bidder: bidder.address(),
             blockNumber: U256::from(block_number),
             amount: U256::from(bid_amount),
@@ -498,7 +498,7 @@ impl AmmAuctionSuapp {
             .wrap_err("failed to build generic suave transaction")?
             .input(
                 Bytes::from(
-                    IAMMAuctionSuapp::newBidCall {
+                    IAuctionSuapp::newBidCall {
                         salt: "111".to_string(),
                     }
                     .abi_encode(),
@@ -525,7 +525,7 @@ impl AmmAuctionSuapp {
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::initLastL1BlockCall::SELECTOR).into());
+            .input(Bytes::from(IAuctionSuapp::initLastL1BlockCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
             .wrap_err("failed to create ccr")?;
@@ -548,7 +548,7 @@ impl AmmAuctionSuapp {
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAMMAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
+            .input(Bytes::from(IAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
             .wrap_err("failed to create ccr")?;
@@ -588,7 +588,7 @@ impl AmmAuctionSuapp {
             .context("failed to build generic transaction")?
             .input(
                 Bytes::from(
-                    IAMMAuctionSuapp::setSigningKeyCall {
+                    IAuctionSuapp::setSigningKeyCall {
                         pubKey: suave_stored_wallet_address,
                     }
                     .abi_encode(),

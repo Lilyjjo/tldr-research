@@ -1,19 +1,11 @@
-use auction_interface::amm_auction::AmmAuctionSuapp;
-use color_eyre::{
-    eyre,
-    eyre::Context,
-};
+use auction_interface::amm_auction::AuctionSuapp;
+use color_eyre::{eyre, eyre::Context};
 
-use crate::cli::amm_auction::{
-    AuctionArgs,
-    BidArgs,
-    InitializeSuappArgs,
-    SwapArgs,
-};
+use crate::cli::amm_auction::{AuctionArgs, BidArgs, InitializeSuappArgs, SwapArgs};
 
 pub(crate) async fn trigger_auction(
     _args: &AuctionArgs,
-    amm_auction: &mut AmmAuctionSuapp,
+    amm_auction: &mut AuctionSuapp,
 ) -> eyre::Result<()> {
     println!("auction cli logic");
     amm_auction
@@ -28,10 +20,7 @@ pub(crate) async fn trigger_auction(
     Ok(())
 }
 
-pub(crate) async fn send_bid(
-    args: &BidArgs,
-    amm_auction: &mut AmmAuctionSuapp,
-) -> eyre::Result<()> {
+pub(crate) async fn send_bid(args: &BidArgs, amm_auction: &mut AuctionSuapp) -> eyre::Result<()> {
     println!("new bid logic");
     amm_auction
         .new_bid(
@@ -48,7 +37,7 @@ pub(crate) async fn send_bid(
 
 pub(crate) async fn send_swap_tx(
     args: &SwapArgs,
-    amm_auction: &mut AmmAuctionSuapp,
+    amm_auction: &mut AuctionSuapp,
 ) -> eyre::Result<()> {
     println!("new pending transaction logic");
     amm_auction
@@ -61,7 +50,7 @@ pub(crate) async fn send_swap_tx(
 
 pub(crate) async fn initialize_suapp(
     _args: &InitializeSuappArgs,
-    amm_auction: &mut AmmAuctionSuapp,
+    amm_auction: &mut AuctionSuapp,
 ) -> eyre::Result<()> {
     println!("new suapp initialization logic");
     // initialize the suapp's Confidential Store logic for the L1 Block, Sepolia's URL, and signing

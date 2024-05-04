@@ -1,4 +1,4 @@
-use auction_interface::amm_auction::AmmAuctionSuapp;
+use auction_interface::amm_auction::AuctionSuapp;
 use color_eyre::eyre::{self, Context};
 use futures_util::{stream::StreamExt, SinkExt};
 use serde_json::Value;
@@ -29,7 +29,7 @@ impl BlockServer {
 
     pub async fn run_until_stopped(
         &mut self,
-        amm_auction_suapp: AmmAuctionSuapp,
+        amm_auction_suapp: AuctionSuapp,
     ) -> eyre::Result<JoinHandle<()>> {
         // Connect to the server
         let (ws_stream, _) = connect_async(self.l1_websocket_url.clone())
@@ -77,7 +77,7 @@ fn get_bid_amount() -> u128 {
     (seed % 100) + 1
 }
 
-async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp, block_number: u128) {
+async fn trigger_auction(amm_auction_suapp: &mut AuctionSuapp, block_number: u128) {
     println!("[~~~~  running auction for block: {} ~~~~]", block_number);
 
     let mut bid_amount = get_bid_amount();
@@ -124,7 +124,7 @@ async fn trigger_auction(amm_auction_suapp: &mut AmmAuctionSuapp, block_number: 
     }
 }
 
-async fn process_header(amm_auction_suapp: &mut AmmAuctionSuapp, text: String) {
+async fn process_header(amm_auction_suapp: &mut AuctionSuapp, text: String) {
     // TODO add better error handling around this
     let v: Value = serde_json::from_str(&text).unwrap();
 

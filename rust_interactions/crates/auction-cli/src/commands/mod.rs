@@ -1,16 +1,9 @@
 mod amm_auction;
 
-use auction_interface::amm_auction::AmmAuctionSuapp;
-use color_eyre::{
-    eyre,
-    eyre::eyre,
-};
+use auction_interface::amm_auction::AuctionSuapp;
+use color_eyre::{eyre, eyre::eyre};
 
-use crate::cli::{
-    amm_auction::Command as AmmAuctionCommand,
-    Cli,
-    Command,
-};
+use crate::cli::{amm_auction::Command as AmmAuctionCommand, Cli, Command};
 
 /// Checks what function needs to be run and calls it with the appropriate arguments
 ///
@@ -25,12 +18,10 @@ use crate::cli::{
 /// # Panics
 ///
 /// * If the command is not recognized
-pub async fn run(cli: Cli, mut amm_auction: AmmAuctionSuapp) -> eyre::Result<()> {
+pub async fn run(cli: Cli, mut amm_auction: AuctionSuapp) -> eyre::Result<()> {
     if let Some(command) = cli.command {
         match command {
-            Command::AmmAuction {
-                command,
-            } => match command {
+            Command::AmmAuction { command } => match command {
                 AmmAuctionCommand::Auction(args) => {
                     amm_auction::trigger_auction(&args, &mut amm_auction).await?
                 }

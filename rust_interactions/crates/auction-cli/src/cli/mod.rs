@@ -1,13 +1,10 @@
 pub(crate) mod amm_auction;
-use clap::{
-    Parser,
-    Subcommand,
-};
+use clap::{Parser, Subcommand};
 use color_eyre::eyre;
 
 use crate::cli::amm_auction::Command as AmmAuctionCommand;
 
-/// A CLI for interacting with AMMAuctionSuapp Proof of Concept
+/// A CLI for interacting with AuctionSuapp Proof of Concept
 #[derive(Debug, Parser)]
 #[clap(name = "astria-cli", version)]
 pub struct Cli {

@@ -1,17 +1,8 @@
 use std::process::ExitCode;
 
-use auction_cli::{
-    cli::Cli,
-    commands,
-};
-use auction_interface::{
-    amm_auction::AmmAuctionSuapp,
-    amm_auction_config::AmmAuctionConfig,
-};
-use color_eyre::eyre::{
-    self,
-    Context,
-};
+use auction_cli::{cli::Cli, commands};
+use auction_interface::{amm_auction::AuctionSuapp, amm_auction_config::AmmAuctionConfig};
+use color_eyre::eyre::{self, Context};
 
 fn main() -> ExitCode {
     if let Err(err) = run() {
@@ -34,7 +25,7 @@ async fn async_main() -> eyre::Result<()> {
         .await
         .expect("failed to build auction amm config");
 
-    let amm_auction_wrapper = AmmAuctionSuapp::new_from_config(config)
+    let amm_auction_wrapper = AuctionSuapp::new_from_config(config)
         .await
         .wrap_err("failed to build amm auction suapp wrapper")?;
 
