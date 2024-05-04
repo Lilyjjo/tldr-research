@@ -23,6 +23,7 @@ sequenceDiagram
     participant Suave Auction
     participant BlockBuilders
     participant Ethereum AMM Contracts
+    Bidders->>Ethereum AMM Contracts: bid deposits
     Note over Suave Auction,Ethereum AMM Contracts : Ethereum Block N
     Swappers->>Suave Auction: swap txns
     Bidders->>Suave Auction: bids for block N+1
