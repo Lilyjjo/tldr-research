@@ -53,16 +53,16 @@ pub(crate) async fn initialize_suapp(
     amm_auction: &mut AuctionSuapp,
 ) -> eyre::Result<()> {
     println!("new suapp initialization logic");
-    // initialize the suapp's Confidential Store logic for the L1 Block, Sepolia's URL, and signing
+    // initialize the suapp's Confidential Store logic for the L1 Block, L1's URL, and signing
     // key
     amm_auction
         .initialize_l1_block()
         .await
         .wrap_err("failed to send l1 block initialize ccr")?;
     amm_auction
-        .set_sepolia_url()
+        .set_L1_url()
         .await
-        .wrap_err("failed to send sepolia init ccr")?;
+        .wrap_err("failed to send L1 init ccr")?;
     amm_auction
         .set_signing_key()
         .await

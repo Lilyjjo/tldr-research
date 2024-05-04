@@ -10,6 +10,6 @@ interface IAuctionSuapp {
     function newBid(string memory salt) external returns (bytes memory);
     function runAuction() external returns (bytes memory);
     function setSigningKey(address pubkey) external returns (bytes memory);
-    function setSepoliaUrl() external returns (bytes memory);
+    function setL1Url() external returns (bytes memory);
     function initLastL1Block() external returns (bytes memory);
 }

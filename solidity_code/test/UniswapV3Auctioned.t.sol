@@ -19,11 +19,10 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
         address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
     address suappKey = address(0x033FF54B2A7C70EeCB8976d910C055fAf952078a);
     address admin = address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
-    address addressUserSepolia =
-        address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
-    address addressUserSepolia2 =
+    address addressUserL1 = address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
+    address addressUserL12 =
         address(0x88c75B9Ab2bDD3bE7E24ECe226BE4279746aeD81);
-    address addressUserSepolia3 =
+    address addressUserL13 =
         address(0xa6d33de6F072281de6884862A778ee03Ef5c3aAc);
 
     IAuctionDeposits auctionDeposits;
@@ -45,9 +44,9 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
         vm.deal(adminAuctionGuard, 10 ether);
         vm.deal(suappKey, 10 ether);
         vm.deal(admin, 10 ether);
-        vm.deal(addressUserSepolia, 10 ether);
-        vm.deal(addressUserSepolia2, 10 ether);
-        vm.deal(addressUserSepolia3, 10 ether);
+        vm.deal(addressUserL1, 10 ether);
+        vm.deal(addressUserL12, 10 ether);
+        vm.deal(addressUserL13, 10 ether);
 
         vm.startPrank(admin);
 
@@ -69,24 +68,24 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
 
         if (initPoolState) {
             // (4) Add state to uniswap contracts, ready for suapp actors
-            // note: only does new contract liquidity provisioning, all addresses need to have SepoliaETH already
+            // note: only does new contract liquidity provisioning, all addresses need to have L1ETH already
 
             // add liquidty to the pool
             _addLiquidity(
-                addressUserSepolia2, // liquidity provider
+                addressUserL12, // liquidity provider
                 dInfo
             );
             // give swappers tokens to swap with router
             _fundSwapperApproveSwapRouter(
-                addressUserSepolia, // admin
+                addressUserL1, // admin
                 dInfo
             );
             _fundSwapperApproveSwapRouter(
-                addressUserSepolia2, // liqudity provider / bidder
+                addressUserL12, // liqudity provider / bidder
                 dInfo
             );
             _fundSwapperApproveSwapRouter(
-                addressUserSepolia3, // basic swapper
+                addressUserL13, // basic swapper
                 dInfo
             );
         }
@@ -96,9 +95,9 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
             auctionGuard.enableAuction(true);
         }
         if (depositBidPaymet) {
-            // (6) if to have bidder place Sepolia eth into the deposit contracts
-            //vm.startBroadcast(privateKeyUserSepolia2);
-            vm.prank(addressUserSepolia2);
+            // (6) if to have bidder place L1 eth into the deposit contracts
+            //vm.startBroadcast(privateKeyUserL12);
+            vm.prank(addressUserL12);
             auctionDeposits.deposit{value: .001 ether}();
         }
     }
@@ -109,7 +108,7 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
             tokenIn: dInfo.token0,
             tokenOut: dInfo.token1,
             fee: dInfo.poolFee,
-            recipient: addressUserSepolia3,
+            recipient: addressUserL13,
             deadline: block.timestamp + 10000,
             amountIn: 10,
             amountOutMinimum: 0,
@@ -117,7 +116,7 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
         });
 
         // see fine on block that auctions were enabled on (makes ok to swap)
-        vm.prank(addressUserSepolia3);
+        vm.prank(addressUserL13);
         dInfo.swapRouter.exactInputSingle(swapParams);
 
         // see not fine on next block

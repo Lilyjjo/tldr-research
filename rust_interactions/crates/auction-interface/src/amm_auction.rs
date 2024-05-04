@@ -34,7 +34,7 @@ sol! {
         #[derive(Debug)]
         function setSigningKey(address pubKey) external returns (bytes memory);
         #[derive(Debug)]
-        function setSepoliaUrl() external returns (bytes memory);
+        function setL1Url() external returns (bytes memory);
         #[derive(Debug)]
         function initLastL1Block() external returns (bytes memory);
 
@@ -81,7 +81,7 @@ pub struct AuctionSuapp {
     token_1: Address,
     swap_router: Address,
     execution_node: Address,
-    sepolia_provider: RootProvider<Http<ReqwestClient>>,
+    L1_provider: RootProvider<Http<ReqwestClient>>,
     suave_provider: FillProvider<
         alloy::providers::fillers::JoinFill<
             alloy::providers::fillers::JoinFill<
@@ -104,7 +104,7 @@ pub struct AuctionSuapp {
         SuaveNetwork,
     >,
     eoa_wallets: HashMap<String, LocalWallet>,
-    sepolia_rpc: String,
+    L1_rpc: String,
     last_used_suave_nonce: u64,
 }
 
@@ -205,14 +205,14 @@ impl AuctionSuapp {
         swap_router: Address,
         execution_node: Address,
         suave_rpc: String,
-        sepolia_rpc: String,
+        L1_rpc: String,
         eoa_accounts: HashMap<String, LocalWallet>,
     ) -> eyre::Result<Self> {
-        // build sepolia provider
-        let sepolia_rpc_url =
-            url::Url::parse(&sepolia_rpc).wrap_err("failed to build url from suave rpc string")?;
-        let sepolia_provider = ProviderBuilder::new()
-            .on_http(sepolia_rpc_url.clone())
+        // build L1 provider
+        let L1_rpc_url =
+            url::Url::parse(&L1_rpc).wrap_err("failed to build url from suave rpc string")?;
+        let L1_provider = ProviderBuilder::new()
+            .on_http(L1_rpc_url.clone())
             .wrap_err("failed to build provider from given rpc url")?;
 
         // build suave provider
@@ -232,10 +232,10 @@ impl AuctionSuapp {
             token_1,
             swap_router,
             execution_node,
-            sepolia_provider,
+            L1_provider,
             suave_provider,
             eoa_wallets: eoa_accounts,
-            sepolia_rpc,
+            L1_rpc,
             last_used_suave_nonce: 0,
         })
     }
@@ -300,20 +300,20 @@ impl AuctionSuapp {
         Ok(tx)
     }
 
-    pub async fn build_generic_sepolia_transaction(
+    pub async fn build_generic_L1_transaction(
         &self,
         signer: Address,
         target_contract: Address,
     ) -> eyre::Result<TransactionRequest> {
         // gather network dependent variables
         let nonce = self
-            .sepolia_provider
+            .L1_provider
             .get_transaction_count(signer, BlockId::default())
             .await
             .context("failed to get transaction count for address")?;
 
         let gas_price = self
-            .sepolia_provider
+            .L1_provider
             .get_gas_price()
             .await
             .context("failed to get gas price")?
@@ -322,7 +322,7 @@ impl AuctionSuapp {
         let gas = 0x0f4240; // TODO: figure out what is reasonable, probably should be per function
 
         let chain_id = self
-            .sepolia_provider
+            .L1_provider
             .get_chain_id()
             .await
             .context("failed to get chain id")?;
@@ -362,9 +362,9 @@ impl AuctionSuapp {
 
         // create and sign over the swap transaction
         let mut rlp_encoded_swap_tx = Vec::new();
-        self.build_generic_sepolia_transaction(swapper.address(), self.swap_router)
+        self.build_generic_L1_transaction(swapper.address(), self.swap_router)
             .await
-            .wrap_err("failed to build generic sepolia transaction")?
+            .wrap_err("failed to build generic L1 transaction")?
             .input(TransactionInput::new(
                 ISwapRouter::exactInputSingleCall {
                     params: swap_input_params,
@@ -535,20 +535,20 @@ impl AuctionSuapp {
         Ok(())
     }
 
-    pub async fn set_sepolia_url(&mut self) -> eyre::Result<()> {
+    pub async fn set_L1_url(&mut self) -> eyre::Result<()> {
         let suave_signer = self
             .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
-        let confidential_inputs = self.sepolia_rpc.abi_encode_packed();
+        let confidential_inputs = self.L1_rpc.abi_encode_packed();
 
         // create generic transaction request and add function specific data
         let tx = self
             .build_generic_suave_transaction(suave_signer.address())
             .await
             .context("failed to build generic transaction")?
-            .input(Bytes::from(IAuctionSuapp::setSepoliaUrlCall::SELECTOR).into());
+            .input(Bytes::from(IAuctionSuapp::setL1UrlCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
             .wrap_err("failed to create ccr")?;
@@ -557,7 +557,7 @@ impl AuctionSuapp {
             Some(confidential_inputs.into()),
         ))
         .await
-        .wrap_err("failed to send sepolia init CCR")?;
+        .wrap_err("failed to send L1 init CCR")?;
         Ok(())
     }
 

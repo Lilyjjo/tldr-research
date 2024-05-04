@@ -11,6 +11,19 @@ import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 /**
  * @title AuctionSuapp
  * @author lilyjjo
+ * @dev Note: this contract has numerous security issues:
+ * 1. This contract's logic isn't restricted to a single kettle like it should be
+ * 2. This contract uses a public URL to get the time to determine if bids/auctions
+ *    CCRs are valid. This is insecure as a host operator can spoof these returns.
+ * 3. The confidential compute callbacks aren't restricted like they should be,
+ *    this should be possible on the next testnet, Rigil does not support it.
+ * It also has functionality issues:
+ * 1. The bids are in the contract's storage instead of in the confidential store,
+ *    this means bids can fail to be included if they're submitted between a suave
+ *    block time and when the auction was triggered.
+ * 2. If any swaps are included that are invalid, no bundles will not land and the
+ *    contract will get stuck. As far as I can tell builders don't support the reverting
+ *    transation hash functionality, which makes this really a PoC.
  */
 contract AuctionSuapp is IAuctionSuapp {
     using JSONParserLib for *;
@@ -24,7 +37,6 @@ contract AuctionSuapp is IAuctionSuapp {
     uint256 public winningBidAmount;
 
     // Addresses
-    address public targetAMM;
     address public targetDepositContract;
     address public targetAuctionGuard;
     address public owner;
@@ -33,7 +45,7 @@ contract AuctionSuapp is IAuctionSuapp {
     /// @dev DataId for the signing key in Suave's confidential storage
     Suave.DataId private _signingKeyRecord;
     /// @dev DataId for the L1 URL in Suave's confidential storage
-    Suave.DataId private _ethSepoliaUrlRecord; // 10
+    Suave.DataId private _ethL1UrlRecord;
     /// @dev last block sent auction result for
     Suave.DataId private _lastBlockProcessedRecord;
 
@@ -46,7 +58,7 @@ contract AuctionSuapp is IAuctionSuapp {
 
     /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
-    /// @dev Key for accessing the Ethereum Sepolia network URL in Suave's confidential storage
+    /// @dev Key for accessing the Ethereum L1 network URL in Suave's confidential storage
     string public KEY_URL = "URL";
     string public KEY_LAST_BLOCK_PROCESSED = "LAST_BLOCK";
 
@@ -95,19 +107,15 @@ contract AuctionSuapp is IAuctionSuapp {
     }
 
     /**
-     * @notice Constructs the PokeRelayer contract
-     * @param targetAMM_ Address of the target application for the relayed transactions
-     * @param chainId_ ID of the blockchain where the targetApp is deployed
+     * @notice Constructs the AuctionSuapp contract
      */
     constructor(
-        address targetAMM_,
         address targetDepositContract_,
         address targetAuctionGuard_,
         uint256 chainId_,
         uint256 gasNeededPostAuctionResults_
     ) {
         owner = msg.sender;
-        targetAMM = targetAMM_;
         targetDepositContract = targetDepositContract_;
         targetAuctionGuard = targetAuctionGuard_;
         chainId = chainId_;
@@ -115,7 +123,9 @@ contract AuctionSuapp is IAuctionSuapp {
         auctionDuration = 4;
     }
 
-    // let users (who aren't in auction) put their swaps into the system for inclusion
+    /**
+     * @notice let users (who aren't in auction) put their swaps into the system for inclusion
+     */
     function newPendingTxn() external returns (bytes memory) {
         bytes memory txnData = Suave.confidentialInputs();
 
@@ -139,7 +149,10 @@ contract AuctionSuapp is IAuctionSuapp {
             );
     }
 
-    // TODO: add guard to keep people from calling
+    /**
+     * @notice Callback function to record a new non-bid transaction
+     * @dev To be called as a Confidential Compute Callback
+     */
     function callbackNewPendingTxn(
         address sender,
         Suave.DataId txnId
@@ -148,13 +161,15 @@ contract AuctionSuapp is IAuctionSuapp {
         emit NonBidTxnId(sender, txnId);
     }
 
-    // lets people put new bids into txn
+    /**
+     * @notice Can be called to place a new bid for processing
+     */
     function newBid(string memory salt) external returns (bytes memory) {
         Bid memory bid = abi.decode(Suave.confidentialInputs(), (Bid));
 
         // grab stored URL
         string memory httpURL = string(
-            Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
+            Suave.confidentialRetrieve(_ethL1UrlRecord, KEY_URL)
         );
 
         // grab last L1 block's info
@@ -192,7 +207,10 @@ contract AuctionSuapp is IAuctionSuapp {
             );
     }
 
-    // TODO: add guard to keep people from calling
+    /**
+     * @notice Callback function to record a new bid
+     * @dev To be called as a Confidential Compute Callback
+     */
     function callbackNewBid(
         Suave.DataId bidId,
         uint256 blockNum,
@@ -205,7 +223,7 @@ contract AuctionSuapp is IAuctionSuapp {
     function runAuction() external returns (bytes memory) {
         // grab stored URL
         string memory httpURL = string(
-            Suave.confidentialRetrieve(_ethSepoliaUrlRecord, KEY_URL)
+            Suave.confidentialRetrieve(_ethL1UrlRecord, KEY_URL)
         );
 
         // grab last L1 block's info
@@ -262,7 +280,6 @@ contract AuctionSuapp is IAuctionSuapp {
         bundle.minTimestamp = 0;
         bundle.maxTimestamp = 0;
         uint256 nonBidTxnsCount = _nonBidTxns.length - txsToSendIndex;
-        //bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
         bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
         bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
 
@@ -290,18 +307,11 @@ contract AuctionSuapp is IAuctionSuapp {
                 nonBidTxnNamespace
             );
             bundle.txns[auctionTxnCount + includedTransactionCount] = nonBidTxn;
-            //bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
-            //    nonBidTxn
-            //);
             includedTransactionCount++;
         }
 
-        // send bundle to flashbots
-        bytes memory bundleRes = Bundle.sendBundle(
-            "https://relay-holesky.flashbots.net",
-            bundle
-        );
-        // send to titan too
+        // send bundle to blockbuilders
+        Bundle.sendBundle("https://relay-holesky.flashbots.net", bundle);
         Bundle.sendBundle("http://holesky-rpc.titanbuilder.xyz/", bundle);
 
         // update confidential store's last ran block
@@ -386,6 +396,10 @@ contract AuctionSuapp is IAuctionSuapp {
         return (bestBid, secondPrice);
     }
 
+    /**
+     * @notice Simulate a bid to ensure it will succeed when
+     * placed on-chain.
+     */
     function _simulateBid(
         Bid memory bid,
         Block memory blockData,
@@ -400,6 +414,10 @@ contract AuctionSuapp is IAuctionSuapp {
         );
 
         if (deposit < bid.amount) return false;
+        return true;
+
+        // TODO: get Suave's transaction simulation code working.
+        // Have been working with @ferranbt but the api endpoint is still broken
 
         // check that the withdraw and swap txns succeed
         //string memory id = Suave.newBuilder();
@@ -411,25 +429,18 @@ contract AuctionSuapp is IAuctionSuapp {
             blockData,
             true,
             signingKeyNonce
-        ); */
+        );
 
-        // TODO: wait for ferran to help debug Builder/Simulation API
-        // If doesn't work, will need to write additional bid checking code
-
-        return true;
-
-        //Suave.SimulateTransactionResult memory simRes = Suave
-        //    .simulateTransaction(id, paymentTxn);
-        //require(simRes.success == true);
-        //require(simRes.logs.length == 1);
-
-        /*
+        Suave.SimulateTransactionResult memory simRes = Suave
+            .simulateTransaction(id, paymentTxn);
+        require(simRes.success == true);
+        require(simRes.logs.length == 1);
 
         // check for success log
         bool foundPaymentSuccessLog;
         for (uint i = 0; i < simRes.logs.length; ++i) {
             Suave.SimulatedLog memory log = simRes.logs[i];
-            if (log.addr == targetAMM) {
+            if (log.addr == targetAuctionDeposits) {
                 for (uint j = 0; j < log.topics.length; j++) {
                     if (
                         log.topics[j] ==
@@ -451,7 +462,7 @@ contract AuctionSuapp is IAuctionSuapp {
         bool foundSwapSuccessLog;
         for (uint i = 0; i < simRes.logs.length; ++i) {
             Suave.SimulatedLog memory log = simRes.logs[i];
-            if (log.addr == targetAMM) {
+            if (log.addr == targetAuctionGuard) {
                 for (uint j = 0; j < log.topics.length; j++) {
                     if (
                         log.topics[j] ==
@@ -471,6 +482,9 @@ contract AuctionSuapp is IAuctionSuapp {
         */
     }
 
+    /**
+     * @notice Create the transaction to be sent to the AuctionGuard
+     */
     function _createPostAuctionTransaction(
         Bid memory bid,
         Block memory blockData,
@@ -520,6 +534,15 @@ contract AuctionSuapp is IAuctionSuapp {
         return signedTxn;
     }
 
+    /**
+     * @notice Gets the current time according to a random website :)
+     * @dev note This is insecure and shouldn't be done, but I didn't have
+     * time to come up with a better solution. The problem is that the
+     * kettle operator can't be trusted to not modify the host machine
+     * to do things which would return an altered time, which would enable
+     * the host to submit bids past the time anyone else is able to.
+     * @return the current time
+     */
     function _getCurrentTime() internal returns (uint256) {
         Suave.HttpRequest memory request;
         request.method = "GET";
@@ -537,6 +560,10 @@ contract AuctionSuapp is IAuctionSuapp {
         return currentTime;
     }
 
+    /**
+     * @notice Gets the last block number of the L1
+     * @return The last L1 block's number
+     */
     function getLastL1BlockNumber(
         string memory httpURL
     ) public returns (string memory) {
@@ -560,12 +587,10 @@ contract AuctionSuapp is IAuctionSuapp {
         return stringResult;
     }
 
-    function _getLastL1BlockNumberUint(
-        string memory httpURL
-    ) internal returns (uint256) {
-        return JSONParserLib.parseUintFromHex(getLastL1BlockNumber(httpURL));
-    }
-
+    /**
+     * @notice Gets the last block of the L1
+     * @return blockData The last L1 block's info
+     */
     function getLastL1Block(
         string memory httpURL
     ) public returns (Block memory blockData) {
@@ -600,6 +625,10 @@ contract AuctionSuapp is IAuctionSuapp {
         blockData.number = JSONParserLib.parseUintFromHex(blockNumber);
     }
 
+    /**
+     * @notice Gets the stored signing key's nonce
+     * @return uint256 The next nonce to use
+     */
     function _getSigningKeyNonce(
         string memory httpURL
     ) internal returns (uint256) {
@@ -628,6 +657,11 @@ contract AuctionSuapp is IAuctionSuapp {
         return JSONParserLib.parseUintFromHex(stringResult);
     }
 
+    /**
+     * @notice Makes a json ethCall() request that expects
+     * an uint as a returned variable.
+     * @return uint256 ethCall's returned variable
+     */
     function _ethCallUint(
         string memory httpURL,
         address targetContract,
@@ -655,6 +689,10 @@ contract AuctionSuapp is IAuctionSuapp {
         return JSONParserLib.parseUintFromHex(trimQuotes(string(item.value())));
     }
 
+    /**
+     * @notice removed encasing "" from a string like "foo"
+     * @return string original string without the quotes
+     */
     function trimQuotes(
         string memory input
     ) private pure returns (string memory) {
@@ -709,7 +747,7 @@ contract AuctionSuapp is IAuctionSuapp {
 
     /**
      * @notice Callback function to update the signing key record
-     * @dev To be called as a Confidential Compute Callback.
+     * @dev To be called as a Confidential Compute Callback
      * @param signingKeyBid_ The new signing key record ID
      */
     function callbackSetSigningKey(
@@ -722,17 +760,15 @@ contract AuctionSuapp is IAuctionSuapp {
     }
 
     /**
-     * @notice Sets the Ethereum Sepolia network URL in Suave's confidential storage
-     * @return bytes Encoded data for updating the Sepolia URL callback
+     * @notice Sets the Ethereum L1 network URL in Suave's confidential storage
+     * @return bytes Encoded data for updating the L1 URL callback
      */
-    function setSepoliaUrl() external onlyOwner returns (bytes memory) {
+    function setL1Url() external onlyOwner returns (bytes memory) {
         require(Suave.isConfidential());
         bytes memory keyData = Suave.confidentialInputs();
 
-        // allowedPeekers: which contracts can read the record (only this contract)
         address[] memory allowedPeekers = new address[](1);
         allowedPeekers[0] = address(this);
-        // allowedStores: which kettles can read the record (any kettle)
         address[] memory allowedStores = new address[](1);
         allowedStores[0] = Suave.ANYALLOWED;
 
@@ -744,17 +780,16 @@ contract AuctionSuapp is IAuctionSuapp {
         );
         Suave.confidentialStore(bid.id, KEY_URL, keyData);
 
-        return
-            abi.encodeWithSelector(this.callbackSetSepoliaUrl.selector, bid.id);
+        return abi.encodeWithSelector(this.callbackSetL1Url.selector, bid.id);
     }
 
     /**
-     * @notice Callback function to update the Sepolia network URL record
-     * @dev To be called as a Confidential Compute Callback.
-     * @param sepoliaKeyId The record ID for the Sepolia URL
+     * @notice Callback function to update the L1 network URL record
+     * @dev To be called as a Confidential Compute Callback
+     * @param L1KeyId The record ID for the L1 URL
      */
-    function callbackSetSepoliaUrl(Suave.DataId sepoliaKeyId) external {
-        _ethSepoliaUrlRecord = sepoliaKeyId;
+    function callbackSetL1Url(Suave.DataId L1KeyId) external {
+        _ethL1UrlRecord = L1KeyId;
     }
 
     /**
@@ -764,10 +799,8 @@ contract AuctionSuapp is IAuctionSuapp {
     function initLastL1Block() external onlyOwner returns (bytes memory) {
         require(Suave.isConfidential());
 
-        // allowedPeekers: which contracts can read the record (only this contract)
         address[] memory allowedPeekers = new address[](1);
         allowedPeekers[0] = address(this);
-        // allowedStores: which kettles can read the record (any kettle)
         address[] memory allowedStores = new address[](1);
         allowedStores[0] = Suave.ANYALLOWED;
 
@@ -792,7 +825,7 @@ contract AuctionSuapp is IAuctionSuapp {
 
     /**
      * @notice Callback function to init the last processed block data record
-     * @dev To be called as a Confidential Compute Request.
+     * @dev To be called as a Confidential Compute Callback
      * @param lastL1BlockKeyId The record ID for the last processed block
      */
     function callbackInitLastL1Block(Suave.DataId lastL1BlockKeyId) external {

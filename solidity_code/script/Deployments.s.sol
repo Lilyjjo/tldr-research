@@ -46,7 +46,6 @@ contract Deployments is TestingBase, UniswapBase {
         pool = vm.envAddress("POOL");
 
         AuctionSuapp ammAuctionSuapp = new AuctionSuapp(
-            pool,
             auction_deposits,
             auction_guard,
             chainIdL1,
@@ -104,7 +103,7 @@ contract Deployments is TestingBase, UniswapBase {
 
         if (initPoolState) {
             // (4) Add state to uniswap contracts, ready for suapp actors
-            // note: only does new contract liquidity provisioning, all addresses need to have SepoliaETH already
+            // note: only does new contract liquidity provisioning, all addresses need to have L1ETH already
 
             // add liquidty to the pool
             _addLiquidity(
@@ -145,7 +144,7 @@ contract Deployments is TestingBase, UniswapBase {
             );
         }
         if (depositBidPaymet) {
-            // (6) if to have bidder place Sepolia eth into the deposit contracts
+            // (6) if to have bidder place L1 eth into the deposit contracts
             vm.startBroadcast(bidder_0_pk);
             auctionDeposits.deposit{value: .001 ether}();
             vm.stopBroadcast();

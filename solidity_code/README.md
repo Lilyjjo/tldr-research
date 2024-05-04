@@ -35,7 +35,7 @@ In order to bid, bidders will need to deposit funds into the `AuctionDeposits` c
 If the swap transaction or the EIP-712 message fail under simulations ran during `runAuction()` then the bid is considered not-valid. A griefing vector exists where the bid winner moves funds before the auction bundle lands. This would cause the rest of the swap transactions to fail to run as the first swap transaction contains the logic to unlock the rest of the block. Bid winners are incentivzed to not do this as they would still be paying for the right to make the first swap. 
 
 ### Auction Runner
-This is a decentralized system where anyone can initiate the running of the auction. The `AMMAcutionSuapp` is configurable for how far past the last block's timestamp auctions are allowed to conclude. For the Sepolia example, we set this to be 5 seconds past. For testing purposes, a mini rust service is provided to trigger the auctions.
+This is a decentralized system where anyone can initiate the running of the auction. The `AMMAcutionSuapp` is configurable for how far past the last block's timestamp auctions are allowed to conclude. For the L1 example, we set this to be 5 seconds past. For testing purposes, a mini rust service is provided to trigger the auctions.
 
 ## Why this is a PoC
 This repo is a proof of concept for the following reasons:
