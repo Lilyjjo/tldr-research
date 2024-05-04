@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
 
-import {AMMAuctionSuapp} from "../src/AMMAuctionSuapp.sol";
+import {AuctionSuapp} from "../src/AuctionSuapp.sol";
 import {AuctionDeposits} from "../src/AuctionDeposits.sol";
 import {AuctionGuard} from "../src/AuctionGuard.sol";
 import {IAuctionDeposits} from "../src/interfaces/IAuctionDeposits.sol";
@@ -22,7 +22,7 @@ contract Deployments is TestingBase, UniswapBase {
     // Test framework is made up in layers
     // (base): setup for testing environment's shared variables and fork initialization
     // (uniswap): code realted to uniV3 initialization and use
-    // (this file): for AMMAuctionSuapp
+    // (this file): for AuctionSuapp
 
     /**
      * @notice Pulls environment variables and sets up fork urls.
@@ -33,7 +33,7 @@ contract Deployments is TestingBase, UniswapBase {
     }
 
     /**
-     * @notice Deploys the AMMAuctionSuapp contract on Suave.
+     * @notice Deploys the AuctionSuapp contract on Suave.
      * @dev note: Put this deployed address into the TestingBase file
      * @dev command: forge script script/Deployments.s.sol:Deployments --sig "deploySuaveAMMAuction()" --broadcast --legacy -vv
      */
@@ -45,7 +45,7 @@ contract Deployments is TestingBase, UniswapBase {
         auction_guard = vm.envAddress("AUCTION_GUARD");
         pool = vm.envAddress("POOL");
 
-        AMMAuctionSuapp ammAuctionSuapp = new AMMAuctionSuapp(
+        AuctionSuapp ammAuctionSuapp = new AuctionSuapp(
             pool,
             auction_deposits,
             auction_guard,

@@ -5,14 +5,14 @@ import {Transactions} from "suave-std/Transactions.sol";
 import {Bundle} from "./utils/Bundle.sol";
 import {LibString} from "solady/src/utils/LibString.sol";
 import {JSONParserLib} from "solady/src/utils/JSONParserLib.sol";
-import {IAMMAuctionSuapp} from "./interfaces/IAMMAuctionSuapp.sol";
+import {IAuctionSuapp} from "./interfaces/IAuctionSuapp.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 
 /**
- * @title AMMAuctionSuapp
+ * @title AuctionSuapp
  * @author lilyjjo
  */
-contract AMMAuctionSuapp is IAMMAuctionSuapp {
+contract AuctionSuapp is IAuctionSuapp {
     using JSONParserLib for *;
 
     // Auction Visibility/Functional Stats

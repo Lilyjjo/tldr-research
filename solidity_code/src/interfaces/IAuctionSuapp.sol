@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 /**
- * @title IAMMAuctionSuapp
+ * @title IAuctionSuapp
  * @author lilyjjo
  */
-interface IAMMAuctionSuapp {
+interface IAuctionSuapp {
     function newPendingTxn() external returns (bytes memory);
     function newBid(string memory salt) external returns (bytes memory);
     function runAuction() external returns (bytes memory);

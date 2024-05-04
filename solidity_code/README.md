@@ -8,14 +8,14 @@ This PoC is designed to be easily re-useable. The auction logic lives in separat
 ![System Diagram](./assets/system_diagram.png?raw=true "System Diagram")
 
 The system is made up of three new smart contracts:
-- `AuctionGuard.sol`: L1 contract which provides modifier-like logic to guard a target function's first interaction in a block. In this PoC the guard function, `auctionGuard()`, enforces that the auction winner determined in `AMMAuctionSuapp.sol` is the first swap in the block. `AuctionGuard` also provides the logic for pulling payment from the auction winner, done so in a grief-resistant way.
+- `AuctionGuard.sol`: L1 contract which provides modifier-like logic to guard a target function's first interaction in a block. In this PoC the guard function, `auctionGuard()`, enforces that the auction winner determined in `AuctionSuapp.sol` is the first swap in the block. `AuctionGuard` also provides the logic for pulling payment from the auction winner, done so in a grief-resistant way.
 - `AuctionDeposits.sol`: L1 contract to hold bidder's deposits. This is necessary to ensure that bidders have the funds to cover their bids. Withdrawing from this contract is also guarded to after the auction winner's swap to prevent the auciton winner from pulling their funds. This contract is separated for security purposes. 
-- `AMMAuctionSuapp.sol`: Suave contract which runs the auction. There are three user-facing functions to be aware of:
+- `AuctionSuapp.sol`: Suave contract which runs the auction. There are three user-facing functions to be aware of:
     1. `newPendingTxn()`: Function for swappers and withdrawers to submit their transactions to. These transactions are included in blocks after the first swap.
     2. `newBid()`: Function for bidders to submit their bids to be the first swap on a block. The bidder needs to include their bid, a signed message allowing the `AuctionGuard` to pull at least their bid amount from `AuctionDeposits`, and the desired swap transaction. 
     3. `runAuction()`: Function to run the auction logic. If enough time has passed since the last L1 block, this function determins if a winner for the 2nd price auction exists, creates and signs a transaction for the `AuctionGuard` to pull payments and set the winner, and creates and sends a bundle containing the unlock transaction, the winning first swap transaction, and then the rest of the swapping and withdraw transactions. This auction can be run at most once per block. 
 
-The outputted bundles from the `AMMAuctionSuapp` look as follows:
+The outputted bundles from the `AuctionSuapp` look as follows:
 ![System Diagram](./assets/bundle.png?raw=true "System Diagram")
 
 The only change made to the UniswapV3 pool is making a call to the `AuctionGuard:auctionGuard()` logic before every swap. This is comparable to UniswapV4 hooks. 
@@ -25,10 +25,10 @@ The only change made to the UniswapV3 pool is making a call to the `AuctionGuard
 ## User Flows
 
 ### Swappers
-Swappers will need to submit their signed swap transactions to the `AMMAuctionSuapp` via a Suave confidential compute request (CCR). These transactions will be included, without simulation, after a block's first swap.
+Swappers will need to submit their signed swap transactions to the `AuctionSuapp` via a Suave confidential compute request (CCR). These transactions will be included, without simulation, after a block's first swap.
 
 ### Bidders
-In order to bid, bidders will need to deposit funds into the `AuctionDeposits` contract. After this, bidders are able to submit bids to be the first swapper in a block for the target pool by sending a CCR to the `AMMAuctionSuapp`. Bidders need to provide three pieces of information in order to bid:
+In order to bid, bidders will need to deposit funds into the `AuctionDeposits` contract. After this, bidders are able to submit bids to be the first swapper in a block for the target pool by sending a CCR to the `AuctionSuapp`. Bidders need to provide three pieces of information in order to bid:
 1. The amount they would like to bid.
 2. A EIP-712 signed message giving permission the the `AuctionGuard` to withdraw funds in the target block.
 3. The swap transaction itself.
