@@ -16,7 +16,7 @@ This system is built out of solidity contracts on a target vanilla EVM chain and
 
 The auction contract sends a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
 
-See below a diagram of the system:
+See below a diagram of the system from the view of all actors:
 ```mermaid
 sequenceDiagram
     actor Bidders
@@ -32,6 +32,34 @@ sequenceDiagram
     Suave Auction->>BlockBuilders: Bundle for Block N+1
     BlockBuilders->>Ethereum AMM Contracts: Bundle for Block N+1 
     Note over Suave Auction,Ethereum AMM Contracts : Ethereum Block N+1
+```
+
+See below a diagram of the system from the view of the bundle's transations:
+```mermaid
+sequenceDiagram
+    actor Swappers
+    actor Winning Bidder
+    actor Auction Private Key
+    box LightYellow Ethereum
+    participant AuctionGuard
+    participant AuctionDeposits
+    participant UniswapV3PoolAuctioned
+    end
+    Note over AuctionGuard,AuctionDeposits: Auction Results Transaction
+    Auction Private Key->>AuctionGuard: post auction results
+    alt no winning bid
+    AuctionGuard->>AuctionGuard: unlock pool
+    else winning bid
+    AuctionGuard->>AuctionDeposits: withdraw bid
+    AuctionGuard->>AuctionGuard: set winning bidder
+    Note over Winning Bidder,UniswapV3PoolAuctioned: Winning Swap Transaction
+    Winning Bidder->>UniswapV3PoolAuctioned: swap()
+    UniswapV3PoolAuctioned->>AuctionGuard: unlock pool
+    end
+    Note over Swappers,UniswapV3PoolAuctioned: Rest of Swap Transactions (signed by swappers)
+    Swappers->>UniswapV3PoolAuctioned: swaps
+    Swappers->>UniswapV3PoolAuctioned:  
+    Swappers->>UniswapV3PoolAuctioned: 
 ```
 
 
