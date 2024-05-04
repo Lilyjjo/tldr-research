@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 interface IAuctionDeposits {
-    function setAuction(address auction) external;
+    function setAuctionGuard(address auction) external;
 
     function withdrawBid(
         address bidder,

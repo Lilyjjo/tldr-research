@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 interface IAuctionGuard {
-    function setAuctioneer(address newAuctioneer) external;
+    function setAdmin(address newAdmin) external;
     function setSuappKey(address newSuappKey) external;
     function enableAuction(bool setAuction) external;
     function postAuctionResults(

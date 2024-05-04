@@ -15,7 +15,8 @@ import "forge-std/console.sol";
  * @title UniswapV3AuctionedFirstSwap
  */
 contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
-    address auctioneer = address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
+    address adminAuctionGuard =
+        address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
     address suappKey = address(0x033FF54B2A7C70EeCB8976d910C055fAf952078a);
     address admin = address(0x5434073107Ef5dc9Ac1b36D101eEa812DBE0bF31);
     address addressUserSepolia =
@@ -41,7 +42,7 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
         bool depositBidPaymet = true;
         bool initPoolState = true;
 
-        vm.deal(auctioneer, 10 ether);
+        vm.deal(adminAuctionGuard, 10 ether);
         vm.deal(suappKey, 10 ether);
         vm.deal(admin, 10 ether);
         vm.deal(addressUserSepolia, 10 ether);
@@ -59,7 +60,7 @@ contract UniswapV3AuctionedFirstSwap is UniV3GenericTestSetup {
         auctionGuard = new AuctionGuard(address(auctionDeposits), suappKey);
 
         // associate the guard in the deposit contract
-        auctionDeposits.setAuction(address(auctionGuard));
+        auctionDeposits.setAuctionGuard(address(auctionGuard));
         vm.stopPrank();
 
         // (3) Modified Uniswap Contracts

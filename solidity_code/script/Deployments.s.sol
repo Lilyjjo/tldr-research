@@ -88,7 +88,7 @@ contract Deployments is TestingBase, UniswapBase {
         console2.log(suapp_signer);
 
         // associate the guard in the deposit contract
-        auctionDeposits.setAuction(address(auctionGuard));
+        auctionDeposits.setAuctionGuard(address(auctionGuard));
         vm.stopBroadcast();
 
         // (3) Modified Uniswap Contracts
