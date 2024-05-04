@@ -18,6 +18,10 @@ The auction is built out of three main contract, two on the target EVM chain and
 - `AuctionSuave.sol`: Contract on Suave which collects user bids and non-bid transactions, and runs one auction per target chain's block. Has a stored private key whose address the `AutionGuard` is aware of and priviledges with submitting auction results. Upon auction completion, will send a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
 - `AuctionGuard.sol`: Contract on the target chain that other contracts can call into in order to gate functions to only pass after the auction's conclusion. The `AuctionSuave` calls into this contract in the bundle's first transaction. Winning bid transactions must successfully call one of the gated functions in order to unlock the auction.
 - `AuctionDeposits.sol`: Contract on target chain that bidders must submit deposits to that are at least as big as their bids. The `AuctionGuard` pulls payments from this contract when processing auction results signed by the key in the `AuctionSuave` contract.
+
+The changes to the UniswapV3 pool are minimal and are summarized [here](https://github.com/Lilyjjo/tldr-research/tree/main/solidity_code#uniswap-modifications).
+
+
   
 See below a diagram of the system from the view of actions between major actors:
 ```mermaid
