@@ -28,9 +28,7 @@ sequenceDiagram
     Note over Suave Auction,Ethereum AMM Contracts : Ethereum Block N
     Swappers->>Suave Auction: swap txns
     Bidders->>Suave Auction: bids for block N+1
-    alt Auction Processing
-        Suave Auction->>Suave Auction: Find 2nd price bid winner
-    end
+    Suave Auction->>Suave Auction: Process Auction
     Suave Auction->>BlockBuilders: Bundle for Block N+1
     BlockBuilders->>Ethereum AMM Contracts: Bundle for Block N+1 
     Note over Suave Auction,Ethereum AMM Contracts : Ethereum Block N+1
