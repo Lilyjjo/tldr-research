@@ -14,6 +14,11 @@ This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[
 
 This system is built out of solidity contracts on a target vanilla EVM chain and on Suave. The AMM is minimally modified to only allow swaps after the winner of the auction performs their swap. The auction contract facilitates: collecting normal swap transactions, collecting bids, and running the auction once per target EVM block. The auction contract has its own private key that it constructs and signs transactions with, the target chain's contracts know the address of this key and will only accept auction results that are signed by this key. 
 
+The auction is built out of three main contract, two on the target L1 and one on Suave:
+- `AuctionSuave.sol`: Contract on suave which collects user bids, non-bid transactions, and runs one auction per target chain's block.
+- `AuctionGuard.sol`: Contract on target chain that other contracts can call into in order to gate functions to only pass with the auction's conclusion.
+- `AuctionDeposits.sol`: Contract on target chain that bidders must submit deposits to that are at least as big as their bids. The `AuctionGuard` pulls payments from this contract when processing auction results signed by the key in the `AuctionSuave` contract. 
+
 The auction contract sends a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
 
 See below a diagram of the system from the view of actions between major actors:
