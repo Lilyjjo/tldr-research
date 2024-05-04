@@ -16,6 +16,7 @@ This system is built out of solidity contracts on a target vanilla EVM chain and
 
 The auction contract sends a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
 
+See below a diagram of the system:
 ```mermaid
 sequenceDiagram
     actor Bidders
