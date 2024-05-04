@@ -117,3 +117,7 @@ This repo explores how on-chain solidity smart contracts are able to take contro
 Normal AMMs lose money due to [loss versus rebalancing (LVR)](https://a16zcrypto.com/posts/article/lvr-quantifying-the-cost-of-providing-liquidity-to-automated-market-makers/), which can be conceptualized as the AMM's LPs being forced to take the bad half of a trade. If an entity is willing to pay for the right to be the first to take a trade, then some of the LVR loss can be recaputured as profit. For ethereum L1, block builders are performing and benefitting from this auction already in their block building process as top of block CEX-DEX arbitrague. In this repo, the AMM takes away the right of the block builder to choose who gets to trade first and instead performs the auction itself. In this way, the AMM is able to capture some of the MEV that it generates instead of leaving it on the floor for block builders to consume. 
 
 This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[2](https://ethresear.ch/t/mev-capturing-amm-mcamm/13336),[3](https://arxiv.org/abs/2210.10601)</sup> proposed AMM auction constructs in that it leverages TEEs (trusted execution environments) to manage and run the auction instead of involving the block builder or other new manager identities. Flashbot's block building platform [SUAVE](https://suave-alpha.flashbots.net/what-is-suave) is used as the TEE provider. 
+
+## Future Works
+
+... something something Matheus's verified sequencing rules something something Astria 
