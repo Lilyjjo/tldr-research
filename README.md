@@ -11,16 +11,11 @@ This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[
 
 ![System Diagram](./solidity_code/assets/system_diagram.png?raw=true "System Diagram")
 
-
-This system is built out of solidity contracts on a target vanilla EVM chain and on Suave. The AMM is minimally modified to only allow swaps after the winner of the auction performs their swap. The auction contract facilitates: collecting normal swap transactions, collecting bids, and running the auction once per target EVM block. The auction contract has its own private key that it constructs and signs transactions with, the target chain's contracts know the address of this key and will only accept auction results that are signed by this key. 
-
-The auction is built out of three main contract, two on the target L1 and one on Suave:
-- `AuctionSuave.sol`: Contract on suave which collects user bids, non-bid transactions, and runs one auction per target chain's block.
-- `AuctionGuard.sol`: Contract on target chain that other contracts can call into in order to gate functions to only pass with the auction's conclusion.
-- `AuctionDeposits.sol`: Contract on target chain that bidders must submit deposits to that are at least as big as their bids. The `AuctionGuard` pulls payments from this contract when processing auction results signed by the key in the `AuctionSuave` contract. 
-
-The auction contract sends a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
-
+The auction is built out of three main contract, two on the target EVM chain and one on Suave:
+- `AuctionSuave.sol`: Contract on Suave which collects user bids and non-bid transactions, and runs one auction per target chain's block. Has a stored private key whose address the `AutionGuard` is aware of and priviledges with submitting auction results. Upon auction completion, will send a [bundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle) of transactions to the target chain's block builders for inclusion. Builders are trusted to not break the bundles apart, but the smart contracts in this setup also enforce that swaps will fail if the auction's results are not respected. 
+- `AuctionGuard.sol`: Contract on the target chain that other contracts can call into in order to gate functions to only pass after the auction's conclusion. The `AuctionSuave` calls into this contract in the bundle's first transaction. Winning bid transactions must successfully call one of the gated functions in order to unlock the auction.
+- `AuctionDeposits.sol`: Contract on target chain that bidders must submit deposits to that are at least as big as their bids. The `AuctionGuard` pulls payments from this contract when processing auction results signed by the key in the `AuctionSuave` contract.
+  
 See below a diagram of the system from the view of actions between major actors:
 ```mermaid
 sequenceDiagram
@@ -39,34 +34,7 @@ sequenceDiagram
     Note over Suave Auction Contract,Ethereum Contracts : Ethereum Block N+1
 ```
 
-See below a diagram of the system from the view of the bundle's transations:
-```mermaid
-sequenceDiagram
-    actor Swappers
-    actor Winning Bidder
-    actor Auction Private Key
-    box LightYellow Ethereum
-    participant AuctionGuard
-    participant AuctionDeposits
-    participant UniswapV3PoolAuctioned
-    end
-    Note over AuctionGuard,AuctionDeposits: Auction Results Transaction
-    Auction Private Key->>AuctionGuard: post auction results
-    alt no winning bid
-    AuctionGuard->>AuctionGuard: unlock pool
-    else winning bid
-    AuctionGuard->>AuctionDeposits: withdraw bid
-    AuctionGuard->>AuctionGuard: set winning bidder
-    Note over Winning Bidder,UniswapV3PoolAuctioned: Winning Swap Transaction
-    Winning Bidder->>UniswapV3PoolAuctioned: swap()
-    UniswapV3PoolAuctioned->>AuctionGuard: unlock pool
-    end
-    Note over Swappers,UniswapV3PoolAuctioned: Rest of Swap Transactions (signed by swappers)
-    Swappers->>UniswapV3PoolAuctioned: swaps
-    Swappers->>UniswapV3PoolAuctioned:  
-    Swappers->>UniswapV3PoolAuctioned: 
-```
-
+This is what a `AuctionSuapp`'s generated bundle looks like:
 
 ![Bundle Diagram](./solidity_code/assets/bundle.png?raw=true "Bundle Diagram")
 
