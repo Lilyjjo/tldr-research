@@ -2,7 +2,7 @@
 
 ## What is this?
 
-This is a proof of concept uniswap v3 pool that auctions off the first swap in the pool per block, enabling the pool to capture some of the LVR arbitrage opportunity which it creates. The auction is written in solidity as a smart contract on [SUAVE](https://suave-alpha.flashbots.net/what-is-suave) and takes advantage of Suave's TEE enabled trusted execution and privacy to make the auction secure.
+This is a proof of concept uniswap v3 pool that auctions off the first swap in the pool per block, enabling the pool to capture some of the LVR arbitrage opportunity which it creates. The auction is written in solidity as a smart contract on [SUAVE](https://suave-alpha.flashbots.net/what-is-suave) and takes advantage of Suave's TEE enabled trusted execution and privacy to make the auction secure. The auction is a 2nd price sealed bid auction and is written to be reusable for other contexts.
 
 The goal of this repo are:
 
@@ -112,7 +112,7 @@ The auction is 2nd price, but having the bids included is flakey. The bids are c
 For the same reason the Auction Stats are can report from older auctions. These stats are being pulled from the suapp's contract storage to show what is actually happening inside of the kettle post execution. 
 
 ## Motivation and Prior Works
-This repo explores how on-chain solidity smart contracts are able to take control of their own sequencing for the sake of capturing the MEV that they generate. This repo focuses on AMMs as an example protocol, as both the LPs and traders of AMMs lose money due to not being able to control the sequencing of trades that occur on-chain. The repo itself is a PoC of a system that captures and reroutes money that is normally extracted from users back to the users.
+This repo focuses on AMMs as an example protocol, as both the LPs and traders of AMMs lose money due to not being able to control the sequencing of trades that occur on-chain.
 
 Normal AMMs lose money due to [loss versus rebalancing (LVR)](https://a16zcrypto.com/posts/article/lvr-quantifying-the-cost-of-providing-liquidity-to-automated-market-makers/), which can be conceptualized as the AMM's LPs being forced to take the bad half of a trade. If an entity is willing to pay for the right to be the first to take a trade, then some of the LVR loss can be recaputured as profit. For ethereum L1, block builders are performing and benefitting from this auction already in their block building process as top of block CEX-DEX arbitrague. In this repo, the AMM takes away the right of the block builder to choose who gets to trade first and instead performs the auction itself. In this way, the AMM is able to capture some of the MEV that it generates instead of leaving it on the floor for block builders to consume. 
 
