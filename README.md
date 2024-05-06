@@ -35,6 +35,7 @@ sequenceDiagram
     Note over Suave Auction Contract,Ethereum Contracts : Ethereum Block N
     Swappers->>Suave Auction Contract: swap txns
     Bidders->>Suave Auction Contract: bids for block N+1
+    Suave Auction Contract-->Ethereum Contracts: [auction ends]
     Suave Auction Contract->>Suave Auction Contract: Process Auction
     Suave Auction Contract->>BlockBuilders: Bundle for Block N+1
     BlockBuilders->>Ethereum Contracts: Bundle for Block N+1 
