@@ -110,9 +110,6 @@ Auction Stats
 --> sent bid for bidder_1 for: 16
 ...
 ```
-The auction is 2nd price, but having the bids included is flakey. The bids are currently stored in the suapp's contract storage instead of in the confidential store. The contract storage only updates when Rigil has blocks produced, so when the auction get triggered it's not guaranteed that the bids have populated the contract storage yet. Fixing this is a TODO in a future version. 
-
-For the same reason the Auction Stats are can report from older auctions. These stats are being pulled from the suapp's contract storage to show what is actually happening inside of the kettle post execution. 
 
 ## Motivation and Prior Works
 This repo focuses on AMMs as an example protocol, as both the LPs and traders of AMMs lose money due to not being able to control the sequencing of trades that occur on-chain.
@@ -120,6 +117,7 @@ This repo focuses on AMMs as an example protocol, as both the LPs and traders of
 Normal AMMs lose money due to [loss versus rebalancing (LVR)](https://a16zcrypto.com/posts/article/lvr-quantifying-the-cost-of-providing-liquidity-to-automated-market-makers/), which can be conceptualized as the AMM's LPs being forced to take the bad half of a trade. If an entity is willing to pay for the right to be the first to take a trade, then some of the LVR loss can be recaputured as profit. For ethereum L1, block builders are performing and benefitting from this auction already in their block building process as top of block CEX-DEX arbitrague. In this repo, the AMM takes away the right of the block builder to choose who gets to trade first and instead performs the auction itself. In this way, the AMM is able to capture some of the MEV that it generates instead of leaving it on the floor for block builders to consume. 
 
 This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[2](https://ethresear.ch/t/mev-capturing-amm-mcamm/13336),[3](https://arxiv.org/abs/2210.10601)</sup> proposed AMM auction constructs in that it leverages TEEs (trusted execution environments) to manage and run the auction instead of involving the block builder or other new manager identities. Flashbot's block building platform [SUAVE](https://suave-alpha.flashbots.net/what-is-suave) is used as the TEE provider. 
+
 
 ## Future Works
 
@@ -138,3 +136,15 @@ Note that in this system, the swappers would also have to deposit into the depos
 ### Astria
 
 The other major future work is migrating the sequencing rules off of Ethereum and onto a different L1 that offers cleaner sequencing and/or bundle inclusion APIs. In this PoC the AMM's operation is dependent on having MEVBoost's winning Builder include the bundle. It would be better if the L1 natively offered ways for the AMM to express how it'd like to be sequenced. I'm working on building out this capability at [Astria](https://www.astria.org/). 
+
+# Issues with this PoC
+This is a PoC for many reasons, some inherent in the design and some due to Suave being in development.
+
+Issues:
+1. Bundles will only land if the L1's sequencing system accept bundles and if the bundle is given to the correct builder. Currently `AuctionSuapp` only sends the bundle to a single builder. Unless the `AuctionSuapp` pays a high gas fee to aid the builder winning the MEVBoost auction, it's unlikely that the single builder will be the winner. This is why if running the code many blocks can go by without landing any bundles.
+2. Bids identifiers are being stored in the `AuctionSuapp`'s contract storage instead of in the confidential store. This can cause bid that are placed too close to the auction's end time to fail to have enough time to populate the contract storage via a callback. This should just be rewritten. 
+3. The `AuctionSuapp` is built to run on a single TEE/Kettle. This creates a single point of failure, if the Kettle goes offline so does the AMM.
+4. The `AuctionSuapp` doesn't have a safe way to grab the current time, which is needed to tell when to end an auction. The grabbed time could be manipulated by the TEE's host machine, making the TEE/Kettle operator a somewhat trusted entity.
+5. Suave doesn't run actual TEEs right now -- this means that this POC does not have trusted or private compute.
+6. Suave doesn't update CCR state reliably. If you run the code, you will see that the auction stats will not update even though on the L1 blockscanner you can see bundles landing.
+7. Suave doesn't gate CCR callbacks currently. This means people can mess up the Auction's state by calling the callbacks with junk data. 
