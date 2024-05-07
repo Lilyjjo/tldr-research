@@ -40,6 +40,7 @@ RPC_URL_L1=https://ethereum-holesky-rpc.publicnode.com
 WSS_L1=wss://ethereum-holesky-rpc.publicnode.com
 RPC_URL_SUAVE_LOCAL=http://127.0.0.1:8545
 RPC_URL_SUAVE=https://rpc.rigil.suave.flashbots.net
+RPC_URL_BUNDLE=https://relay-holesky.flashbots.net
 
 # Deployed contract addresses
 SUAPP_AMM=

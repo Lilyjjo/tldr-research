@@ -36,7 +36,11 @@ sol! {
         #[derive(Debug)]
         function setL1Url() external returns (bytes memory);
         #[derive(Debug)]
+        function setBundleUrl() external returns (bytes memory);
+        #[derive(Debug)]
         function initLastL1Block() external returns (bytes memory);
+        #[derive(Debug)]
+        function _resetSwaps() external returns (bytes memory);
 
         struct Bid {
             address bidder;
@@ -81,7 +85,7 @@ pub struct AuctionSuapp {
     token_1: Address,
     swap_router: Address,
     execution_node: Address,
-    L1_provider: RootProvider<Http<ReqwestClient>>,
+    l1_provider: RootProvider<Http<ReqwestClient>>,
     suave_provider: FillProvider<
         alloy::providers::fillers::JoinFill<
             alloy::providers::fillers::JoinFill<
@@ -104,7 +108,8 @@ pub struct AuctionSuapp {
         SuaveNetwork,
     >,
     eoa_wallets: HashMap<String, LocalWallet>,
-    L1_rpc: String,
+    l1_rpc: String,
+    bundle_rpc: String,
     last_used_suave_nonce: u64,
 }
 
@@ -129,69 +134,70 @@ impl AuctionSuapp {
             "suave_signer".to_string(),
             suave_signer_pk
                 .parse()
-                .wrap_err("failed to parse suave_signer's pk")?,
+                .context("failed to parse suave_signer's pk")?,
         );
         eoas.insert(
             "suapp_signer".to_string(),
             config
                 .suapp_signer_pk
                 .parse()
-                .wrap_err("failed to parse suapp_signer's pk")?,
+                .context("failed to parse suapp_signer's pk")?,
         );
         eoas.insert(
             "bidder_0".to_string(),
             config
                 .bidder_0_pk
                 .parse()
-                .wrap_err("failed to parse bidder_0's pk")?,
+                .context("failed to parse bidder_0's pk")?,
         );
         eoas.insert(
             "bidder_1".to_string(),
             config
                 .bidder_1_pk
                 .parse()
-                .wrap_err("failed to parse bidder_1's pk")?,
+                .context("failed to parse bidder_1's pk")?,
         );
         eoas.insert(
             "bidder_2".to_string(),
             config
                 .bidder_2_pk
                 .parse()
-                .wrap_err("failed to parse bidder_2's pk")?,
+                .context("failed to parse bidder_2's pk")?,
         );
         eoas.insert(
             "swapper_0".to_string(),
             config
                 .swapper_0_pk
                 .parse()
-                .wrap_err("failed to parse swapper_0's pk")?,
+                .context("failed to parse swapper_0's pk")?,
         );
         eoas.insert(
             "swapper_1".to_string(),
             config
                 .swapper_1_pk
                 .parse()
-                .wrap_err("failed to parse swapper_1's pk")?,
+                .context("failed to parse swapper_1's pk")?,
         );
         eoas.insert(
             "swapper_2".to_string(),
             config
                 .swapper_2_pk
                 .parse()
-                .wrap_err("failed to parse swapper_2's pk")?,
+                .context("failed to parse swapper_2's pk")?,
         );
 
         AuctionSuapp::new(
-            config.suapp_amm.wrap_err("auction suapp not set")?,
+            config.suapp_amm.context("auction suapp not set")?,
             config
                 .auction_deposits
-                .wrap_err("auction deposits not set")?,
-            config.token_0.wrap_err("auction deposits not set")?,
-            config.token_1.wrap_err("auction deposits not set")?,
-            config.swap_router.wrap_err("swap router not set")?,
+                .context("auction deposits not set")?,
+            config.token_0.context("auction deposits not set")?,
+            config.token_1.context("auction deposits not set")?,
+            config.swap_router.context("swap router not set")?,
             execution_node,
             suave_rpc,
             config.rpc_url_l1,
+            config.rpc_url_bundle,
             eoas,
         )
         .await
@@ -205,20 +211,21 @@ impl AuctionSuapp {
         swap_router: Address,
         execution_node: Address,
         suave_rpc: String,
-        L1_rpc: String,
+        l1_rpc: String,
+        bundle_rpc: String,
         eoa_accounts: HashMap<String, LocalWallet>,
     ) -> eyre::Result<Self> {
         // build L1 provider
-        let L1_rpc_url =
-            url::Url::parse(&L1_rpc).wrap_err("failed to build url from suave rpc string")?;
-        let L1_provider = ProviderBuilder::new()
-            .on_http(L1_rpc_url.clone())
-            .wrap_err("failed to build provider from given rpc url")?;
+        let l1_rpc_url =
+            url::Url::parse(&l1_rpc).context("failed to build url from suave rpc string")?;
+        let l1_provider = ProviderBuilder::new()
+            .on_http(l1_rpc_url.clone())
+            .context("failed to build provider from given rpc url")?;
 
         // build suave provider
         let suave_signer_wallet = eoa_accounts.get("suave_signer").unwrap().clone();
         let suave_rpc_url =
-            url::Url::parse(&suave_rpc).wrap_err("failed to build url from suave rpc string")?;
+            url::Url::parse(&suave_rpc).context("failed to build url from suave rpc string")?;
         let suave_provider = ProviderBuilder::<_, _, SuaveNetwork>::default()
             .with_recommended_fillers()
             .filler(KettleFiller::default())
@@ -232,10 +239,11 @@ impl AuctionSuapp {
             token_1,
             swap_router,
             execution_node,
-            L1_provider,
+            l1_provider,
             suave_provider,
             eoa_wallets: eoa_accounts,
-            L1_rpc,
+            l1_rpc,
+            bundle_rpc,
             last_used_suave_nonce: 0,
         })
     }
@@ -255,7 +263,7 @@ impl AuctionSuapp {
             .suave_provider
             .get_transaction_by_hash(tx_hash)
             .await
-            .wrap_err("failed to get transaction hash receipt");
+            .context("failed to get transaction hash receipt");
         Ok(())
     }
 
@@ -300,20 +308,20 @@ impl AuctionSuapp {
         Ok(tx)
     }
 
-    pub async fn build_generic_L1_transaction(
+    pub async fn build_generic_l1_transaction(
         &self,
         signer: Address,
         target_contract: Address,
     ) -> eyre::Result<TransactionRequest> {
         // gather network dependent variables
         let nonce = self
-            .L1_provider
+            .l1_provider
             .get_transaction_count(signer, BlockId::default())
             .await
             .context("failed to get transaction count for address")?;
 
         let gas_price = self
-            .L1_provider
+            .l1_provider
             .get_gas_price()
             .await
             .context("failed to get gas price")?
@@ -322,7 +330,7 @@ impl AuctionSuapp {
         let gas = 0x0f4240; // TODO: figure out what is reasonable, probably should be per function
 
         let chain_id = self
-            .L1_provider
+            .l1_provider
             .get_chain_id()
             .await
             .context("failed to get chain id")?;
@@ -362,9 +370,9 @@ impl AuctionSuapp {
 
         // create and sign over the swap transaction
         let mut rlp_encoded_swap_tx = Vec::new();
-        self.build_generic_L1_transaction(swapper.address(), self.swap_router)
+        self.build_generic_l1_transaction(swapper.address(), self.swap_router)
             .await
-            .wrap_err("failed to build generic L1 transaction")?
+            .context("failed to build generic L1 transaction")?
             .input(TransactionInput::new(
                 ISwapRouter::exactInputSingleCall {
                     params: swap_input_params,
@@ -374,7 +382,7 @@ impl AuctionSuapp {
             ))
             .build(&EthereumSigner::from(swapper))
             .await
-            .wrap_err("failed to sign transaction")?
+            .context("failed to sign transaction")?
             .encode_2718(&mut rlp_encoded_swap_tx);
 
         Ok(rlp_encoded_swap_tx)
@@ -394,10 +402,10 @@ impl AuctionSuapp {
             .input(Bytes::from(IAuctionSuapp::runAuctionCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
+            .context("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
             .await
-            .wrap_err("failed to send trigger auction CCR")?;
+            .context("failed to send trigger auction CCR")?;
         Ok(())
     }
 
@@ -415,7 +423,7 @@ impl AuctionSuapp {
         let signed_swap_transaction = self
             .new_pending_swap_txn(swapper.clone(), amount_in, token_0_in)
             .await
-            .wrap_err("failed to create swap transaction for new pending tx")?;
+            .context("failed to create swap transaction for new pending tx")?;
 
         // create generic transaction request and add function specific data
         let tx = self
@@ -425,13 +433,13 @@ impl AuctionSuapp {
             .input(Bytes::from(IAuctionSuapp::newPendingTxnCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
+            .context("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
             Some(signed_swap_transaction.into()),
         ))
         .await
-        .wrap_err("failed to send swap CCR")?;
+        .context("failed to send swap CCR")?;
         Ok(())
     }
 
@@ -457,7 +465,7 @@ impl AuctionSuapp {
         let signed_swap_txn = self
             .new_pending_swap_txn(bidder.clone(), in_amount, token_0_in)
             .await
-            .wrap_err("failed when building bid's inner swap transaction")?;
+            .context("failed when building bid's inner swap transaction")?;
 
         // create and sign over withdraw 712 request
         let my_domain: alloy_sol_types::Eip712Domain = alloy_sol_types::eip712_domain!(
@@ -477,7 +485,7 @@ impl AuctionSuapp {
         let bid_signature = bidder
             .sign_hash(&bid_signing_hash)
             .await
-            .wrap_err("failed to sign bid EIP712 hash")?;
+            .context("failed to sign bid EIP712 hash")?;
 
         // create bid input
         let bid = IAuctionSuapp::Bid {
@@ -495,7 +503,7 @@ impl AuctionSuapp {
         let tx = self
             .build_generic_suave_transaction(suave_signer.address())
             .await
-            .wrap_err("failed to build generic suave transaction")?
+            .context("failed to build generic suave transaction")?
             .input(
                 Bytes::from(
                     IAuctionSuapp::newBidCall {
@@ -507,10 +515,32 @@ impl AuctionSuapp {
             );
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
+            .context("failed to create ccr")?;
+
         self.send_ccr(ConfidentialComputeRequest::new(cc_record, Some(bid.into())))
             .await
-            .wrap_err("failed to send bid CCR")?;
+            .context("failed to send bid CCR")?;
+        Ok(())
+    }
+
+    pub async fn clear_swaps(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .eoa_wallets
+            .get("suave_signer")
+            .expect("funded suave's wallet not initialized");
+
+        // create generic transaction request and add function specific data
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAuctionSuapp::_resetSwapsCall::SELECTOR).into());
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .context("failed to create ccr")?;
+        self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
+            .await
+            .context("failed to send clear swaps CCR")?;
         Ok(())
     }
 
@@ -528,20 +558,20 @@ impl AuctionSuapp {
             .input(Bytes::from(IAuctionSuapp::initLastL1BlockCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
+            .context("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(cc_record, None))
             .await
-            .wrap_err("failed to send L1 block init CCR")?;
+            .context("failed to send L1 block init CCR")?;
         Ok(())
     }
 
-    pub async fn set_L1_url(&mut self) -> eyre::Result<()> {
+    pub async fn set_l1_url(&mut self) -> eyre::Result<()> {
         let suave_signer = self
             .eoa_wallets
             .get("suave_signer")
             .expect("funded suave's wallet not initialized");
 
-        let confidential_inputs = self.L1_rpc.abi_encode_packed();
+        let confidential_inputs = self.l1_rpc.abi_encode_packed();
 
         // create generic transaction request and add function specific data
         let tx = self
@@ -551,13 +581,39 @@ impl AuctionSuapp {
             .input(Bytes::from(IAuctionSuapp::setL1UrlCall::SELECTOR).into());
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
+            .context("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
             Some(confidential_inputs.into()),
         ))
         .await
-        .wrap_err("failed to send L1 init CCR")?;
+        .context("failed to send L1 init CCR")?;
+        Ok(())
+    }
+
+    pub async fn set_bundle_url(&mut self) -> eyre::Result<()> {
+        let suave_signer = self
+            .eoa_wallets
+            .get("suave_signer")
+            .expect("funded suave's wallet not initialized");
+
+        let confidential_inputs = self.bundle_rpc.abi_encode_packed();
+
+        // create generic transaction request and add function specific data
+        let tx = self
+            .build_generic_suave_transaction(suave_signer.address())
+            .await
+            .context("failed to build generic transaction")?
+            .input(Bytes::from(IAuctionSuapp::setBundleUrlCall::SELECTOR).into());
+
+        let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
+            .context("failed to create ccr")?;
+        self.send_ccr(ConfidentialComputeRequest::new(
+            cc_record,
+            Some(confidential_inputs.into()),
+        ))
+        .await
+        .context("failed to send bundle init CCR")?;
         Ok(())
     }
 
@@ -597,13 +653,13 @@ impl AuctionSuapp {
             );
 
         let cc_record = ConfidentialComputeRecord::from_tx_request(tx, self.execution_node)
-            .wrap_err("failed to create ccr")?;
+            .context("failed to create ccr")?;
         self.send_ccr(ConfidentialComputeRequest::new(
             cc_record,
             Some(suave_stored_wallet_pk.into()),
         ))
         .await
-        .wrap_err("failed to send init signing key CCR")?;
+        .context("failed to send init signing key CCR")?;
         Ok(())
     }
 

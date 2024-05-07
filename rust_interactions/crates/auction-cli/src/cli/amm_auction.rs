@@ -1,7 +1,4 @@
-use clap::{
-    Args,
-    Subcommand,
-};
+use clap::{Args, Subcommand};
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
@@ -9,6 +6,8 @@ pub enum Command {
     Bid(BidArgs),
     SwapTx(SwapArgs),
     InitializeSuapp(InitializeSuappArgs),
+    AddSwaps(AddSwapsArgs),
+    AuctionStats(AuctionStatsArgs),
 }
 
 #[derive(Args, Debug)]
@@ -43,3 +42,9 @@ pub struct SwapArgs {
 
 #[derive(Args, Debug)]
 pub struct InitializeSuappArgs {}
+
+#[derive(Args, Debug)]
+pub struct AddSwapsArgs {}
+
+#[derive(Args, Debug)]
+pub struct AuctionStatsArgs {}

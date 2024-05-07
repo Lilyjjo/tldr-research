@@ -31,6 +31,7 @@ pub struct AmmAuctionConfig {
     pub wss_l1: String,
     pub rpc_url_suave_local: String,
     pub rpc_url_suave: String,
+    pub rpc_url_bundle: String,
     pub rpc_url_suave_execution_endpoint: Option<String>,
     pub suapp_amm: Option<Address>,
     pub auction_deposits: Option<Address>,

@@ -59,7 +59,7 @@ impl BlockServer {
                         Message::Text(text) => process_header(&mut amm_auction_suapp, text).await,
                         _ => (),
                     },
-                    Err(e) => println!("error receiving message: {:?}", e),
+                    Err(e) => println!("error receiving message: {}", e),
                 }
             }
         });
@@ -68,7 +68,7 @@ impl BlockServer {
     }
 }
 
-fn get_bid_amount() -> u128 {
+fn get_random_amount() -> u128 {
     let seed = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
@@ -80,31 +80,31 @@ fn get_bid_amount() -> u128 {
 async fn trigger_auction(amm_auction_suapp: &mut AuctionSuapp, block_number: u128) {
     println!("[~~~~  running auction for block: {} ~~~~]", block_number);
 
-    let mut bid_amount = get_bid_amount();
+    let mut bid_amount = get_random_amount();
     // send bids
     if let Err(e) = amm_auction_suapp
         .new_bid(&"bidder_0".to_string(), block_number, bid_amount, 10, true)
         .await
     {
-        println!("--> !!! failed to send bid for bidder_0");
+        println!("--> !!! failed to send bid for bidder_0: {}", e);
     } else {
         println!("--> sent bid for bidder_0 for: {}", bid_amount);
     }
-    bid_amount = get_bid_amount();
+    bid_amount = get_random_amount();
     if let Err(e) = amm_auction_suapp
         .new_bid(&"bidder_1".to_string(), block_number, bid_amount, 10, true)
         .await
     {
-        println!("--> !!! failed to send bid for bidder_1");
+        println!("--> !!! failed to send bid for bidder_1: {}", e);
     } else {
         println!("--> sent bid for bidder_1 for: {}", bid_amount);
     }
-    bid_amount = get_bid_amount();
+    bid_amount = get_random_amount();
     if let Err(e) = amm_auction_suapp
         .new_bid(&"bidder_2".to_string(), block_number, bid_amount, 10, true)
         .await
     {
-        println!("--> !!! failed to send bid for bidder_2");
+        println!("--> !!! failed to send bid for bidder_2: {}", e);
     } else {
         println!("--> sent bid for bidder_2 for: {}", bid_amount);
     }
@@ -113,7 +113,7 @@ async fn trigger_auction(amm_auction_suapp: &mut AuctionSuapp, block_number: u12
     sleep(Duration::from_secs(4)).await;
 
     if let Err(e) = amm_auction_suapp.trigger_auction().await {
-        println!("--> !!! failed to trigger auction");
+        println!("--> !!! failed to trigger auction: {}", e);
     } else {
         println!("--| triggered auction");
     }

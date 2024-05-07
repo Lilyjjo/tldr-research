@@ -23,7 +23,7 @@ import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
  *    block time and when the auction was triggered.
  * 2. If any swaps are included that are invalid, no bundles will not land and the
  *    contract will get stuck. As far as I can tell builders don't support the reverting
- *    transation hash functionality, which makes this really a PoC.
+ *    transation hash functionality, which very much makes this a PoC.
  */
 contract AuctionSuapp is IAuctionSuapp {
     using JSONParserLib for *;
@@ -46,6 +46,8 @@ contract AuctionSuapp is IAuctionSuapp {
     Suave.DataId private _signingKeyRecord;
     /// @dev DataId for the L1 URL in Suave's confidential storage
     Suave.DataId private _ethL1UrlRecord;
+    /// @dev DataId for the Bundle URL in Suave's confidential storage
+    Suave.DataId private _bundleUrlRecord;
     /// @dev last block sent auction result for
     Suave.DataId private _lastBlockProcessedRecord;
 
@@ -59,7 +61,8 @@ contract AuctionSuapp is IAuctionSuapp {
     /// @dev Key for accessing the private key in Suave's confidential storage
     string public KEY_PRIVATE_KEY = "KEY";
     /// @dev Key for accessing the Ethereum L1 network URL in Suave's confidential storage
-    string public KEY_URL = "URL";
+    string public KEY_L1_URL = "L1_URL";
+    string public KEY_BUNDLE_URL = "BUNDLE_URL";
     string public KEY_LAST_BLOCK_PROCESSED = "LAST_BLOCK";
 
     /// @dev bids for a block number
@@ -169,7 +172,7 @@ contract AuctionSuapp is IAuctionSuapp {
 
         // grab stored URL
         string memory httpURL = string(
-            Suave.confidentialRetrieve(_ethL1UrlRecord, KEY_URL)
+            Suave.confidentialRetrieve(_ethL1UrlRecord, KEY_L1_URL)
         );
 
         // grab last L1 block's info
@@ -223,7 +226,7 @@ contract AuctionSuapp is IAuctionSuapp {
     function runAuction() external returns (bytes memory) {
         // grab stored URL
         string memory httpURL = string(
-            Suave.confidentialRetrieve(_ethL1UrlRecord, KEY_URL)
+            Suave.confidentialRetrieve(_ethL1UrlRecord, KEY_L1_URL)
         );
 
         // grab last L1 block's info
@@ -281,7 +284,7 @@ contract AuctionSuapp is IAuctionSuapp {
         bundle.maxTimestamp = 0;
         uint256 nonBidTxnsCount = _nonBidTxns.length - txsToSendIndex;
         bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
-        bundle.txns = new bytes[](auctionTxnCount + nonBidTxnsCount);
+        bundle.revertingTxnsHash = new bytes32[](nonBidTxnsCount);
 
         if (auctionTxnCount == 2) {
             // include space for bid's swap txn
@@ -307,12 +310,19 @@ contract AuctionSuapp is IAuctionSuapp {
                 nonBidTxnNamespace
             );
             bundle.txns[auctionTxnCount + includedTransactionCount] = nonBidTxn;
+            bundle.revertingTxnsHash[includedTransactionCount] = keccak256(
+                nonBidTxn
+            );
             includedTransactionCount++;
         }
 
+        // grab block builder's bundle url
+        string memory bundleURL = string(
+            Suave.confidentialRetrieve(_bundleUrlRecord, KEY_BUNDLE_URL)
+        );
+
         // send bundle to blockbuilders
-        Bundle.sendBundle("https://relay-holesky.flashbots.net", bundle);
-        Bundle.sendBundle("http://holesky-rpc.titanbuilder.xyz/", bundle);
+        Bundle.sendBundle(bundleURL, bundle);
 
         // update confidential store's last ran block
         Suave.confidentialStore(
@@ -507,7 +517,7 @@ contract AuctionSuapp is IAuctionSuapp {
         Transactions.EIP155Request memory txn = Transactions.EIP155Request({
             to: targetAuctionGuard,
             gas: gasNeededPostAuctionResults,
-            gasPrice: blockData.baseFeePerGas + 800_000_000_000, // TODO figure out what to set this to
+            gasPrice: blockData.baseFeePerGas + 8_000_000_000_000, // TODO figure out what to set this to
             value: 0,
             nonce: signingKeyNonce,
             data: targetCall,
@@ -778,7 +788,7 @@ contract AuctionSuapp is IAuctionSuapp {
             allowedStores,
             contractNamespace
         );
-        Suave.confidentialStore(bid.id, KEY_URL, keyData);
+        Suave.confidentialStore(bid.id, KEY_L1_URL, keyData);
 
         return abi.encodeWithSelector(this.callbackSetL1Url.selector, bid.id);
     }
@@ -790,6 +800,40 @@ contract AuctionSuapp is IAuctionSuapp {
      */
     function callbackSetL1Url(Suave.DataId L1KeyId) external {
         _ethL1UrlRecord = L1KeyId;
+    }
+
+    /**
+     * @notice Sets the URL to send bundles to in Suave's confidential storage
+     * @return bytes Encoded data for updating the L1 URL callback
+     */
+    function setBundleUrl() external onlyOwner returns (bytes memory) {
+        require(Suave.isConfidential());
+        bytes memory keyData = Suave.confidentialInputs();
+
+        address[] memory allowedPeekers = new address[](1);
+        allowedPeekers[0] = address(this);
+        address[] memory allowedStores = new address[](1);
+        allowedStores[0] = Suave.ANYALLOWED;
+
+        Suave.DataRecord memory bid = Suave.newDataRecord(
+            10,
+            allowedPeekers,
+            allowedStores,
+            contractNamespace
+        );
+        Suave.confidentialStore(bid.id, KEY_BUNDLE_URL, keyData);
+
+        return
+            abi.encodeWithSelector(this.callbackSetBundleUrl.selector, bid.id);
+    }
+
+    /**
+     * @notice Callback function to update the bundle URL record
+     * @dev To be called as a Confidential Compute Callback
+     * @param bundleKeyId The record ID for the bundle URL
+     */
+    function callbackSetBundleUrl(Suave.DataId bundleKeyId) external {
+        _bundleUrlRecord = bundleKeyId;
     }
 
     /**
@@ -830,5 +874,25 @@ contract AuctionSuapp is IAuctionSuapp {
      */
     function callbackInitLastL1Block(Suave.DataId lastL1BlockKeyId) external {
         _lastBlockProcessedRecord = lastL1BlockKeyId;
+    }
+
+    /**
+     * @notice Helper function to clear out invalid swaps.
+     * @dev Currently the bundle's allowed reverting hashes doesn't work,
+     * need to debug with block builders. Use this funciton to clear out
+     * swaps if they haven't landed in a while.
+     */
+    function _resetSwaps() external onlyOwner returns (bytes memory) {
+        return abi.encodeWithSelector(this.callbackResetSwaps.selector);
+    }
+
+    /**
+     * @notice Callback function to clear the current pending
+     * @dev this should be removed
+     */
+    function callbackResetSwaps() external {
+        delete _nonBidTxns;
+        delete _landed;
+        delete _notLandedButSent;
     }
 }
