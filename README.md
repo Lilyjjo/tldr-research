@@ -79,14 +79,16 @@ This is what a `AuctionSuapp`'s generated bundle looks like:
    ```
 7. Put the outputted deployed address into `solidity_code/.env`.
 8. Initalize the suapp's inital state
-   This command is flakey, run until all 3 CCRs are sent.
+   This command is flakey, run until all CCRs are sent. Recommended to re-build everytime you use the CLI for flakey nonce problems.
    ```
    cd rust_interactions
+   cargo build
    ./target/debug/auction-cli amm-auction initialize-suapp
    ```
 9. Run the block server and watch as `bidder_0` and `swapper_0`'s transactions are eventually included. You can tell successful bundle lands when the used nonce goes up.
    ```
    cd rust_interactions
+   cargo build
    ./target/debug/auction-block-listener
    ```
 
@@ -121,4 +123,7 @@ This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[
 
 ## Future Works
 
-... something something Matheus's verified sequencing rules something something Astria 
+Sandwich attacks, just like LVR, can be partially solved by sequencing rules. The paper [Credible Decentralized Exchange Design via Verifiable Sequencing Rules](https://arxiv.org/abs/2209.15569) lays out rules for ordering swaps which prevent the sequencer from performing sandwich attacks. The idea is that given a starting price, swaps will oscillate around that price until only swaps of one type are left:
+
+![Chart](./solidity_code/assets/v_chart.png?raw=true "Chart")
+
