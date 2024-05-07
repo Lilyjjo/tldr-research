@@ -123,7 +123,18 @@ This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[
 
 ## Future Works
 
+### Anti Sandwiching Rules
+
 Sandwich attacks, just like LVR, can be partially solved by sequencing rules. The paper [Credible Decentralized Exchange Design via Verifiable Sequencing Rules](https://arxiv.org/abs/2209.15569) lays out rules for ordering swaps which prevent the sequencer from performing sandwich attacks. The idea is that given a starting price, swaps will oscillate around that price until only swaps of one type are left:
 
 ![Chart](./solidity_code/assets/v_chart.png?raw=true "Chart")
 
+The bundles created by the `AuctionSuapp.sol` can be customized to order the swaps in a way that is compliant with the rules: 
+
+![Bundle Diagram](./solidity_code/assets/v_bundle.png?raw=true "Bundle Diagram")
+
+Note that in this system, the swappers would also have to deposit into the deposit contract like the bidders. This is because the ordering of the swaps are dependent on each other, if one fails then the other swaps would not be ordered correctly. Suave has transaction simulation APIs written but they do not currently work. 
+
+### Astria
+
+The other major future work is migrating the sequencing rules off of Ethereum and onto a different L1 that offers cleaner sequencing and/or bundle inclusion APIs. In this PoC the AMM's operation is dependent on having MEVBoost's winning Builder include the bundle. It would be better if the L1 natively offered ways for the AMM to express how it'd like to be sequenced. I'm working on building out this capability at [Astria](https://www.astria.org/). 
