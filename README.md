@@ -19,7 +19,7 @@ The auction is built out of three main contract, two on the target EVM chain and
 - `AuctionGuard.sol`: Contract on the target chain that other contracts can call into in order to gate functions to only pass after the auction's conclusion. The `AuctionSuave` calls into this contract in the bundle's first transaction. Winning bid transactions must successfully call one of the gated functions in order to unlock the auction.
 - `AuctionDeposits.sol`: Contract on target chain that bidders must submit deposits to that are at least as big as their bids. The `AuctionGuard` pulls payments from this contract when processing auction results signed by the key in the `AuctionSuave` contract.
 
-The changes to the UniswapV3 pool are minimal (5 lines of code) and are summarized [here](https://github.com/Lilyjjo/tldr-research/tree/main/solidity_code#uniswap-modifications).
+The changes to the UniswapV3 pool are minimal (8 lines of code) and are summarized [here](https://github.com/Lilyjjo/tldr-research/tree/main/solidity_code#uniswap-modifications).
 
 
   
