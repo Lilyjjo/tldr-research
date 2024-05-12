@@ -100,8 +100,8 @@ This repo is different from other<sup>[1](https://arxiv.org/html/2403.03367v1),[
    ```
 
 When running an auction through the rust servers, this is what the output looks like on the happy-path:
-![Auction Running](./solidity_code/assets/auction_running.gif?raw=true "Auction Running")
 
+<img src="./solidity_code/assets/auction_running.gif" alt="Auction Running" loop=infinite>
 
 ## Future Works
 
