@@ -8,7 +8,7 @@ The goal of this repo are:
 
 1. Show that smart contract applications are able to sequence themselves for their own benefit.
 2. Provide proof-of-concept TEE based auction code that is reusable.
-3. Start the conversation on why block builders shouldn't exist and why decentralized applications should be able to control their own sequencing. If you find this interesting and want to chat, DM me on [twitter](https://twitter.com/lobstermindset) :).
+3. Start the conversation on why decentralized applications should be able to control their own sequencing. If you find this interesting and want to chat, DM me on [twitter](https://twitter.com/lobstermindset) :).
 
 ## System Components
 
