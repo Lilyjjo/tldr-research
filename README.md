@@ -1,4 +1,4 @@
-# [TLDR](https://www.tldresear.ch/) Fellowship Project Repo
+# [The Latest in DeFi Research](https://www.tldresear.ch/) Fellowship Project Repo
 
 ## What is this?
 
